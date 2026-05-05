@@ -16,8 +16,8 @@ export default defineConfig(({ command, mode }) => {
         name: 'env-guard',
         buildStart() {
           const errors = []
-          const url = env.VITE_SUPABASE_URL
-          const key = env.VITE_SUPABASE_ANON_KEY
+          const url = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+          const key = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
           if (!url || url === PLACEHOLDER_URL)
             errors.push('VITE_SUPABASE_URL is missing or still a placeholder')
           if (!key || key === PLACEHOLDER_KEY)
