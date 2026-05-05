@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Semantic design tokens ─────────────────────────────────────────────────
+   Light defaults: used by consumer routes and all public pages.
+   .dark overrides: applied by WasherShell (worker routes only).
+   Tailwind resolves bg-surface, text-ink, border-edge, etc. against these.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --color-surface:          #fafafa;
+  --color-surface-elevated: #ffffff;
+  --color-surface-glass:    rgba(255, 255, 255, 0.60);
+  --color-ink:              #171717;
+  --color-ink-muted:        #737373;
+  --color-edge:             #f5f5f5;
+  --color-accent:           #0EA5A4;
+  --color-accent-muted:     rgba(14, 165, 164, 0.12);
+  /* Phase C — glass surface & border */
+  --color-glass-surface:    rgba(255, 255, 255, 0.60);
+  --color-glass-border:     rgba(255, 255, 255, 0.50);
+}
+
+.dark {
+  --color-surface:          #0f1117;
+  --color-surface-elevated: #1a1d27;
+  --color-surface-glass:    rgba(26, 29, 39, 0.72);
+  --color-ink:              #f5f5f5;
+  --color-ink-muted:        #a3a3a3;
+  --color-edge:             #2a2d3a;
+  --color-accent:           #0EA5A4;
+  --color-accent-muted:     rgba(14, 165, 164, 0.18);
+  /* Phase C — glass surface & border (dark) */
+  --color-glass-surface:    rgba(26, 29, 39, 0.50);
+  --color-glass-border:     rgba(255, 255, 255, 0.08);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out both;
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Gradient mesh: three soft teal radials + one warm amber radial.
+     Opacity 10–18% — atmosphere only, glass surfaces sit in front. */
+  .bg-mesh {
+    background-color: var(--color-surface);
+    background-image:
+      radial-gradient(ellipse 70% 60% at  5% 15%, rgba(14, 165, 164, 0.18) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 50% at 90% 10%, rgba(14, 165, 164, 0.14) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 55% at 55% 90%, rgba(14, 165, 164, 0.10) 0%, transparent 65%),
+      radial-gradient(ellipse 45% 40% at 80% 70%, rgba(251, 146, 60,  0.12) 0%, transparent 60%);
+  }
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-neutral-50 text-neutral-900 font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 44px;
+  }
+  .btn-primary {
+    @apply btn bg-primary-500 text-white active:bg-primary-700 hover:bg-primary-600;
+  }
+  .btn-outline {
+    @apply btn border border-primary-500 text-primary-600 active:bg-primary-50 hover:bg-primary-50 dark:text-primary-400 dark:active:bg-accent-muted dark:hover:bg-accent-muted;
+  }
+  .btn-danger {
+    @apply btn bg-danger-500 text-white active:bg-danger-600;
+  }
+  .btn-ghost {
+    @apply btn text-neutral-600 hover:bg-neutral-100 dark:text-ink-muted dark:hover:bg-surface-elevated;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-neutral-100 p-4 dark:bg-surface-elevated dark:border-edge dark:text-ink;
+  }
+  .input {
+    @apply w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:bg-surface-elevated dark:border-edge dark:text-ink dark:placeholder:text-ink-muted dark:focus:ring-accent-muted;
+    min-height: 44px;
+  }
+  .label {
+    @apply block text-sm font-medium text-neutral-700 mb-1 dark:text-ink-muted;
+  }
+  .field-error {
+    @apply text-danger-500 text-xs mt-1;
+  }
+}

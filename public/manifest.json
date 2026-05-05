@@ -1,0 +1,18 @@
+{
+  "name": "SparkleGo",
+  "short_name": "SparkleGo",
+  "description": "Mobile car wash, on demand",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0EA5A4",
+  "theme_color": "#0EA5A4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/sparkle.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
