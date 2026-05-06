@@ -1,26 +1,27 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, XCircle, Loader2, Key, Video, CheckCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import StatusTimeline from '../../components/StatusTimeline.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
+import i18n from '../../i18n/index.js'
 
-const TRANSITIONS = {
-  accepted:    { next: 'en_route',    label: 'Start heading to customer' },
-  en_route:    { next: 'arrived',     label: 'I have arrived' },
-  arrived:     { next: 'in_progress', label: 'Start washing' },
-  in_progress: { next: 'completed',   label: 'Mark as completed' },
+// Translation key maps — evaluated at call time so language switches take effect.
+const TRANSITION_KEYS = {
+  accepted:    { next: 'en_route',    key: 'washer.activeJob.transitions.startHeading' },
+  en_route:    { next: 'arrived',     key: 'washer.activeJob.transitions.arrived' },
+  arrived:     { next: 'in_progress', key: 'washer.activeJob.transitions.startWashing' },
+  in_progress: { next: 'completed',   key: 'washer.activeJob.transitions.markCompleted' },
 }
 
-const ADVANCE_TOASTS = {
-  en_route:    'Heading to the customer',
-  arrived:     'Marked as arrived',
-  in_progress: 'Wash started — do great work!',
+const ADVANCE_TOAST_KEYS = {
+  en_route:    'washer.activeJob.toasts.enRoute',
+  arrived:     'washer.activeJob.toasts.arrived',
+  in_progress: 'washer.activeJob.toasts.inProgress',
 }
-
-// ── Validates video duration asynchronously ───────────────────────────────────
 
 function checkVideoDuration(file) {
   return new Promise((resolve) => {
@@ -28,19 +29,18 @@ function checkVideoDuration(file) {
     video.preload = 'metadata'
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(video.src)
-      resolve(video.duration > 30 ? 'Video must be 30 seconds or less' : null)
+      resolve(video.duration > 30 ? i18n.t('washer.activeJob.videoTooLong') : null)
     }
     video.onerror = () => {
       URL.revokeObjectURL(video.src)
-      resolve('Could not read video file')
+      resolve(i18n.t('washer.activeJob.videoReadError'))
     }
     video.src = URL.createObjectURL(file)
   })
 }
 
-// ── Evidence upload card ──────────────────────────────────────────────────────
-
 function EvidenceCard({ label, path, uploading, error, onRecord }) {
+  const { t } = useTranslation()
   const inputRef = useRef(null)
 
   return (
@@ -49,9 +49,9 @@ function EvidenceCard({ label, path, uploading, error, onRecord }) {
         <p className="text-sm font-semibold">{label}</p>
         {path
           ? <span className="flex items-center gap-1 text-success-600 text-xs font-medium">
-              <CheckCircle className="h-4 w-4" /> Uploaded
+              <CheckCircle className="h-4 w-4" /> {t('washer.activeJob.uploaded')}
             </span>
-          : <span className="text-xs text-danger-500 font-medium">Required</span>
+          : <span className="text-xs text-danger-500 font-medium">{t('washer.activeJob.required')}</span>
         }
       </div>
 
@@ -77,19 +77,18 @@ function EvidenceCard({ label, path, uploading, error, onRecord }) {
         className={`w-full ${path ? 'btn-ghost text-sm' : 'btn-outline text-sm'}`}
       >
         <Video className="h-4 w-4" />
-        {uploading ? 'Uploading…' : path ? 'Replace video' : 'Record video'}
+        {uploading ? t('washer.activeJob.uploading') : path ? t('washer.activeJob.replaceVideo') : t('washer.activeJob.recordVideo')}
       </button>
     </div>
   )
 }
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ActiveJob() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { order, loading } = useRealtimeOrder(id)
   const showToast = useToast()
+  const { t } = useTranslation()
   const [advancing, setAdvancing]     = useState(false)
   const [cancelling, setCancelling]   = useState(false)
   const advancingRef                  = useRef(false)
@@ -97,14 +96,12 @@ export default function ActiveJob() {
   const [uploading, setUploading]     = useState({})
   const [uploadErrors, setUploadErrors] = useState({})
 
-  // ── Video upload ────────────────────────────────────────────────────────────
-
   const FILE_NAMES = { wash: 'wash.mp4', wiper_fluid: 'wiper_fluid.mp4', tire_pressure: 'tire_pressure.mp4' }
   const COLUMNS    = { wash: 'evidence_wash_path', wiper_fluid: 'evidence_wiper_fluid_path', tire_pressure: 'evidence_tire_pressure_path' }
 
   async function uploadEvidence(type, file) {
     if (file.size > 50 * 1024 * 1024) {
-      setUploadErrors(e => ({ ...e, [type]: 'Video must be under 50 MB' }))
+      setUploadErrors(e => ({ ...e, [type]: t('washer.activeJob.videoTooLarge') }))
       return
     }
     const durationError = await checkVideoDuration(file)
@@ -136,27 +133,25 @@ export default function ActiveJob() {
     setUploading(u => ({ ...u, [type]: false }))
   }
 
-  // ── Status transitions ──────────────────────────────────────────────────────
-
   async function advanceStatus() {
     if (advancingRef.current) return
-    const nextStatus = TRANSITIONS[order.status]?.next
-    if (!nextStatus) return
+    const trans = order ? TRANSITION_KEYS[order.status] : null
+    if (!trans) return
     advancingRef.current = true
     setAdvancing(true)
-    const { error } = await supabase.rpc('transition_order_status', { order_id: id, new_status: nextStatus })
+    const { error } = await supabase.rpc('transition_order_status', { order_id: id, new_status: trans.next })
     advancingRef.current = false
     setAdvancing(false)
     if (error) {
-      // duplicate tap that already succeeded — realtime will update the UI
       if (error.message?.match(/Invalid transition: (\S+) → \1/)) return
       showToast(error.message, 'error')
       return
     }
-    if (nextStatus === 'completed') {
+    if (trans.next === 'completed') {
       navigate('/washer')
     } else {
-      showToast(ADVANCE_TOASTS[nextStatus] ?? 'Status updated', 'success')
+      const toastKey = ADVANCE_TOAST_KEYS[trans.next]
+      showToast(toastKey ? t(toastKey) : t('washer.activeJob.statusUpdated'), 'success')
     }
   }
 
@@ -179,10 +174,8 @@ export default function ActiveJob() {
     </PageShell>
   )
 
-  // ── Derived state ───────────────────────────────────────────────────────────
-
-  const transition = order ? TRANSITIONS[order.status] : null
-  const isCompleting = transition?.next === 'completed'
+  const trans = order ? TRANSITION_KEYS[order.status] : null
+  const isCompleting = trans?.next === 'completed'
 
   const canComplete = order && (
     order.evidence_wash_path != null &&
@@ -199,12 +192,12 @@ export default function ActiveJob() {
   return (
     <PageShell noNav>
       <div className="px-5 pt-6 pb-8 flex flex-col gap-5">
-        <button onClick={() => navigate('/washer')} className="flex items-center gap-2 text-ink-muted text-sm -ml-1">
-          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> Dashboard
+        <button onClick={() => navigate('/washer')} className="flex items-center gap-2 text-ink-muted text-sm -ms-1">
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('washer.activeJob.back')}
         </button>
 
         <div>
-          <h1 className="text-xl font-bold">Active job</h1>
+          <h1 className="text-xl font-bold">{t('washer.activeJob.title')}</h1>
           <p className="text-xs text-ink-muted mt-0.5">#{id?.slice(0, 8)}</p>
         </div>
 
@@ -215,7 +208,7 @@ export default function ActiveJob() {
               <div className="card bg-primary-50 dark:bg-accent-muted border border-primary-200 dark:border-accent/20">
                 <div className="flex items-center gap-2 mb-1">
                   <Key className="h-4 w-4 text-primary-500 dark:text-accent" />
-                  <p className="text-sm font-semibold text-primary-700 dark:text-accent">Access instructions</p>
+                  <p className="text-sm font-semibold text-primary-700 dark:text-accent">{t('washer.activeJob.accessInstructions')}</p>
                 </div>
                 <p className="text-sm text-primary-800 dark:text-ink">{order.key_location}</p>
               </div>
@@ -224,7 +217,7 @@ export default function ActiveJob() {
               <div className="card dark:bg-surface-elevated">
                 <div className="flex items-center gap-2">
                   <Key className="h-4 w-4 text-neutral-300 dark:text-edge" />
-                  <p className="text-sm text-neutral-400 dark:text-ink-muted">No special access notes — meet the customer at the location.</p>
+                  <p className="text-sm text-neutral-400 dark:text-ink-muted">{t('washer.activeJob.noAccessNotes')}</p>
                 </div>
               </div>
             )
@@ -240,10 +233,10 @@ export default function ActiveJob() {
         {/* Evidence section — only shown when in_progress */}
         {order?.status === 'in_progress' && (
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-semibold text-ink">Upload evidence</p>
+            <p className="text-sm font-semibold text-ink">{t('washer.activeJob.uploadEvidence')}</p>
 
             <EvidenceCard
-              label="Wash video (required)"
+              label={t('washer.activeJob.washVideo')}
               path={order.evidence_wash_path}
               uploading={!!uploading.wash}
               error={uploadErrors.wash}
@@ -252,7 +245,7 @@ export default function ActiveJob() {
 
             {order.addon_wiper_fluid && (
               <EvidenceCard
-                label="💧 Wiper fluid refill"
+                label={t('washer.activeJob.wiperFluidEvidence')}
                 path={order.evidence_wiper_fluid_path}
                 uploading={!!uploading.wiper_fluid}
                 error={uploadErrors.wiper_fluid}
@@ -262,7 +255,7 @@ export default function ActiveJob() {
 
             {order.addon_tire_pressure && (
               <EvidenceCard
-                label="🛞 Tire pressure check"
+                label={t('washer.activeJob.tirePressureEvidence')}
                 path={order.evidence_tire_pressure_path}
                 uploading={!!uploading.tire_pressure}
                 error={uploadErrors.tire_pressure}
@@ -274,7 +267,7 @@ export default function ActiveJob() {
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-auto">
-          {transition && (
+          {trans && (
             <>
               <button
                 onClick={advanceStatus}
@@ -282,12 +275,12 @@ export default function ActiveJob() {
                 className="btn-primary"
               >
                 {advancing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4 rtl:rotate-180" />}
-                {advancing ? 'Updating…' : transition.label}
+                {advancing ? t('washer.activeJob.updating') : t(trans.key)}
               </button>
 
               {isCompleting && !canComplete && (
                 <p className="text-xs text-center text-ink-muted px-2">
-                  Upload required: {missingEvidence.join(', ')}
+                  {t('washer.activeJob.uploadRequired', { items: missingEvidence.join(', ') })}
                 </p>
               )}
             </>
@@ -296,13 +289,13 @@ export default function ActiveJob() {
           {order?.status === 'accepted' && (
             <button onClick={cancelJob} disabled={cancelling} className="btn-ghost text-danger-500 hover:bg-danger-50">
               <XCircle className="h-4 w-4" />
-              {cancelling ? 'Cancelling…' : 'Cancel job'}
+              {cancelling ? t('washer.activeJob.cancelling') : t('washer.activeJob.cancelJob')}
             </button>
           )}
 
           {order?.status === 'completed' && (
             <div className="card bg-success-50 border-success-500 text-center">
-              <p className="font-semibold text-success-600">Job complete — great work!</p>
+              <p className="font-semibold text-success-600">{t('washer.activeJob.completed')}</p>
             </div>
           )}
         </div>

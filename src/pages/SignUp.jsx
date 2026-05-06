@@ -5,18 +5,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Droplets, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation, Trans } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
 const schema = z.object({
-  fullName:        z.string().min(2, 'Name must be at least 2 characters'),
-  email:           z.string().email('Enter a valid email'),
-  password:        z.string().min(8, 'Password must be at least 8 characters'),
+  fullName:        z.string().min(2),
+  email:           z.string().email(),
+  password:        z.string().min(8),
   confirmPassword: z.string(),
   role:            z.enum(['consumer', 'washer']),
 }).refine(d => d.password === d.confirmPassword, {
-  message: "Passwords don't match",
+  message: 'validation.passwordsDoNotMatch',
   path: ['confirmPassword'],
 })
 
@@ -34,6 +35,7 @@ const itemVariants = {
 export default function SignUp() {
   const navigate = useNavigate()
   const { signUp } = useAuth()
+  const { t } = useTranslation()
   const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [serverError, setServerError] = useState('')
@@ -69,14 +71,17 @@ export default function SignUp() {
             <MailCheck className="h-12 w-12 text-primary-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold mb-2">Check your email</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('signup.checkEmail')}</h1>
             <p className="text-neutral-500 text-sm max-w-xs">
-              We sent a confirmation link to <strong>{sentTo}</strong>.
-              Click it to activate your account, then sign in.
+              <Trans
+                i18nKey="signup.confirmationSent"
+                values={{ email: sentTo }}
+                components={{ bold: <strong /> }}
+              />
             </p>
           </div>
           <Link to="/login" className="text-primary-600 font-medium text-sm">
-            Back to sign in
+            {t('signup.backToSignIn')}
           </Link>
         </GlassCard>
       </div>
@@ -103,27 +108,26 @@ export default function SignUp() {
         <motion.div variants={itemVariants}>
           <GlassCard className="p-6 flex flex-col gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Create account</h1>
-              <p className="text-neutral-500 text-sm mt-0.5">Join the SparkleGo network</p>
+              <h1 className="text-2xl font-bold text-neutral-900">{t('signup.title')}</h1>
+              <p className="text-neutral-500 text-sm mt-0.5">{t('signup.subtitle')}</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
               {/* Role picker with layoutId morphing pill */}
               <div>
-                <label className="label">I am a…</label>
+                <label className="label">{t('signup.iAmA')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { value: 'consumer', label: "I'm a customer" },
-                    { value: 'washer',   label: "I'm a washer"   },
+                    { value: 'consumer', label: t('signup.customer') },
+                    { value: 'washer',   label: t('signup.washer')   },
                   ].map(opt => (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => setValue('role', opt.value, { shouldValidate: true })}
-                      className="relative flex items-center gap-2 rounded-xl border border-neutral-200 p-3 cursor-pointer overflow-hidden text-left"
+                      className="relative flex items-center gap-2 rounded-xl border border-neutral-200 p-3 cursor-pointer overflow-hidden text-start"
                       style={{ minHeight: 44 }}
                     >
-                      {/* Morphing selection background */}
                       {selectedRole === opt.value && (
                         <motion.div
                           layoutId="role-selector-pill"
@@ -137,7 +141,6 @@ export default function SignUp() {
                     </button>
                   ))}
                 </div>
-                {/* Hidden radio inputs keep react-hook-form registration intact */}
                 <div className="sr-only">
                   <input type="radio" value="consumer" {...register('role')} />
                   <input type="radio" value="washer"   {...register('role')} />
@@ -146,30 +149,30 @@ export default function SignUp() {
 
               {/* Full name */}
               <div>
-                <label className="label">Full name</label>
-                <input className="input" placeholder="Avi Cohen" {...register('fullName')} />
+                <label className="label">{t('signup.fullName')}</label>
+                <input className="input" placeholder={t('signup.fullNamePlaceholder')} {...register('fullName')} />
                 {errors.fullName && <p className="field-error">{errors.fullName.message}</p>}
               </div>
 
               {/* Email */}
               <div>
-                <label className="label">Email</label>
-                <input className="input" type="email" placeholder="you@example.com" {...register('email')} />
+                <label className="label">{t('auth.email')}</label>
+                <input className="input" type="email" placeholder={t('auth.emailPlaceholder')} {...register('email')} />
                 {errors.email && <p className="field-error">{errors.email.message}</p>}
               </div>
 
               {/* Password */}
               <div>
-                <label className="label">Password</label>
+                <label className="label">{t('auth.password')}</label>
                 <div className="relative">
                   <input
-                    className="input pr-10"
+                    className="input pe-10"
                     type={showPw ? 'text' : 'password'}
-                    placeholder="8+ characters"
+                    placeholder={t('signup.passwordPlaceholder')}
                     {...register('password')}
                   />
                   <button type="button" onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-neutral-400">
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -178,16 +181,16 @@ export default function SignUp() {
 
               {/* Confirm password */}
               <div>
-                <label className="label">Confirm password</label>
+                <label className="label">{t('signup.confirmPassword')}</label>
                 <div className="relative">
                   <input
-                    className="input pr-10"
+                    className="input pe-10"
                     type={showConfirm ? 'text' : 'password'}
-                    placeholder="Repeat your password"
+                    placeholder={t('signup.confirmPasswordPlaceholder')}
                     {...register('confirmPassword')}
                   />
                   <button type="button" onClick={() => setShowConfirm(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-neutral-400">
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -199,15 +202,15 @@ export default function SignUp() {
               )}
 
               <MotionButton type="submit" disabled={isSubmitting} className="btn-primary mt-1">
-                {isSubmitting ? 'Creating account…' : 'Create account'}
+                {isSubmitting ? t('signup.creatingAccount') : t('signup.title')}
               </MotionButton>
             </form>
           </GlassCard>
         </motion.div>
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
-          Already have an account?{' '}
-          <Link to="/login" className="text-primary-600 font-medium">Sign in</Link>
+          {t('auth.alreadyHaveAccount')}{' '}
+          <Link to="/login" className="text-primary-600 font-medium">{t('auth.signIn')}</Link>
         </motion.p>
       </motion.div>
     </div>

@@ -14,6 +14,14 @@ function haversineKm(p1, p2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+// iOS Safari silently denies geolocation unless called from a synchronous user gesture.
+// Detect once at module level so the check is free on every call.
+export const isIOSSafari =
+  typeof navigator !== 'undefined' &&
+  /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+  /Safari/.test(navigator.userAgent) &&
+  !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent)
+
 // useGeolocation({ watch: false })
 //
 // Default (watch: false) — one-shot getCurrentPosition. Existing callers unchanged.
@@ -22,16 +30,35 @@ function haversineKm(p1, p2) {
 //   First position always emits immediately (no cold-start delay).
 //   Cleans up the watcher on unmount.
 //
-// Returns { position: { lat, lng } | null, error: string | null, loading: boolean }
+// iOS Safari gate: on mount the hook stays idle (permissionState: 'idle', no auto-request).
+// Call requestPermission() from a tap handler to start the request. iOS will then show
+// the system prompt because the call originates from a synchronous user gesture.
+// All other platforms (Capacitor native, Android, desktop) auto-request on mount.
+//
+// Returns { position, error, loading, permissionState, requestPermission }
+//   permissionState: 'idle' | 'prompting' | 'granted' | 'denied'
 export function useGeolocation({ watch = false } = {}) {
   const [position, setPosition] = useState(null)
   const [error, setError]       = useState(null)
-  const [loading, setLoading]   = useState(true)
+  // Don't start in loading state on iOS Safari — nothing is happening yet.
+  const [loading, setLoading]   = useState(!isIOSSafari)
+  const [permissionState, setPermissionState] = useState(isIOSSafari ? 'idle' : 'prompting')
+  // enabled starts false on iOS Safari; requestPermission() flips it true.
+  const [enabled, setEnabled]   = useState(!isIOSSafari)
 
-  // Throttle state stored in a ref (not React state) to avoid spurious re-renders.
+  // Throttle state in a ref to avoid spurious re-renders.
   const throttle = useRef({ lastTime: 0, lastPos: null })
 
+  function requestPermission() {
+    if (enabled) return // already triggered
+    setLoading(true)
+    setPermissionState('prompting')
+    setEnabled(true)
+  }
+
   useEffect(() => {
+    if (!enabled) return // iOS Safari idle — wait for requestPermission()
+
     let cancelled  = false
     let cleanedUp  = false
 
@@ -50,6 +77,7 @@ export function useGeolocation({ watch = false } = {}) {
         t.lastPos  = newPos
         setPosition(newPos)
         setLoading(false)
+        setPermissionState('granted')
       }
     }
 
@@ -57,10 +85,11 @@ export function useGeolocation({ watch = false } = {}) {
       if (cancelled) return
       setError(msg)
       setLoading(false)
+      setPermissionState('denied')
     }
 
     if (!watch) {
-      // ── One-shot mode (existing behaviour, unchanged) ────────────────────────
+      // ── One-shot mode ────────────────────────────────────────────────────────
       if (Capacitor.isNativePlatform()) {
         Geolocation.getCurrentPosition(options)
           .then(p => applyPosition(p.coords.latitude, p.coords.longitude))
@@ -112,7 +141,7 @@ export function useGeolocation({ watch = false } = {}) {
         navigator.geolocation.clearWatch(watchId)
       }
     }
-  }, [watch])
+  }, [watch, enabled])
 
-  return { position, error, loading }
+  return { position, error, loading, permissionState, requestPermission }
 }

@@ -2,22 +2,22 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { MapPin, Clock, User, ArrowLeft } from 'lucide-react'
 import { motion, LayoutGroup } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
-
-const consumerLinks = [
-  { to: '/home',    icon: MapPin,  label: 'Book'    },
-  { to: '/history', icon: Clock,   label: 'Orders'  },
-  { to: '/profile', icon: User,    label: 'Profile' },
-]
 
 export default function BottomNav() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
+  const { t }       = useTranslation()
   const isWasher    = profile?.role === 'washer'
 
-  // Washer pages now navigate via the slide-out WasherMenu.
-  // BottomNav on washer pages is a single "Back to Jobs" button that returns to Dashboard.
+  const consumerLinks = [
+    { to: '/home',    icon: MapPin,  label: t('nav.book')    },
+    { to: '/history', icon: Clock,   label: t('nav.orders')  },
+    { to: '/profile', icon: User,    label: t('nav.profile') },
+  ]
+
   if (isWasher) {
     return (
       <nav
@@ -29,13 +29,12 @@ export default function BottomNav() {
           className="flex items-center gap-2 py-3 px-5 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
         >
           <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-          Back to Jobs
+          {t('nav.backToJobs')}
         </button>
       </nav>
     )
   }
 
-  // Consumer: unchanged three-tab glass nav bar.
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 flex safe-bottom bg-glass backdrop-blur-xl border-t border-glass-border">
       <LayoutGroup id="consumer-nav">

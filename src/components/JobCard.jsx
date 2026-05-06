@@ -2,26 +2,27 @@ import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import { Car, MapPin, Clock, GripHorizontal } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useReverseGeocode } from '../lib/geocode.js'
 
-const CAR_LABELS     = { sedan: 'Sedan', suv: 'SUV', pickup: 'Pickup', van: 'Van' }
-const SERVICE_LABELS = { exterior: 'Exterior', interior: 'Interior', full: 'Full Wash' }
-
 const SPRING         = { type: 'spring', stiffness: 400, damping: 35 }
-const SWIPE_VELOCITY = 500   // px/s
-const SWIPE_RATIO    = 0.4   // fraction of card width
+const SWIPE_VELOCITY = 500
+const SWIPE_RATIO    = 0.4
 
-// Swipeable bento tile. Horizontal drag past threshold or velocity flick
-// navigates to JobDetail. Below threshold springs back to rest.
-// highlight: when true, pulses a teal ring (driven by Dashboard pin-tap sync).
 export default function JobCard({ job, onClick, highlight = false }) {
   const navigate     = useNavigate()
   const containerRef = useRef(null)
   const x            = useMotionValue(0)
   const { address }  = useReverseGeocode(job.lat, job.lng)
+  const { t, i18n }  = useTranslation()
 
   const distKm   = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
-  const ariaLabel = `Job: ${CAR_LABELS[job.car_type]} ${SERVICE_LABELS[job.service_type]}, ${distKm} km away, ₪${job.base_price}`
+  const ariaLabel = t('washer.jobCard.ariaLabel', {
+    car:      t(`carLabels.${job.car_type}`),
+    service:  t(`serviceLabels.${job.service_type}`),
+    distance: distKm,
+    price:    job.base_price,
+  })
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -77,7 +78,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
             <Car className="h-4 w-4 text-accent" />
           </span>
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-surface-elevated border border-edge text-ink-muted">
-            {SERVICE_LABELS[job.service_type]}
+            {t(`serviceLabels.${job.service_type}`)}
           </span>
         </div>
         <GripHorizontal className="h-4 w-4 text-ink-muted/40 shrink-0" />
@@ -88,7 +89,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
         <p className="text-2xl font-bold text-accent leading-none">
           ₪{job.base_price}
         </p>
-        <p className="text-xs text-ink-muted mt-0.5">{CAR_LABELS[job.car_type]}</p>
+        <p className="text-xs text-ink-muted mt-0.5">{t(`carLabels.${job.car_type}`)}</p>
       </div>
 
       {/* Row 3: geocoded address */}
@@ -103,11 +104,11 @@ export default function JobCard({ job, onClick, highlight = false }) {
       <div className="flex items-center gap-4 text-xs text-ink-muted">
         <span className="flex items-center gap-1">
           <MapPin className="h-3.5 w-3.5" />
-          {distKm} km
+          {distKm} {t('common.km')}
         </span>
         <span className="flex items-center gap-1">
           <Clock className="h-3.5 w-3.5" />
-          {new Date(job.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(job.created_at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
     </motion.div>

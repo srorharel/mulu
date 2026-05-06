@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import { MoonStar, Sparkles, ChevronRight, Loader2, ExternalLink, Car, MapPin, DollarSign } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { JobCardSkeleton } from '../Skeleton.jsx'
 import JobCard from '../JobCard.jsx'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
@@ -9,18 +10,16 @@ import { useReverseGeocode } from '../../lib/geocode.js'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
 
-const SPRING      = { type: 'spring', stiffness: 300, damping: 32 }
+const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
-const BOTTOM_NAV_H = 56
+const BOTTOM_NAV_H  = 56
 
-const CAR_LABELS     = { sedan: 'Sedan', suv: 'SUV', pickup: 'Pickup', van: 'Van' }
-const SERVICE_LABELS = { exterior: 'Exterior', interior: 'Interior', full: 'Full Wash' }
-
-const TRANSITIONS = {
-  accepted:    { next: 'en_route',    label: 'Start drive' },
-  en_route:    { next: 'arrived',     label: 'Mark arrived' },
-  arrived:     { next: 'in_progress', label: 'Start work' },
-  in_progress: { next: 'completed',   label: 'Complete' },
+// Transition key map for inline panel quick actions
+const TRANSITION_KEYS = {
+  accepted:    { next: 'en_route',    key: 'washer.drawer.transitions.startDrive'   },
+  en_route:    { next: 'arrived',     key: 'washer.drawer.transitions.markArrived'  },
+  arrived:     { next: 'in_progress', key: 'washer.drawer.transitions.startWork'    },
+  in_progress: { next: 'completed',   key: 'washer.drawer.transitions.complete'     },
 }
 
 function getSnaps() {
@@ -36,20 +35,18 @@ function getSnaps() {
   }
 }
 
-// ── Inline slide toggle ───────────────────────────────────────────────────────
-
 function SlideToggle({ online, onToggle, toggling }) {
+  const { t } = useTranslation()
   return (
     <button
       onClick={onToggle}
       disabled={toggling}
-      aria-label="Toggle online status"
+      aria-label={t('washer.toggle.ariaLabel')}
       className="flex items-center gap-2 shrink-0"
     >
       <span className={`text-xs font-medium ${online ? 'text-accent' : 'text-ink-muted'}`}>
-        {toggling ? '…' : online ? 'Online' : 'Offline'}
+        {toggling ? '…' : online ? t('washer.toggle.online') : t('washer.toggle.offline')}
       </span>
-      {/* Track */}
       <motion.div
         className="relative w-11 h-6 rounded-full border"
         animate={{
@@ -58,7 +55,6 @@ function SlideToggle({ online, onToggle, toggling }) {
         }}
         transition={TOGGLE_SPRING}
       >
-        {/* Thumb */}
         <motion.div
           className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow-md"
           animate={{
@@ -72,11 +68,10 @@ function SlideToggle({ online, onToggle, toggling }) {
   )
 }
 
-// ── Active-job inline panel ───────────────────────────────────────────────────
-
 function ActiveJobPanel({ activeJob }) {
   const navigate  = useNavigate()
   const showToast = useToast()
+  const { t }     = useTranslation()
   const { order } = useRealtimeOrder(activeJob?.id)
   const { address } = useReverseGeocode(activeJob?.lat, activeJob?.lng)
   const [advancing, setAdvancing] = useState(false)
@@ -84,13 +79,13 @@ function ActiveJobPanel({ activeJob }) {
 
   async function advance() {
     if (advancingRef.current || !order) return
-    const nextStatus = TRANSITIONS[order.status]?.next
-    if (!nextStatus) return
+    const trans = TRANSITION_KEYS[order.status]
+    if (!trans) return
     advancingRef.current = true
     setAdvancing(true)
     const { error } = await supabase.rpc('transition_order_status', {
       order_id: activeJob.id,
-      new_status: nextStatus,
+      new_status: trans.next,
     })
     advancingRef.current = false
     setAdvancing(false)
@@ -101,13 +96,12 @@ function ActiveJobPanel({ activeJob }) {
     }
   }
 
-  const transition = order ? TRANSITIONS[order.status] : null
+  const trans = order ? TRANSITION_KEYS[order.status] : null
 
   return (
     <div className="flex flex-col gap-3 px-4 pb-4">
       {order ? (
         <>
-          {/* Key details */}
           <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-muted shrink-0">
@@ -115,9 +109,9 @@ function ActiveJobPanel({ activeJob }) {
               </span>
               <div>
                 <p className="text-sm font-semibold text-ink">
-                  {CAR_LABELS[order.car_type]} — {SERVICE_LABELS[order.service_type]}
+                  {t(`carLabels.${order.car_type}`)} — {t(`serviceLabels.${order.service_type}`)}
                 </p>
-                <p className="text-xs text-ink-muted">₪{order.base_price} payout</p>
+                <p className="text-xs text-ink-muted">{t('washer.jobDetail.payout', { amount: order.base_price })}</p>
               </div>
             </div>
 
@@ -128,12 +122,11 @@ function ActiveJobPanel({ activeJob }) {
 
             <div className="flex items-center gap-2 text-xs text-ink-muted">
               <DollarSign className="h-3.5 w-3.5 shrink-0" />
-              <span>Customer pays ₪{order.total_price}</span>
+              <span>{t('washer.drawer.customerPays', { amount: order.total_price })}</span>
             </div>
           </div>
 
-          {/* Transition button */}
-          {transition && (
+          {trans && (
             <button
               onClick={advance}
               disabled={advancing}
@@ -143,17 +136,16 @@ function ActiveJobPanel({ activeJob }) {
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <ChevronRight className="h-4 w-4 rtl:rotate-180" />
               }
-              {advancing ? 'Updating…' : transition.label}
+              {advancing ? t('washer.drawer.updating') : t(trans.key)}
             </button>
           )}
 
-          {/* Deep-dive link */}
           <button
             onClick={() => navigate(`/washer/active/${activeJob.id}`)}
             className="btn-ghost text-sm w-full"
           >
             <ExternalLink className="h-4 w-4" />
-            Manage job
+            {t('washer.drawer.manageJob')}
           </button>
         </>
       ) : (
@@ -165,24 +157,14 @@ function ActiveJobPanel({ activeJob }) {
   )
 }
 
-// ── JobDrawer ─────────────────────────────────────────────────────────────────
-// Props:
-//   jobs          array of nearby pending job objects
-//   loading       boolean
-//   selectedJobId string | null — when set, drawer snaps to default and scrolls to card
-//   online        boolean
-//   onToggle      () => void — called when the slide toggle is tapped
-//   toggling      boolean — disables the toggle while in-flight
-//   activeJob     { id, lat, lng } | null — when set, body shows active-job panel
-
 export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob }) {
   const navigate = useNavigate()
+  const { t }    = useTranslation()
   const snaps    = useRef(getSnaps())
   const y        = useMotionValue(snaps.current.default)
   const listRef  = useRef(null)
   const cardRefs = useRef({})
 
-  // Snap to default when a job pin is tapped
   useEffect(() => {
     if (!selectedJobId) return
     animate(y, snaps.current.default, SPRING)
@@ -193,7 +175,6 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
     return () => clearTimeout(timer)
   }, [selectedJobId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-expand to default when an active job appears
   useEffect(() => {
     if (!activeJob) return
     animate(y, snaps.current.default, SPRING)
@@ -217,8 +198,8 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
 
   const { expandedH, collapsed } = snaps.current
 
-  const isActive = !!activeJob
-  const drawerTitle = isActive ? 'Active job' : 'Jobs nearby'
+  const isActive    = !!activeJob
+  const drawerTitle = isActive ? t('washer.drawer.activeJob') : t('washer.drawer.jobsNearby')
 
   return (
     <motion.div
@@ -229,29 +210,29 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
       onDragEnd={onDragEnd}
       className="fixed inset-x-0 z-30 flex flex-col bg-glass border-t border-glass-border backdrop-blur-xl rounded-t-3xl"
     >
-      {/* ── Drag handle ─────────────────────────────────────────────── */}
+      {/* Drag handle */}
       <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing touch-none">
         <div className="w-9 h-1 bg-neutral-400/40 rounded-full" />
       </div>
 
-      {/* ── Header row: title + toggle ──────────────────────────────── */}
+      {/* Header row: title + toggle */}
       <div className="px-4 pb-3 shrink-0 flex items-center justify-between gap-3">
         <div className="flex flex-col gap-0.5 min-w-0">
           <p className="text-base font-bold text-ink leading-tight">{drawerTitle}</p>
-          {/* Subtitle / count line */}
           {!isActive && online && !loading && jobs.length > 0 && (
-            <p className="text-xs text-ink-muted">{jobs.length} job{jobs.length !== 1 ? 's' : ''} nearby</p>
+            <p className="text-xs text-ink-muted">
+              {t('washer.drawer.jobsNearbyCount', { count: jobs.length })}
+            </p>
           )}
           {!isActive && loading && (
-            <p className="text-xs text-ink-muted">Looking for jobs…</p>
+            <p className="text-xs text-ink-muted">{t('washer.drawer.lookingForJobs')}</p>
           )}
         </div>
         <SlideToggle online={online} onToggle={onToggle} toggling={toggling} />
       </div>
 
-      {/* ── Body ────────────────────────────────────────────────────── */}
+      {/* Body */}
       {isActive ? (
-        // Active job: inline panel, scrollable
         <div
           className="flex-1 overflow-y-auto"
           onPointerDown={e => e.stopPropagation()}
@@ -259,7 +240,6 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
           <ActiveJobPanel activeJob={activeJob} />
         </div>
       ) : (
-        // Job list / empty states
         <div
           ref={listRef}
           className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-3"
@@ -273,25 +253,22 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
             </>
           )}
 
-          {/* Offline empty state */}
           {!loading && !online && (
             <div className="flex flex-col items-center gap-3 pt-10 text-center">
               <MoonStar className="h-9 w-9 text-ink-muted/50" />
-              <p className="text-sm font-semibold text-ink">Go online to see nearby jobs</p>
-              <p className="text-xs text-ink-muted/70">Flip the switch above when you're ready to work.</p>
+              <p className="text-sm font-semibold text-ink">{t('washer.drawer.goOnline')}</p>
+              <p className="text-xs text-ink-muted/70">{t('washer.drawer.goOnlineHint')}</p>
             </div>
           )}
 
-          {/* Online, no jobs */}
           {!loading && online && jobs.length === 0 && (
             <div className="flex flex-col items-center gap-3 pt-10 text-center">
               <Sparkles className="h-9 w-9 text-ink-muted/50" />
-              <p className="text-sm font-semibold text-ink">No jobs around you currently</p>
-              <p className="text-xs text-ink-muted/70">We'll notify you when one comes in.</p>
+              <p className="text-sm font-semibold text-ink">{t('washer.drawer.noJobs')}</p>
+              <p className="text-xs text-ink-muted/70">{t('washer.drawer.noJobsHint')}</p>
             </div>
           )}
 
-          {/* Job list */}
           {jobs.map(job => (
             <div
               key={job.id}

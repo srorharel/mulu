@@ -1,0 +1,341 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "signOut": "Sign out",
+    "online": "Online",
+    "offline": "Offline",
+    "updating": "Updating…",
+    "cancelling": "Cancelling…",
+    "uploading": "Uploading…",
+    "km": "km"
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "welcomeBack": "Welcome back",
+    "signInToAccount": "Sign in to your account",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordSoon": "Coming soon",
+    "newToSparkleGo": "New to SparkleGo?",
+    "createAccount": "Create account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "emailNotConfirmed": "Email not confirmed — check your inbox and click the link we sent you",
+      "networkError": "Network error — check your connection and try again"
+    }
+  },
+  "signup": {
+    "title": "Create account",
+    "subtitle": "Join the SparkleGo network",
+    "iAmA": "I am a…",
+    "customer": "I'm a customer",
+    "washer": "I'm a washer",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Avi Cohen",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Repeat your password",
+    "passwordPlaceholder": "8+ characters",
+    "creatingAccount": "Creating account…",
+    "checkEmail": "Check your email",
+    "confirmationSent": "We sent a confirmation link to <bold>{{email}}</bold>. Click it to activate your account, then sign in.",
+    "backToSignIn": "Back to sign in"
+  },
+  "profile": {
+    "title": "Your profile",
+    "email": "Email",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "phonePlaceholder": "050-0000000",
+    "equipmentNotes": "Equipment notes",
+    "equipmentNotesPlaceholder": "e.g. pressure washer, foam cannon, microfibre cloths",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "signOut": "Sign out",
+    "updated": "Profile updated"
+  },
+  "consumer": {
+    "home": {
+      "title": "Book a wash",
+      "yourLocation": "Your location",
+      "tapToSetLocation": "Tap to set location",
+      "locationError": "Couldn't get your location — tap above to set it manually",
+      "tapToAdjust": "Tap to adjust pin",
+      "allowLocation": "Or allow location access for auto-detect",
+      "carType": "Car type",
+      "service": "Service",
+      "keyLocation": "Key location",
+      "optional": "(optional)",
+      "keyLocationPlaceholder": "e.g. At the front desk, in the electric cabinet, leave keys with doorman",
+      "keyLocationHint": "Only your washer will see this, after they accept the job.",
+      "siteResources": "What's available at the location?",
+      "waterAccessible": "Water tap accessible",
+      "powerAccessible": "Power outlet accessible",
+      "siteResourcesHint": "This helps the washer know what to bring.",
+      "addons": "Add-ons",
+      "wiperFluidRefill": "Wiper Fluid Refill",
+      "tirePressureCheck": "Tire Pressure Check",
+      "serviceLine": "Service",
+      "platformFee": "Platform fee (15%)",
+      "total": "Total",
+      "bookNow": "Book Now",
+      "booking": "Booking…",
+      "locationRequired": "Please allow location or tap \"Choose location\" to set your pin",
+      "bookingSuccess": "Your wash is booked! Looking for a washer…",
+      "locationPrompt": {
+        "title": "Enable location",
+        "body": "Allow location access to auto-detect your address.",
+        "button": "Enable location"
+      },
+      "locationDenied": {
+        "title": "Location access denied",
+        "body": "Enable location in Settings → Safari → Location Services for this site."
+      }
+    },
+    "tracking": {
+      "title": "Order status",
+      "back": "Back",
+      "cancelled": "Order cancelled",
+      "completed": "Your car is sparkling clean!",
+      "cancelOrder": "Cancel order",
+      "cancelling": "Cancelling…",
+      "total": "total",
+      "orderNotFound": "Order not found"
+    },
+    "history": {
+      "title": "My Orders",
+      "empty": "No washes yet",
+      "emptyDesc": "Book your first on-demand car wash — it takes under a minute.",
+      "bookNow": "Book a wash"
+    }
+  },
+  "washer": {
+    "dashboard": {
+      "gpsRequired": "Enable GPS and try again — location is required to go online",
+      "openMenu": "Open menu",
+      "locationPrompt": {
+        "title": "Enable location",
+        "body": "We need your location to show nearby jobs and route you to customers.",
+        "button": "Enable location"
+      },
+      "locationDenied": {
+        "title": "Location access denied",
+        "body": "Enable location in Settings → Safari → Location Services for this site."
+      }
+    },
+    "jobCard": {
+      "ariaLabel": "Job: {{car}} {{service}}, {{distance}} km away, ₪{{price}}"
+    },
+    "jobDetail": {
+      "title": "Job details",
+      "back": "Back",
+      "addons": "Add-ons",
+      "wiperFluid": "💧 Wiper Fluid",
+      "tirePressure": "🛞 Tire Pressure",
+      "payout": "₪{{amount}} payout",
+      "customerPays": "Customer pays ₪{{amount}} incl. platform fee",
+      "siteResources": "Site resources",
+      "waterAvailable": "Water available",
+      "noWater": "No water",
+      "powerAvailable": "Power available",
+      "ownPower": "Bring own power",
+      "accessHidden": "Access instructions revealed after accepting.",
+      "unavailable": "This job is no longer available",
+      "acceptJob": "Accept Job",
+      "accepting": "Accepting…",
+      "notFound": "Job not found",
+      "accepted": "Job accepted — let's go!"
+    },
+    "activeJob": {
+      "title": "Active job",
+      "back": "Dashboard",
+      "accessInstructions": "Access instructions",
+      "noAccessNotes": "No special access notes — meet the customer at the location.",
+      "uploadEvidence": "Upload evidence",
+      "washVideo": "Wash video (required)",
+      "wiperFluidEvidence": "💧 Wiper fluid refill",
+      "tirePressureEvidence": "🛞 Tire pressure check",
+      "videoTooLong": "Video must be 30 seconds or less",
+      "videoReadError": "Could not read video file",
+      "required": "Required",
+      "uploaded": "Uploaded",
+      "recordVideo": "Record video",
+      "replaceVideo": "Replace video",
+      "uploading": "Uploading…",
+      "uploadRequired": "Upload required: {{items}}",
+      "updating": "Updating…",
+      "statusUpdated": "Status updated",
+      "cancelJob": "Cancel job",
+      "cancelling": "Cancelling…",
+      "completed": "Job complete — great work!",
+      "videoTooLarge": "Video must be under 50 MB",
+      "transitions": {
+        "startHeading": "Start heading to customer",
+        "arrived": "I have arrived",
+        "startWashing": "Start washing",
+        "markCompleted": "Mark as completed"
+      },
+      "toasts": {
+        "enRoute": "Heading to the customer",
+        "arrived": "Marked as arrived",
+        "inProgress": "Wash started — do great work!"
+      }
+    },
+    "earnings": {
+      "title": "Earnings",
+      "totalEarned": "Total earned",
+      "jobsCompleted_one": "{{count}} job completed",
+      "jobsCompleted_other": "{{count}} jobs completed",
+      "thisMonth": "This month",
+      "today": "Today",
+      "jobCount_one": "{{count}} job",
+      "jobCount_other": "{{count}} jobs",
+      "avgPerJob": "Avg / job",
+      "thisWeek": "This week",
+      "noJobs": "No completed jobs yet",
+      "noJobsDesc": "Complete your first wash to see your earnings here.",
+      "recent": "Recent"
+    },
+    "menu": {
+      "profile": "Profile",
+      "earnings": "Earnings",
+      "shop": "Shop",
+      "support": "Support",
+      "settings": "Settings",
+      "signOut": "Sign out",
+      "navigationMenu": "Navigation menu"
+    },
+    "settings": {
+      "title": "Settings",
+      "ringtone": {
+        "label": "New job notification sound",
+        "hint": "Sound preview and live notifications coming soon.",
+        "default": "Default",
+        "chime": "Chime",
+        "bell": "Bell",
+        "silent": "Silent"
+      },
+      "display": {
+        "label": "Appearance",
+        "dark": "Dark",
+        "light": "Light"
+      },
+      "navigation": {
+        "label": "Navigation app",
+        "waze": "Waze",
+        "google": "Google Maps"
+      },
+      "language": {
+        "label": "Language"
+      }
+    },
+    "shop": {
+      "title": "Shop",
+      "comingSoon": "Shop coming soon",
+      "comingSoonDesc": "Premium gear and supplies for washers, coming soon."
+    },
+    "support": {
+      "title": "Support",
+      "comingSoon": "Support coming soon",
+      "comingSoonDesc": "We're building a support system. For now, please reach out via email."
+    },
+    "drawer": {
+      "activeJob": "Active job",
+      "jobsNearby": "Jobs nearby",
+      "lookingForJobs": "Looking for jobs…",
+      "goOnline": "Go online to see nearby jobs",
+      "goOnlineHint": "Flip the switch above when you're ready to work.",
+      "noJobs": "No jobs around you currently",
+      "noJobsHint": "We'll notify you when one comes in.",
+      "jobsNearbyCount_one": "{{count}} job nearby",
+      "jobsNearbyCount_other": "{{count}} jobs nearby",
+      "transitions": {
+        "startDrive": "Start drive",
+        "markArrived": "Mark arrived",
+        "startWork": "Start work",
+        "complete": "Complete"
+      },
+      "manageJob": "Manage job",
+      "customerPays": "Customer pays ₪{{amount}}",
+      "updating": "Updating…"
+    },
+    "toggle": {
+      "online": "Online",
+      "offline": "Offline",
+      "ariaLabel": "Toggle online status"
+    },
+    "nav": {
+      "openIn": "Open in {{app}}"
+    }
+  },
+  "nav": {
+    "book": "Book",
+    "orders": "Orders",
+    "profile": "Profile",
+    "backToJobs": "Back to Jobs"
+  },
+  "location": {
+    "chooseLocation": "Choose location",
+    "confirmLocation": "Confirm location"
+  },
+  "status": {
+    "pending": "Order placed",
+    "accepted": "Washer accepted",
+    "en_route": "Washer on the way",
+    "arrived": "Washer arrived",
+    "in_progress": "Washing in progress",
+    "completed": "Completed",
+    "labels": {
+      "pending": "pending",
+      "accepted": "accepted",
+      "en_route": "en route",
+      "arrived": "arrived",
+      "in_progress": "in progress",
+      "completed": "completed",
+      "cancelled": "cancelled"
+    }
+  },
+  "serviceLabels": {
+    "exterior": "Exterior",
+    "interior": "Interior",
+    "full": "Full Wash"
+  },
+  "carLabels": {
+    "sedan": "Sedan",
+    "suv": "SUV",
+    "pickup": "Pickup",
+    "van": "Van"
+  },
+  "landing": {
+    "tagline": "On-demand mobile car wash — we come to you.",
+    "feature1": "Drop a pin anywhere",
+    "feature2": "Pick your wash type",
+    "feature3": "Washer arrives at your location"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. Refresh the page to try again.",
+    "refresh": "Refresh page"
+  },
+  "validation": {
+    "required": "Required",
+    "invalidEmail": "Enter a valid email",
+    "tooShort": "Must be at least {{count}} characters",
+    "passwordsDoNotMatch": "Passwords don't match",
+    "invalidPhone": "Enter a valid phone number"
+  },
+  "app": {
+    "setupRequired": "Setup required: copy .env.example to .env and add your Supabase credentials."
+  }
+}

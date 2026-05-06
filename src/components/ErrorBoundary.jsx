@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { RefreshCw } from 'lucide-react'
+import i18n from '../i18n/index.js'
 
 export default class ErrorBoundary extends Component {
   state = { hasError: false }
@@ -20,9 +21,9 @@ export default class ErrorBoundary extends Component {
             <RefreshCw className="h-10 w-10 text-danger-500" />
           </div>
           <div>
-            <h1 className="text-lg font-bold mb-1">Something went wrong</h1>
+            <h1 className="text-lg font-bold mb-1">{i18n.t('error.title')}</h1>
             <p className="text-sm text-neutral-500 max-w-xs">
-              An unexpected error occurred. Refresh the page to try again.
+              {i18n.t('error.message')}
             </p>
           </div>
           <button
@@ -30,7 +31,7 @@ export default class ErrorBoundary extends Component {
             className="btn-primary"
           >
             <RefreshCw className="h-4 w-4" />
-            Refresh page
+            {i18n.t('error.refresh')}
           </button>
         </div>
       )

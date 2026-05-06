@@ -2,29 +2,25 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, DollarSign, ShoppingBag, MessageCircle, Settings, LogOut, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const MENU_SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
-const MENU_ITEMS = [
-  { to: '/profile',          icon: User,          label: 'Profile'  },
-  { to: '/washer/earnings',  icon: DollarSign,    label: 'Earnings' },
-  { to: '/washer/shop',      icon: ShoppingBag,   label: 'Shop'     },
-  { to: '/washer/support',   icon: MessageCircle, label: 'Support'  },
-  { to: '/washer/settings',  icon: Settings,      label: 'Settings' },
+const MENU_ITEM_DEFS = [
+  { to: '/profile',          icon: User,          key: 'washer.menu.profile'   },
+  { to: '/washer/earnings',  icon: DollarSign,    key: 'washer.menu.earnings'  },
+  { to: '/washer/shop',      icon: ShoppingBag,   key: 'washer.menu.shop'      },
+  { to: '/washer/support',   icon: MessageCircle, key: 'washer.menu.support'   },
+  { to: '/washer/settings',  icon: Settings,      key: 'washer.menu.settings'  },
 ]
 
-// Slide-out menu from the leading edge (right side in RTL Hebrew).
-// Props:
-//   open     boolean
-//   onClose  () => void
-//   online   boolean — read-only status shown in the user header
 export default function WasherMenu({ open, onClose, online }) {
   const navigate              = useNavigate()
   const { profile, signOut }  = useAuth()
+  const { t }                 = useTranslation()
   const menuRef               = useRef(null)
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -32,7 +28,6 @@ export default function WasherMenu({ open, onClose, online }) {
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  // Move focus into the menu when it opens
   useEffect(() => {
     if (open) menuRef.current?.focus()
   }, [open])
@@ -57,7 +52,7 @@ export default function WasherMenu({ open, onClose, online }) {
     <AnimatePresence>
       {open && (
         <>
-          {/* ── Backdrop ─────────────────────────────────────────────── */}
+          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
@@ -68,13 +63,13 @@ export default function WasherMenu({ open, onClose, online }) {
             onClick={onClose}
           />
 
-          {/* ── Menu panel ───────────────────────────────────────────── */}
+          {/* Menu panel */}
           <motion.div
             key="menu"
             ref={menuRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Navigation menu"
+            aria-label={t('washer.menu.navigationMenu')}
             tabIndex={-1}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -83,7 +78,7 @@ export default function WasherMenu({ open, onClose, online }) {
             className="fixed top-0 bottom-0 z-50 w-4/5 max-w-xs flex flex-col bg-glass border-e border-glass-border backdrop-blur-xl outline-none"
             style={{ insetInlineStart: 0 }}
           >
-            {/* ── User header ──────────────────────────────────────── */}
+            {/* User header */}
             <div
               className="px-5 pb-5 flex items-center gap-4"
               style={{ paddingTop: 'max(2rem, calc(env(safe-area-inset-top, 0px) + 1.5rem))' }}
@@ -96,7 +91,7 @@ export default function WasherMenu({ open, onClose, online }) {
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className={`h-2 w-2 rounded-full shrink-0 ${online ? 'bg-accent' : 'bg-neutral-500'}`} />
                   <span className={`text-xs ${online ? 'text-accent' : 'text-ink-muted'}`}>
-                    {online ? 'Online' : 'Offline'}
+                    {online ? t('washer.toggle.online') : t('washer.toggle.offline')}
                   </span>
                 </div>
               </div>
@@ -104,9 +99,9 @@ export default function WasherMenu({ open, onClose, online }) {
 
             <div className="border-b border-edge mx-4" />
 
-            {/* ── Nav items ────────────────────────────────────────── */}
+            {/* Nav items */}
             <nav className="flex-1 overflow-y-auto py-2">
-              {MENU_ITEMS.map(({ to, icon: Icon, label }) => (
+              {MENU_ITEM_DEFS.map(({ to, icon: Icon, key }) => (
                 <motion.button
                   key={to}
                   whileTap={{ scale: 0.97 }}
@@ -114,7 +109,7 @@ export default function WasherMenu({ open, onClose, online }) {
                   className="w-full flex items-center gap-4 px-5 py-3.5 text-sm font-medium text-ink hover:bg-white/5 transition-colors"
                 >
                   <Icon className="h-5 w-5 text-ink-muted shrink-0" />
-                  <span className="flex-1 text-start">{label}</span>
+                  <span className="flex-1 text-start">{t(key)}</span>
                   <ChevronRight className="h-4 w-4 text-ink-muted/40 rtl:rotate-180 shrink-0" />
                 </motion.button>
               ))}
@@ -122,7 +117,7 @@ export default function WasherMenu({ open, onClose, online }) {
 
             <div className="border-b border-edge mx-4" />
 
-            {/* ── Sign out ─────────────────────────────────────────── */}
+            {/* Sign out */}
             <div style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}>
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -130,7 +125,7 @@ export default function WasherMenu({ open, onClose, online }) {
                 className="w-full flex items-center gap-4 px-5 py-3.5 text-sm font-medium text-danger-500 hover:bg-danger-500/10 transition-colors"
               >
                 <LogOut className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-start">Sign out</span>
+                <span className="flex-1 text-start">{t('washer.menu.signOut')}</span>
               </motion.button>
             </div>
           </motion.div>

@@ -1,30 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion, LayoutGroup } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import PageShell from '../../components/ui/PageShell.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
+import i18n from '../../i18n/index.js'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
-const RINGTONE_OPTIONS = [
-  { value: 'default', label: 'Default' },
-  { value: 'chime',   label: 'Chime'   },
-  { value: 'bell',    label: 'Bell'    },
-  { value: 'silent',  label: 'Silent'  },
-]
-
-const DISPLAY_OPTIONS = [
-  { value: 'dark',  label: 'Dark'  },
-  { value: 'light', label: 'Light' },
-]
-
-const NAV_OPTIONS = [
-  { value: 'waze',   label: 'Waze'         },
-  { value: 'google', label: 'Google Maps'  },
-]
-
-// Horizontal pill selector (for 2-option settings)
+// Horizontal pill selector
 function PillRow({ groupId, options, value, onChange }) {
   return (
     <LayoutGroup id={groupId}>
@@ -52,7 +37,7 @@ function PillRow({ groupId, options, value, onChange }) {
   )
 }
 
-// 2×2 grid pill selector (for 4-option ringtone setting)
+// 2×2 grid pill selector
 function GridPill({ groupId, options, value, onChange }) {
   return (
     <LayoutGroup id={groupId}>
@@ -83,25 +68,49 @@ function GridPill({ groupId, options, value, onChange }) {
 export default function Settings() {
   const { profile, user, refreshProfile } = useAuth()
   const showToast = useToast()
+  const { t } = useTranslation()
+
+  const RINGTONE_OPTIONS = [
+    { value: 'default', label: t('washer.settings.ringtone.default') },
+    { value: 'chime',   label: t('washer.settings.ringtone.chime')   },
+    { value: 'bell',    label: t('washer.settings.ringtone.bell')    },
+    { value: 'silent',  label: t('washer.settings.ringtone.silent')  },
+  ]
+
+  const DISPLAY_OPTIONS = [
+    { value: 'dark',  label: t('washer.settings.display.dark')  },
+    { value: 'light', label: t('washer.settings.display.light') },
+  ]
+
+  const NAV_OPTIONS = [
+    { value: 'waze',   label: t('washer.settings.navigation.waze')   },
+    { value: 'google', label: t('washer.settings.navigation.google') },
+  ]
+
+  // Language options use their own names (not translated)
+  const LANGUAGE_OPTIONS = [
+    { value: 'en', label: 'English' },
+    { value: 'he', label: 'עברית'   },
+  ]
 
   const [prefs, setPrefs] = useState({
     ringtone: 'default',
     display:  'dark',
     nav:      'waze',
+    language: i18n.language === 'he' ? 'he' : 'en',
   })
 
-  // Sync from profile once it loads
   useEffect(() => {
     if (!profile) return
     setPrefs({
       ringtone: profile.ringtone_preference ?? 'default',
       display:  profile.display_preference  ?? 'dark',
       nav:      profile.nav_app_preference   ?? 'waze',
+      language: profile.locale ?? (i18n.language === 'he' ? 'he' : 'en'),
     })
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function save(column, value) {
-    // Optimistic update — UI moves instantly
     setPrefs(p => ({ ...p, [column]: value }))
     const { error } = await supabase
       .from('profiles')
@@ -111,32 +120,40 @@ export default function Settings() {
       showToast(error.message, 'error')
       return
     }
-    // Propagate to AuthContext so WasherShell picks up display change immediately
     await refreshProfile()
+  }
+
+  async function saveLanguage(lang) {
+    setPrefs(p => ({ ...p, language: lang }))
+    await i18n.changeLanguage(lang)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ locale: lang })
+      .eq('id', user.id)
+    if (error) showToast(error.message, 'error')
+    else await refreshProfile()
   }
 
   return (
     <PageShell>
       <div className="px-4 pt-6 pb-8 flex flex-col gap-6">
-        <h1 className="text-xl font-bold text-ink">Settings</h1>
+        <h1 className="text-xl font-bold text-ink">{t('washer.settings.title')}</h1>
 
         {/* ── 1. Ringtone ───────────────────────────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
-          <div>
-            <p className="text-sm font-semibold text-ink">New job notification sound</p>
-          </div>
+          <p className="text-sm font-semibold text-ink">{t('washer.settings.ringtone.label')}</p>
           <GridPill
             groupId="ringtone"
             options={RINGTONE_OPTIONS}
             value={prefs.ringtone}
             onChange={v => save('ringtone', v)}
           />
-          <p className="text-xs text-ink-muted/70">Sound preview and live notifications coming soon.</p>
+          <p className="text-xs text-ink-muted/70">{t('washer.settings.ringtone.hint')}</p>
         </section>
 
         {/* ── 2. Display ────────────────────────────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
-          <p className="text-sm font-semibold text-ink">Appearance</p>
+          <p className="text-sm font-semibold text-ink">{t('washer.settings.display.label')}</p>
           <PillRow
             groupId="display"
             options={DISPLAY_OPTIONS}
@@ -147,12 +164,23 @@ export default function Settings() {
 
         {/* ── 3. Navigation ─────────────────────────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
-          <p className="text-sm font-semibold text-ink">Navigation app</p>
+          <p className="text-sm font-semibold text-ink">{t('washer.settings.navigation.label')}</p>
           <PillRow
             groupId="nav"
             options={NAV_OPTIONS}
             value={prefs.nav}
-            onChange={v => save('nav', v)}
+            onChange={v => save('nav_app', v)}
+          />
+        </section>
+
+        {/* ── 4. Language ───────────────────────────────────────────── */}
+        <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
+          <p className="text-sm font-semibold text-ink">{t('washer.settings.language.label')}</p>
+          <PillRow
+            groupId="language"
+            options={LANGUAGE_OPTIONS}
+            value={prefs.language}
+            onChange={saveLanguage}
           />
         </section>
       </div>

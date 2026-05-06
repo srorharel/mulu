@@ -1,15 +1,13 @@
 import { motion } from 'framer-motion'
 import { Navigation } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 28 }
 
-// Floating button to open the active job's location in Waze or Google Maps.
-// Only visible when activeJob is set. Reads nav_app_preference from profile.
-// Position: bottom-end (trailing edge = physical left in RTL), above the
-// collapsed JobDrawer snap point (COLLAPSED_H 120 + BOTTOM_NAV_H 56 + 12 gap).
 export default function NavLauncher({ activeJob }) {
   const { profile } = useAuth()
+  const { t }       = useTranslation()
 
   if (!activeJob) return null
 
@@ -21,7 +19,6 @@ export default function NavLauncher({ activeJob }) {
     : `https://waze.com/ul?ll=${activeJob.lat},${activeJob.lng}&navigate=yes`
 
   function open() {
-    // Use Capacitor's deep-link opener on native; fall back to window.open on web.
     if (window.Capacitor?.Plugins?.App?.openUrl) {
       window.Capacitor.Plugins.App.openUrl({ url })
     } else {
@@ -37,7 +34,7 @@ export default function NavLauncher({ activeJob }) {
       whileTap={{ scale: 0.92 }}
       transition={SPRING}
       onClick={open}
-      aria-label={`Open in ${label}`}
+      aria-label={t('washer.nav.openIn', { app: label })}
       className="fixed z-40 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-semibold shadow-lg backdrop-blur-xl border bg-glass border-glass-border text-ink"
       style={{
         bottom: 188,

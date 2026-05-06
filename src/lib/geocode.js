@@ -7,6 +7,7 @@
 // Usage policy: https://operations.osmfoundation.org/policies/nominatim/
 
 import { useEffect, useState } from 'react'
+import i18n from '../i18n/index.js'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse'
 const UA        = 'SparkleGo/1.0'
@@ -75,7 +76,8 @@ async function fetchAddress(lat, lng) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
-    const url = `${NOMINATIM}?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=he,en`
+    const lang = i18n.language ?? 'en'
+    const url = `${NOMINATIM}?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=${lang},en`
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: { 'User-Agent': UA },

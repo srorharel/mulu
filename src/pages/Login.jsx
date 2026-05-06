@@ -5,28 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Droplets, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
 const schema = z.object({
-  email:    z.string().email('Enter a valid email'),
-  password: z.string().min(1, 'Required'),
+  email:    z.string().email(),
+  password: z.string().min(1),
 })
-
-function friendlyError(msg) {
-  const m = msg.toLowerCase()
-  if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
-    return 'Invalid email or password'
-  }
-  if (m.includes('email not confirmed')) {
-    return 'Email not confirmed — check your inbox and click the link we sent you'
-  }
-  if (m.includes('network') || m.includes('fetch')) {
-    return 'Network error — check your connection and try again'
-  }
-  return msg
-}
 
 const pageVariants = {
   hidden:  {},
@@ -40,12 +27,27 @@ const itemVariants = {
 export default function Login() {
   const navigate = useNavigate()
   const { signIn } = useAuth()
+  const { t } = useTranslation()
   const [showPw, setShowPw]           = useState(false)
   const [serverError, setServerError] = useState('')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
   })
+
+  function friendlyError(msg) {
+    const m = msg.toLowerCase()
+    if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
+      return t('auth.errors.invalidCredentials')
+    }
+    if (m.includes('email not confirmed')) {
+      return t('auth.errors.emailNotConfirmed')
+    }
+    if (m.includes('network') || m.includes('fetch')) {
+      return t('auth.errors.networkError')
+    }
+    return msg
+  }
 
   async function onSubmit(data) {
     setServerError('')
@@ -75,30 +77,30 @@ export default function Login() {
         <motion.div variants={itemVariants}>
           <GlassCard className="p-6 flex flex-col gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Welcome back</h1>
-              <p className="text-neutral-500 text-sm mt-0.5">Sign in to your account</p>
+              <h1 className="text-2xl font-bold text-neutral-900">{t('auth.welcomeBack')}</h1>
+              <p className="text-neutral-500 text-sm mt-0.5">{t('auth.signInToAccount')}</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
               <div>
-                <label className="label">Email</label>
-                <input className="input" type="email" placeholder="you@example.com" {...register('email')} />
+                <label className="label">{t('auth.email')}</label>
+                <input className="input" type="email" placeholder={t('auth.emailPlaceholder')} {...register('email')} />
                 {errors.email && <p className="field-error">{errors.email.message}</p>}
               </div>
 
               <div>
-                <label className="label">Password</label>
+                <label className="label">{t('auth.password')}</label>
                 <div className="relative">
                   <input
-                    className="input pr-10"
+                    className="input pe-10"
                     type={showPw ? 'text' : 'password'}
-                    placeholder="Your password"
+                    placeholder={t('auth.passwordPlaceholder')}
                     {...register('password')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-neutral-400"
                   >
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -111,20 +113,20 @@ export default function Login() {
               )}
 
               <MotionButton type="submit" disabled={isSubmitting} className="btn-primary mt-1">
-                {isSubmitting ? 'Signing in…' : 'Sign in'}
+                {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
               </MotionButton>
             </form>
 
             <p className="text-center text-sm text-neutral-400">
-              Forgot password?{' '}
-              <span className="cursor-default">Coming soon</span>
+              {t('auth.forgotPassword')}{' '}
+              <span className="cursor-default">{t('auth.forgotPasswordSoon')}</span>
             </p>
           </GlassCard>
         </motion.div>
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
-          New to SparkleGo?{' '}
-          <Link to="/signup" className="text-primary-600 font-medium">Create account</Link>
+          {t('auth.newToSparkleGo')}{' '}
+          <Link to="/signup" className="text-primary-600 font-medium">{t('auth.createAccount')}</Link>
         </motion.p>
       </motion.div>
     </div>

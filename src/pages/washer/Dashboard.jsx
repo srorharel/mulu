@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { Menu } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
@@ -18,19 +19,17 @@ export default function WasherDashboard() {
   const { profile, refreshProfile } = useAuth()
   const { user }                    = useAuth()
   const showToast                   = useToast()
+  const { t }                       = useTranslation()
 
   const [online, setOnline]               = useState(profile?.is_online ?? false)
   const [toggling, setToggling]           = useState(false)
-  const [activeJob, setActiveJob]         = useState(null)   // { id, lat, lng }
-  const [selectedJobId, setSelectedJobId] = useState(null)   // pin-tap → drawer sync
+  const [activeJob, setActiveJob]         = useState(null)
+  const [selectedJobId, setSelectedJobId] = useState(null)
   const [menuOpen, setMenuOpen]           = useState(false)
 
-  // Live GPS — watch mode only while online
-  const { position } = useGeolocation({ watch: online })
-
+  const { position, permissionState, requestPermission } = useGeolocation({ watch: online })
   const { jobs, loading } = useNearbyJobs(position, online)
 
-  // Broadcast washer position to Supabase whenever GPS updates while online
   useEffect(() => {
     if (!online || !position) return
     supabase
@@ -39,7 +38,6 @@ export default function WasherDashboard() {
       .eq('id', user.id)
   }, [position?.lat, position?.lng, online]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch the washer's active job (if any) for the map route and inline drawer panel
   useEffect(() => {
     supabase
       .rpc('get_washer_active_job')
@@ -52,7 +50,7 @@ export default function WasherDashboard() {
   async function toggleOnline() {
     const next = !online
     if (next && !position) {
-      showToast('Enable GPS and try again — location is required to go online', 'error')
+      showToast(t('washer.dashboard.gpsRequired'), 'error')
       return
     }
     setToggling(true)
@@ -75,7 +73,6 @@ export default function WasherDashboard() {
 
   return (
     <div className="relative h-full">
-      {/* ── Base layer: full-screen dark map ─────────────────────── */}
       <Suspense fallback={<div className="absolute inset-0 bg-surface" />}>
         <WorkerMap
           washerPosition={position}
@@ -85,12 +82,11 @@ export default function WasherDashboard() {
         />
       </Suspense>
 
-      {/* ── Hamburger — top-leading corner (= top-right in RTL) ──── */}
       <motion.button
         whileTap={{ scale: 0.92 }}
         transition={SPRING}
         onClick={() => setMenuOpen(true)}
-        aria-label="Open menu"
+        aria-label={t('washer.dashboard.openMenu')}
         className="fixed z-40 flex items-center justify-center rounded-2xl bg-glass border border-glass-border text-ink shadow-lg backdrop-blur-xl"
         style={{
           top:              'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))',
@@ -102,17 +98,35 @@ export default function WasherDashboard() {
         <Menu className="h-5 w-5" />
       </motion.button>
 
-      {/* ── Slide-out navigation menu ─────────────────────────────── */}
+      {permissionState === 'idle' && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center p-6">
+          <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-6 flex flex-col gap-4 max-w-sm w-full shadow-xl">
+            <p className="text-base font-bold text-ink">{t('washer.dashboard.locationPrompt.title')}</p>
+            <p className="text-sm text-ink-muted">{t('washer.dashboard.locationPrompt.body')}</p>
+            <button onClick={requestPermission} className="btn-primary">
+              {t('washer.dashboard.locationPrompt.button')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {permissionState === 'denied' && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center p-6">
+          <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-6 flex flex-col gap-3 max-w-sm w-full shadow-xl">
+            <p className="text-base font-bold text-ink">{t('washer.dashboard.locationDenied.title')}</p>
+            <p className="text-sm text-ink-muted">{t('washer.dashboard.locationDenied.body')}</p>
+          </div>
+        </div>
+      )}
+
       <WasherMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         online={online}
       />
 
-      {/* ── Nav-app launcher — visible only when active job exists ── */}
       <NavLauncher activeJob={activeJob} />
 
-      {/* ── Glass drawer — job list / active-job panel ───────────── */}
       <JobDrawer
         jobs={jobs}
         loading={loading}

@@ -1,0 +1,341 @@
+{
+  "common": {
+    "save": "שמור",
+    "cancel": "ביטול",
+    "back": "חזרה",
+    "loading": "טוען...",
+    "error": "משהו השתבש",
+    "retry": "נסה שוב",
+    "signOut": "התנתקות",
+    "online": "מחובר",
+    "offline": "לא מחובר",
+    "updating": "מעדכן...",
+    "cancelling": "מבטל...",
+    "uploading": "מעלה...",
+    "km": "ק\"מ"
+  },
+  "auth": {
+    "login": "כניסה",
+    "signup": "הרשמה",
+    "email": "אימייל",
+    "emailPlaceholder": "you@example.com",
+    "password": "סיסמה",
+    "passwordPlaceholder": "הסיסמה שלך",
+    "welcomeBack": "ברוך השב",
+    "signInToAccount": "כנס לחשבונך",
+    "forgotPassword": "שכחת סיסמה?",
+    "forgotPasswordSoon": "בקרוב",
+    "newToSparkleGo": "חדש ב-SparkleGo?",
+    "createAccount": "יצירת חשבון",
+    "alreadyHaveAccount": "כבר יש לך חשבון?",
+    "signIn": "כניסה",
+    "signingIn": "נכנס...",
+    "errors": {
+      "invalidCredentials": "אימייל או סיסמה שגויים",
+      "emailNotConfirmed": "האימייל לא אומת — בדוק את תיבת הדואר ולחץ על הקישור שנשלח אליך",
+      "networkError": "שגיאת רשת — בדוק את החיבור ונסה שוב"
+    }
+  },
+  "signup": {
+    "title": "יצירת חשבון",
+    "subtitle": "הצטרף לרשת SparkleGo",
+    "iAmA": "אני...",
+    "customer": "לקוח",
+    "washer": "שוטף",
+    "fullName": "שם מלא",
+    "fullNamePlaceholder": "ישראל ישראלי",
+    "confirmPassword": "אישור סיסמה",
+    "confirmPasswordPlaceholder": "הזן שוב את הסיסמה",
+    "passwordPlaceholder": "8 תווים לפחות",
+    "creatingAccount": "יוצר חשבון...",
+    "checkEmail": "בדוק את האימייל שלך",
+    "confirmationSent": "שלחנו קישור אימות אל <bold>{{email}}</bold>. לחץ עליו להפעלת החשבון, ולאחר מכן היכנס.",
+    "backToSignIn": "חזרה לכניסה"
+  },
+  "profile": {
+    "title": "הפרופיל שלך",
+    "email": "אימייל",
+    "fullName": "שם מלא",
+    "phone": "טלפון",
+    "phonePlaceholder": "050-0000000",
+    "equipmentNotes": "ציוד",
+    "equipmentNotesPlaceholder": "לדוג׳ מכונת לחץ, קנון קצף, מגבות מיקרופייבר",
+    "saving": "שומר...",
+    "saveChanges": "שמור שינויים",
+    "signOut": "התנתקות",
+    "updated": "הפרופיל עודכן"
+  },
+  "consumer": {
+    "home": {
+      "title": "הזמן שטיפה",
+      "yourLocation": "המיקום שלך",
+      "tapToSetLocation": "הקש להגדרת מיקום",
+      "locationError": "לא ניתן לקבל את מיקומך — הקש למעלה להגדרה ידנית",
+      "tapToAdjust": "הקש לכוונון הסיכה",
+      "allowLocation": "או אפשר גישה למיקום לזיהוי אוטומטי",
+      "carType": "סוג רכב",
+      "service": "שירות",
+      "keyLocation": "מיקום המפתח",
+      "optional": "(אופציונלי)",
+      "keyLocationPlaceholder": "לדוג׳ בקבלה, בארון חשמל, השאר מפתחות עם השוער",
+      "keyLocationHint": "רק השוטף שלך יראה זאת, לאחר שיקבל את העבודה.",
+      "siteResources": "מה זמין במיקום?",
+      "waterAccessible": "ברז מים נגיש",
+      "powerAccessible": "שקע חשמל נגיש",
+      "siteResourcesHint": "זה עוזר לשוטף לדעת מה להביא.",
+      "addons": "תוספות",
+      "wiperFluidRefill": "מילוי נוזל מגבים",
+      "tirePressureCheck": "בדיקת לחץ צמיגים",
+      "serviceLine": "שירות",
+      "platformFee": "עמלת פלטפורמה (15%)",
+      "total": "סה\"כ",
+      "bookNow": "הזמן עכשיו",
+      "booking": "מזמין...",
+      "locationRequired": "אנא אפשר מיקום או הקש \"בחר מיקום\" כדי לקבוע סיכה",
+      "bookingSuccess": "השטיפה הוזמנה! מחפש שוטף...",
+      "locationPrompt": {
+        "title": "אפשר מיקום",
+        "body": "אפשר גישה למיקום לזיהוי כתובת אוטומטי.",
+        "button": "אפשר מיקום"
+      },
+      "locationDenied": {
+        "title": "הגישה למיקום נדחתה",
+        "body": "אפשר מיקום בהגדרות ← Safari ← שירותי מיקום עבור אתר זה."
+      }
+    },
+    "tracking": {
+      "title": "סטטוס הזמנה",
+      "back": "חזרה",
+      "cancelled": "ההזמנה בוטלה",
+      "completed": "הרכב שלך מבריק!",
+      "cancelOrder": "בטל הזמנה",
+      "cancelling": "מבטל...",
+      "total": "סה\"כ",
+      "orderNotFound": "ההזמנה לא נמצאה"
+    },
+    "history": {
+      "title": "ההזמנות שלי",
+      "empty": "עדיין אין שטיפות",
+      "emptyDesc": "הזמן את שטיפת הרכב הראשונה שלך — פחות מדקה.",
+      "bookNow": "הזמן שטיפה"
+    }
+  },
+  "washer": {
+    "dashboard": {
+      "gpsRequired": "הפעל GPS ונסה שוב — נדרש מיקום כדי להתחבר",
+      "openMenu": "פתח תפריט",
+      "locationPrompt": {
+        "title": "אפשר מיקום",
+        "body": "אנחנו צריכים את המיקום שלך כדי להציג עבודות בסביבה ולנווט אותך ללקוחות.",
+        "button": "אפשר מיקום"
+      },
+      "locationDenied": {
+        "title": "הגישה למיקום נדחתה",
+        "body": "אפשר מיקום בהגדרות ← Safari ← שירותי מיקום עבור אתר זה."
+      }
+    },
+    "jobCard": {
+      "ariaLabel": "עבודה: {{car}} {{service}}, {{distance}} ק\"מ, ₪{{price}}"
+    },
+    "jobDetail": {
+      "title": "פרטי עבודה",
+      "back": "חזרה",
+      "addons": "תוספות",
+      "wiperFluid": "💧 נוזל מגבים",
+      "tirePressure": "🛞 לחץ צמיגים",
+      "payout": "תשלום ₪{{amount}}",
+      "customerPays": "הלקוח משלם ₪{{amount}} כולל עמלת פלטפורמה",
+      "siteResources": "משאבים באתר",
+      "waterAvailable": "מים זמינים",
+      "noWater": "אין מים",
+      "powerAvailable": "חשמל זמין",
+      "ownPower": "הבא ציוד עצמאי",
+      "accessHidden": "הוראות גישה יחשפו לאחר הקבלה.",
+      "unavailable": "העבודה כבר אינה זמינה",
+      "acceptJob": "קבל עבודה",
+      "accepting": "מקבל...",
+      "notFound": "העבודה לא נמצאה",
+      "accepted": "העבודה התקבלה — יאללה!"
+    },
+    "activeJob": {
+      "title": "עבודה פעילה",
+      "back": "לוח בקרה",
+      "accessInstructions": "הוראות גישה",
+      "noAccessNotes": "אין הערות גישה מיוחדות — פגוש את הלקוח במיקום.",
+      "uploadEvidence": "העלה הוכחה",
+      "washVideo": "וידאו שטיפה (חובה)",
+      "wiperFluidEvidence": "💧 מילוי נוזל מגבים",
+      "tirePressureEvidence": "🛞 בדיקת לחץ צמיגים",
+      "videoTooLong": "הוידאו חייב להיות עד 30 שניות",
+      "videoReadError": "לא ניתן לקרוא את קובץ הוידאו",
+      "required": "חובה",
+      "uploaded": "הועלה",
+      "recordVideo": "הקלט וידאו",
+      "replaceVideo": "החלף וידאו",
+      "uploading": "מעלה...",
+      "uploadRequired": "נדרשת העלאה: {{items}}",
+      "updating": "מעדכן...",
+      "statusUpdated": "הסטטוס עודכן",
+      "cancelJob": "בטל עבודה",
+      "cancelling": "מבטל...",
+      "completed": "עבודה הושלמה — כל הכבוד!",
+      "videoTooLarge": "הוידאו חייב להיות מתחת ל-50 MB",
+      "transitions": {
+        "startHeading": "התחל נסיעה ללקוח",
+        "arrived": "הגעתי",
+        "startWashing": "התחל שטיפה",
+        "markCompleted": "סמן כהושלם"
+      },
+      "toasts": {
+        "enRoute": "בדרך ללקוח",
+        "arrived": "סומן כהגיע",
+        "inProgress": "שטיפה התחילה — עשה עבודה מצוינת!"
+      }
+    },
+    "earnings": {
+      "title": "הכנסות",
+      "totalEarned": "סה\"כ הרווחים",
+      "jobsCompleted_one": "עבודה אחת הושלמה",
+      "jobsCompleted_other": "{{count}} עבודות הושלמו",
+      "thisMonth": "החודש",
+      "today": "היום",
+      "jobCount_one": "עבודה אחת",
+      "jobCount_other": "{{count}} עבודות",
+      "avgPerJob": "ממוצע לעבודה",
+      "thisWeek": "השבוע",
+      "noJobs": "אין עבודות שהושלמו עדיין",
+      "noJobsDesc": "השלם את השטיפה הראשונה שלך כדי לראות את ההכנסות כאן.",
+      "recent": "אחרונות"
+    },
+    "menu": {
+      "profile": "פרופיל",
+      "earnings": "הכנסות",
+      "shop": "חנות",
+      "support": "תמיכה",
+      "settings": "הגדרות",
+      "signOut": "התנתקות",
+      "navigationMenu": "תפריט ניווט"
+    },
+    "settings": {
+      "title": "הגדרות",
+      "ringtone": {
+        "label": "צליל התראת עבודה חדשה",
+        "hint": "תצוגה מקדימה ותראות בזמן אמת בקרוב.",
+        "default": "ברירת מחדל",
+        "chime": "צלצול",
+        "bell": "פעמון",
+        "silent": "שקט"
+      },
+      "display": {
+        "label": "מראה",
+        "dark": "כהה",
+        "light": "בהיר"
+      },
+      "navigation": {
+        "label": "אפליקציית ניווט",
+        "waze": "Waze",
+        "google": "Google Maps"
+      },
+      "language": {
+        "label": "שפה"
+      }
+    },
+    "shop": {
+      "title": "חנות",
+      "comingSoon": "החנות בקרוב",
+      "comingSoonDesc": "ציוד ומוצרים פרמיום לשוטפים, בקרוב."
+    },
+    "support": {
+      "title": "תמיכה",
+      "comingSoon": "תמיכה בקרוב",
+      "comingSoonDesc": "אנחנו בונים מערכת תמיכה. כרגע, אנא פנה אלינו במייל."
+    },
+    "drawer": {
+      "activeJob": "עבודה פעילה",
+      "jobsNearby": "עבודות בסביבה",
+      "lookingForJobs": "מחפש עבודות...",
+      "goOnline": "התחבר כדי לראות עבודות בסביבה",
+      "goOnlineHint": "הפוך את המתג למעלה כשאתה מוכן לעבוד.",
+      "noJobs": "אין עבודות בסביבתך כרגע",
+      "noJobsHint": "נודיע לך כשתגיע עבודה.",
+      "jobsNearbyCount_one": "עבודה אחת בסביבה",
+      "jobsNearbyCount_other": "{{count}} עבודות בסביבה",
+      "transitions": {
+        "startDrive": "התחל נסיעה",
+        "markArrived": "סמן הגעה",
+        "startWork": "התחל עבודה",
+        "complete": "הושלם"
+      },
+      "manageJob": "נהל עבודה",
+      "customerPays": "הלקוח משלם ₪{{amount}}",
+      "updating": "מעדכן..."
+    },
+    "toggle": {
+      "online": "מחובר",
+      "offline": "לא מחובר",
+      "ariaLabel": "שנה סטטוס חיבור"
+    },
+    "nav": {
+      "openIn": "פתח ב-{{app}}"
+    }
+  },
+  "nav": {
+    "book": "הזמן",
+    "orders": "הזמנות",
+    "profile": "פרופיל",
+    "backToJobs": "חזרה לעבודות"
+  },
+  "location": {
+    "chooseLocation": "בחר מיקום",
+    "confirmLocation": "אשר מיקום"
+  },
+  "status": {
+    "pending": "הזמנה בוצעה",
+    "accepted": "שוטף קיבל",
+    "en_route": "שוטף בדרך",
+    "arrived": "שוטף הגיע",
+    "in_progress": "שטיפה מתבצעת",
+    "completed": "הושלם",
+    "labels": {
+      "pending": "ממתין",
+      "accepted": "התקבל",
+      "en_route": "בדרך",
+      "arrived": "הגיע",
+      "in_progress": "בביצוע",
+      "completed": "הושלם",
+      "cancelled": "בוטל"
+    }
+  },
+  "serviceLabels": {
+    "exterior": "חיצוני",
+    "interior": "פנימי",
+    "full": "שטיפה מלאה"
+  },
+  "carLabels": {
+    "sedan": "סדאן",
+    "suv": "ג'יפ",
+    "pickup": "פיקאפ",
+    "van": "ואן"
+  },
+  "landing": {
+    "tagline": "שטיפת רכב ניידת לפי דרישה — אנחנו באים אליך.",
+    "feature1": "הנח סיכה בכל מקום",
+    "feature2": "בחר סוג שטיפה",
+    "feature3": "השוטף מגיע למיקום שלך"
+  },
+  "error": {
+    "title": "משהו השתבש",
+    "message": "אירעה שגיאה בלתי צפויה. רענן את הדף ונסה שוב.",
+    "refresh": "רענן דף"
+  },
+  "validation": {
+    "required": "שדה חובה",
+    "invalidEmail": "הזן כתובת אימייל תקינה",
+    "tooShort": "חייב להכיל לפחות {{count}} תווים",
+    "passwordsDoNotMatch": "הסיסמאות אינן תואמות",
+    "invalidPhone": "הזן מספר טלפון תקין"
+  },
+  "app": {
+    "setupRequired": "נדרשת הגדרה: העתק .env.example ל-.env והוסף את פרטי Supabase שלך."
+  }
+}

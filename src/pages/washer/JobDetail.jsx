@@ -1,17 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
-
-const CAR_LABELS     = { sedan: 'Sedan', suv: 'SUV', pickup: 'Pickup', van: 'Van' }
-const SERVICE_LABELS = { exterior: 'Exterior', interior: 'Interior', full: 'Full Wash' }
 
 export default function JobDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const showToast = useToast()
+  const { t } = useTranslation()
   const [order, setOrder]         = useState(null)
   const [loading, setLoading]     = useState(true)
   const [accepting, setAccepting] = useState(false)
@@ -37,7 +36,7 @@ export default function JobDetail() {
     acceptingRef.current = false
     setAccepting(false)
     if (error) { showToast(error.message, 'error'); return }
-    showToast("Job accepted — let's go!", 'success')
+    showToast(t('washer.jobDetail.accepted'), 'success')
     navigate(`/washer/active/${id}`)
   }
 
@@ -52,7 +51,7 @@ export default function JobDetail() {
   if (!order) return (
     <PageShell noNav>
       <div className="flex h-full items-center justify-center p-6">
-        <p className="text-danger-500 text-sm">{fetchError || 'Job not found'}</p>
+        <p className="text-danger-500 text-sm">{fetchError || t('washer.jobDetail.notFound')}</p>
       </div>
     </PageShell>
   )
@@ -62,11 +61,11 @@ export default function JobDetail() {
   return (
     <PageShell noNav>
       <div className="px-5 pt-6 pb-8 flex flex-col gap-5">
-        <button onClick={() => navigate('/washer')} className="flex items-center gap-2 text-ink-muted text-sm -ml-1">
-          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> Back
+        <button onClick={() => navigate('/washer')} className="flex items-center gap-2 text-ink-muted text-sm -ms-1">
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('washer.jobDetail.back')}
         </button>
 
-        <h1 className="text-xl font-bold">Job details</h1>
+        <h1 className="text-xl font-bold">{t('washer.jobDetail.title')}</h1>
 
         <div className="card flex flex-col gap-3">
           {/* Car + service */}
@@ -75,23 +74,23 @@ export default function JobDetail() {
               <Car className="h-5 w-5 text-primary-500 dark:text-accent" />
             </span>
             <div>
-              <p className="font-semibold">{CAR_LABELS[order.car_type]}</p>
-              <p className="text-sm text-ink-muted">{SERVICE_LABELS[order.service_type]}</p>
+              <p className="font-semibold">{t(`carLabels.${order.car_type}`)}</p>
+              <p className="text-sm text-ink-muted">{t(`serviceLabels.${order.service_type}`)}</p>
             </div>
           </div>
 
           {/* Add-ons */}
           {hasAddons && (
-            <div className="flex items-center gap-2 text-sm text-ink-muted pl-1">
-              <span className="text-xs font-medium text-ink-muted uppercase tracking-wide">Add-ons</span>
+            <div className="flex items-center gap-2 text-sm text-ink-muted ps-1">
+              <span className="text-xs font-medium text-ink-muted uppercase tracking-wide">{t('washer.jobDetail.addons')}</span>
               {order.addon_wiper_fluid   && (
                 <span className="bg-neutral-100 dark:bg-edge rounded px-2 py-0.5 text-xs dark:text-ink-muted">
-                  💧 Wiper Fluid
+                  {t('washer.jobDetail.wiperFluid')}
                 </span>
               )}
               {order.addon_tire_pressure && (
                 <span className="bg-neutral-100 dark:bg-edge rounded px-2 py-0.5 text-xs dark:text-ink-muted">
-                  🛞 Tire Pressure
+                  {t('washer.jobDetail.tirePressure')}
                 </span>
               )}
             </div>
@@ -103,8 +102,8 @@ export default function JobDetail() {
               <DollarSign className="h-5 w-5 text-primary-500 dark:text-accent" />
             </span>
             <div>
-              <p className="font-semibold">₪{order.base_price} payout</p>
-              <p className="text-xs text-ink-muted">Customer pays ₪{order.total_price} incl. platform fee</p>
+              <p className="font-semibold">{t('washer.jobDetail.payout', { amount: order.base_price })}</p>
+              <p className="text-xs text-ink-muted">{t('washer.jobDetail.customerPays', { amount: order.total_price })}</p>
             </div>
           </div>
 
@@ -120,35 +119,35 @@ export default function JobDetail() {
 
           {/* Site resources */}
           <div className="border-t border-neutral-100 dark:border-edge pt-3 flex items-center gap-3 text-sm flex-wrap">
-            <span className="text-xs font-medium text-ink-muted uppercase tracking-wide w-full">Site resources</span>
+            <span className="text-xs font-medium text-ink-muted uppercase tracking-wide w-full">{t('washer.jobDetail.siteResources')}</span>
             <span className={order.site_has_water ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}>
-              💧 {order.site_has_water ? 'Water available' : 'No water'}
+              💧 {order.site_has_water ? t('washer.jobDetail.waterAvailable') : t('washer.jobDetail.noWater')}
             </span>
             <span className="text-neutral-200 dark:text-edge">·</span>
             <span className={order.site_has_power ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}>
-              🔌 {order.site_has_power ? 'Power available' : 'Bring own power'}
+              🔌 {order.site_has_power ? t('washer.jobDetail.powerAvailable') : t('washer.jobDetail.ownPower')}
             </span>
           </div>
 
-          {/* Key location placeholder — hidden until accept */}
+          {/* Key location placeholder */}
           <div className="border-t border-neutral-100 dark:border-edge pt-3 flex items-center gap-3">
             <span className="rounded-lg bg-neutral-50 dark:bg-surface p-2 shrink-0">
               <Lock className="h-5 w-5 text-neutral-300 dark:text-ink-muted" />
             </span>
-            <p className="text-sm text-ink-muted italic">Access instructions revealed after accepting.</p>
+            <p className="text-sm text-ink-muted italic">{t('washer.jobDetail.accessHidden')}</p>
           </div>
         </div>
 
         {order.status !== 'pending' && (
           <div className="card bg-warning-50 text-warning-600 text-sm text-center">
-            This job is no longer available
+            {t('washer.jobDetail.unavailable')}
           </div>
         )}
 
         {order.status === 'pending' && (
           <button onClick={acceptJob} disabled={accepting} className="btn-primary mt-auto">
             {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {accepting ? 'Accepting…' : 'Accept Job'}
+            {accepting ? t('washer.jobDetail.accepting') : t('washer.jobDetail.acceptJob')}
           </button>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import i18n from '../i18n/index.js'
 
 const AuthContext = createContext(null)
 
@@ -24,10 +25,12 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .single()
+      if (retry?.locale) i18n.changeLanguage(retry.locale)
       setProfile(retry ?? null)
       return retry ?? null
     }
 
+    if (data.locale) i18n.changeLanguage(data.locale)
     setProfile(data)
     return data
   }

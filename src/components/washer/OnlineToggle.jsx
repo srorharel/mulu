@@ -1,13 +1,11 @@
 import { Power } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 28 }
 
-// Floating glass FAB for the online/offline toggle.
-// Positioned top-start (= physical top-right in WasherShell's dir="rtl").
-// start-* Tailwind logical properties automatically flip to the physical
-// right side when rendered inside a dir="rtl" ancestor.
 export default function OnlineToggle({ online, onToggle, disabled }) {
+  const { t } = useTranslation()
   return (
     <motion.button
       whileTap={disabled ? undefined : { scale: 0.92 }}
@@ -21,12 +19,12 @@ export default function OnlineToggle({ online, onToggle, disabled }) {
       }`}
       style={{
         top:              'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))',
-        insetInlineStart: '1rem',   // = right: 1rem in RTL
+        insetInlineStart: '1rem',
         minHeight: 44,
       }}
     >
       <Power className="h-4 w-4" />
-      {disabled ? '…' : online ? 'Online' : 'Offline'}
+      {disabled ? '…' : online ? t('washer.toggle.online') : t('washer.toggle.offline')}
     </motion.button>
   )
 }

@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Droplets, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import GlassCard from '../components/ui/GlassCard.jsx'
 
-const FEATURES = [
-  { icon: MapPin,   text: 'Drop a pin anywhere' },
-  { icon: Droplets, text: 'Pick your wash type'  },
-  { icon: Clock,    text: 'Washer arrives at your location' },
-]
+const FEATURE_ICONS = [MapPin, Droplets, Clock]
 
 const containerVariants = {
   hidden:  {},
@@ -20,6 +17,14 @@ const itemVariants = {
 const tapProps = { whileTap: { scale: 0.97 }, transition: { type: 'spring', stiffness: 300, damping: 30 } }
 
 export default function Landing() {
+  const { t } = useTranslation()
+
+  const FEATURES = [
+    { icon: FEATURE_ICONS[0], text: t('landing.feature1') },
+    { icon: FEATURE_ICONS[1], text: t('landing.feature2') },
+    { icon: FEATURE_ICONS[2], text: t('landing.feature3') },
+  ]
+
   return (
     <div className="bg-mesh flex flex-col min-h-full px-5 py-10">
       <motion.div
@@ -39,7 +44,7 @@ export default function Landing() {
           <motion.div variants={itemVariants}>
             <h1 className="text-3xl font-bold tracking-tight text-neutral-900">SparkleGo</h1>
             <p className="text-neutral-500 text-sm mt-1 max-w-xs">
-              On-demand mobile car wash — we come to you.
+              {t('landing.tagline')}
             </p>
           </motion.div>
 
@@ -59,14 +64,11 @@ export default function Landing() {
           </motion.ul>
         </GlassCard>
 
-        {/* CTAs — Link can't nest inside button, so whileTap wraps a div */}
+        {/* CTAs */}
         <motion.div variants={itemVariants} className="flex flex-col gap-3 mt-auto">
           <motion.div {...tapProps}>
-            <Link
-              to="/signup"
-              className="btn-primary w-full justify-center"
-            >
-              Sign up
+            <Link to="/signup" className="btn-primary w-full justify-center">
+              {t('auth.signup')}
             </Link>
           </motion.div>
           <motion.div {...tapProps}>
@@ -74,7 +76,7 @@ export default function Landing() {
               to="/login"
               className="btn w-full justify-center border border-primary-200 text-primary-600 hover:bg-primary-50"
             >
-              Log in
+              {t('auth.login')}
             </Link>
           </motion.div>
         </motion.div>
