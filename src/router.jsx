@@ -17,6 +17,9 @@ import WasherDashboard from './pages/washer/Dashboard.jsx'
 import JobDetail       from './pages/washer/JobDetail.jsx'
 import ActiveJob       from './pages/washer/ActiveJob.jsx'
 import Earnings        from './pages/washer/Earnings.jsx'
+import Shop            from './pages/washer/Shop.jsx'
+import Support         from './pages/washer/Support.jsx'
+import Settings        from './pages/washer/Settings.jsx'
 
 // Redirects authenticated users away from public pages
 function AuthRedirect({ children }) {
@@ -43,8 +46,8 @@ export function AppRouter() {
         </Route>
 
         {/* Washer-only — two layout shells:
-            WasherMapShell: full-bleed map (Dashboard only, renders its own BottomNav)
-            WasherShell:    standard layout (JobDetail, ActiveJob, Earnings via PageShell) */}
+            WasherMapShell: full-bleed map (Dashboard only, no BottomNav)
+            WasherShell:    standard layout (remaining washer pages via PageShell) */}
         <Route element={<RoleGuard allowedRoles={['washer']} />}>
           <Route element={<WasherMapShell />}>
             <Route path="/washer" element={<WasherDashboard />} />
@@ -53,6 +56,9 @@ export function AppRouter() {
             <Route path="/washer/job/:id"    element={<JobDetail />} />
             <Route path="/washer/active/:id" element={<ActiveJob />} />
             <Route path="/washer/earnings"   element={<Earnings />} />
+            <Route path="/washer/shop"       element={<Shop />} />
+            <Route path="/washer/support"    element={<Support />} />
+            <Route path="/washer/settings"   element={<Settings />} />
           </Route>
         </Route>
 

@@ -1,13 +1,15 @@
 import { Outlet } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext.jsx'
 
-// Route-layout wrapper for all washer routes.
-// Provides: dir="rtl" (Hebrew RTL), Tailwind dark mode (.dark class),
-// and the dark surface background that makes the shell visible in Phase B.
-// Each washer page still owns its PageShell + BottomNav internally —
-// this wrapper just sets the environment they render inside.
+// Route-layout wrapper for standard washer pages (not the full-bleed Dashboard).
+// Applies dir="rtl" for Hebrew layout and conditionally applies the dark class
+// based on the washer's display_preference. Defaults to dark if profile not yet loaded.
 export default function WasherShell() {
+  const { profile } = useAuth()
+  const isDark = profile?.display_preference !== 'light'
+
   return (
-    <div dir="rtl" className="dark h-full bg-surface text-ink">
+    <div dir="rtl" className={`${isDark ? 'dark ' : ''}h-full bg-surface text-ink`}>
       <Outlet />
     </div>
   )

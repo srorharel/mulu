@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import { Car, MapPin, Clock, GripHorizontal } from 'lucide-react'
+import { useReverseGeocode } from '../lib/geocode.js'
 
 const CAR_LABELS     = { sedan: 'Sedan', suv: 'SUV', pickup: 'Pickup', van: 'Van' }
 const SERVICE_LABELS = { exterior: 'Exterior', interior: 'Interior', full: 'Full Wash' }
@@ -17,6 +18,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
   const navigate     = useNavigate()
   const containerRef = useRef(null)
   const x            = useMotionValue(0)
+  const { address }  = useReverseGeocode(job.lat, job.lng)
 
   const distKm   = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
   const ariaLabel = `Job: ${CAR_LABELS[job.car_type]} ${SERVICE_LABELS[job.service_type]}, ${distKm} km away, ₪${job.base_price}`
@@ -89,7 +91,15 @@ export default function JobCard({ job, onClick, highlight = false }) {
         <p className="text-xs text-ink-muted mt-0.5">{CAR_LABELS[job.car_type]}</p>
       </div>
 
-      {/* Row 3: distance + time */}
+      {/* Row 3: geocoded address */}
+      {address && (
+        <div className="flex items-start gap-1.5 text-xs text-ink-muted">
+          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span className="leading-snug line-clamp-1">{address}</span>
+        </div>
+      )}
+
+      {/* Row 4: distance + time */}
       <div className="flex items-center gap-4 text-xs text-ink-muted">
         <span className="flex items-center gap-1">
           <MapPin className="h-3.5 w-3.5" />
