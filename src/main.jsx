@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './i18n/index.js'
 import './index.css'
+import './lib/capacitorBack.js'
 
 // Eruda in-browser devtools — dev mode only, and only when ?debug=1 is in the URL.
 // Loaded from CDN so it never enters the production bundle.

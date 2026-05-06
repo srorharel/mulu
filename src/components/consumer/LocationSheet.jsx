@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useHistoryDismissible } from '../../hooks/useHistoryDismissible.js'
 
 const MapPicker = lazy(() => import('../MapPicker.jsx'))
 
@@ -16,6 +17,15 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
     if (open) setDraft(initialPosition)
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { dismiss } = useHistoryDismissible(open, onClose, 'location-sheet')
+
+  function handleConfirm() {
+    // dismiss() pops the overlay history entry (async via history.back()),
+    // then onConfirm closes the sheet via the parent's state update.
+    dismiss()
+    onConfirm(draft)
+  }
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -27,7 +37,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose}
+            onClick={dismiss}
           />
 
           {/* Sheet */}
@@ -43,7 +53,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
               <h2 className="font-semibold text-neutral-900">{t('location.chooseLocation')}</h2>
               <button
-                onClick={onClose}
+                onClick={dismiss}
                 className="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 transition-colors"
                 style={{ minHeight: 44, minWidth: 44 }}
               >
@@ -61,7 +71,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
             {/* Confirm */}
             <div className="px-4 py-4 shrink-0 border-t border-neutral-100 safe-bottom">
               <button
-                onClick={() => onConfirm(draft)}
+                onClick={handleConfirm}
                 disabled={!draft}
                 className="btn-primary w-full"
               >

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
@@ -30,6 +31,26 @@ function AuthRedirect({ children }) {
 }
 
 export function AppRouter() {
+  // Fix A: ensure there is always a history entry behind the current one so
+  // back-gesture from the root authenticated page doesn't exit the app.
+  useEffect(() => {
+    if (window.history.length === 1) {
+      window.history.pushState({ sentinel: true }, '', window.location.href)
+    }
+  }, [])
+
+  // When the user backs onto the sentinel entry, immediately re-push the
+  // current URL so they stay on the page. Visually nothing changes.
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.state?.sentinel) {
+        window.history.pushState(null, '', window.location.href)
+      }
+    }
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>

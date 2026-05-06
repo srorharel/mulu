@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { User, DollarSign, ShoppingBag, MessageCircle, Settings, LogOut, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useHistoryDismissible } from '../../hooks/useHistoryDismissible.js'
 
 const MENU_SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
@@ -20,26 +21,39 @@ export default function WasherMenu({ open, onClose, online }) {
   const { profile, signOut }  = useAuth()
   const { t }                 = useTranslation()
   const menuRef               = useRef(null)
+  const pendingNavRef         = useRef(null)
 
+  const { dismiss } = useHistoryDismissible(open, onClose, 'washer-menu')
+
+  // Escape key → dismiss so the overlay's history entry is cleaned up first.
   useEffect(() => {
     if (!open) return
-    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    const handler = (e) => { if (e.key === 'Escape') dismiss() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [open, onClose])
+  }, [open, dismiss])
 
   useEffect(() => {
     if (open) menuRef.current?.focus()
   }, [open])
 
+  // After dismiss() pops the overlay entry → onClose fires → open becomes false
+  // → this effect fires and completes any deferred navigation.
+  useEffect(() => {
+    if (!open && pendingNavRef.current) {
+      navigate(pendingNavRef.current)
+      pendingNavRef.current = null
+    }
+  }, [open, navigate])
+
   async function handleSignOut() {
-    onClose()
+    dismiss()
     await signOut()
   }
 
   function go(to) {
-    onClose()
-    navigate(to)
+    pendingNavRef.current = to
+    dismiss()
   }
 
   const initials = profile?.full_name
@@ -60,7 +74,7 @@ export default function WasherMenu({ open, onClose, online }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={dismiss}
           />
 
           {/* Menu panel */}
