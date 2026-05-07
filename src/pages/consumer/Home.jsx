@@ -4,6 +4,7 @@ import { ChevronRight, Loader2, CheckCircle, MapPin } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
+import { useReverseGeocode } from '../../lib/geocode.js'
 import { calcPrice, BASE_PRICES, ADDON_PRICE } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -73,6 +74,7 @@ export default function ConsumerHome() {
     carType, serviceType, { wiper_fluid: addonWiper, tire_pressure: addonTire }
   )
   const serviceBase = BASE_PRICES[carType][serviceType]
+  const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
 
   async function handleBook() {
     if (submittingRef.current) return
@@ -81,6 +83,13 @@ export default function ConsumerHome() {
     submittingRef.current = true
     setSubmitting(true)
 
+    // address_label: prefer the user-confirmed label from LocationSheet,
+    // fall back to the geocode hook's result (already resolved for GPS-only flow),
+    // then to raw coords as last resort.
+    const address_label = pin?.address_label
+      ?? pinAddress
+      ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`
+
     const { data, error: dbError } = await supabase
       .from('orders')
       .insert({
@@ -88,7 +97,10 @@ export default function ConsumerHome() {
         car_type:      carType,
         service_type:  serviceType,
         location:      `POINT(${effectivePin.lng} ${effectivePin.lat})`,
-        address_label: `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`,
+        address_label,
+        address_street: pin?.address_street ?? null,
+        address_number: pin?.address_number ?? null,
+        address_city:   pin?.address_city   ?? null,
         base_price:    basePrice,
         platform_fee:  platformFee,
         total_price:   totalPrice,
@@ -144,7 +156,7 @@ export default function ConsumerHome() {
               <MapPin className="h-4 w-4 text-primary-500 shrink-0" />
               <span className={effectivePin ? 'text-neutral-700' : 'text-neutral-400'}>
                 {effectivePin
-                  ? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`
+                  ? (pin?.address_label ?? pinAddress ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`)
                   : t('consumer.home.tapToSetLocation')
                 }
               </span>
@@ -309,7 +321,7 @@ export default function ConsumerHome() {
       <LocationSheet
         open={sheetOpen}
         initialPosition={effectivePin}
-        onConfirm={pos => { setPin(pos); setSheetOpen(false) }}
+        onConfirm={result => { setPin(result); setSheetOpen(false) }}
         onClose={() => setSheetOpen(false)}
       />
     </PageShell>

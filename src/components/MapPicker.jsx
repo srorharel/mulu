@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { useRef, useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -13,6 +13,19 @@ const tealMarker = L.divIcon({
   popupAnchor: [0, -36],
   className: '',
 })
+
+// Pans the map to follow position changes after initial mount.
+// Used by LocationSheet's forward-geocode flow to move the viewport when
+// the user types an address that resolves to a different coordinate.
+function PanController({ position }) {
+  const map   = useMap()
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (position) map.panTo([position.lat, position.lng], { animate: true, duration: 0.5 })
+  }, [position?.lat, position?.lng]) // eslint-disable-line
+  return null
+}
 
 function DraggableMarker({ position, onChange }) {
   const markerRef = useRef(null)
@@ -62,6 +75,7 @@ export default function MapPicker({ position, onChange, height = '280px' }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <PanController position={position} />
         <DraggableMarker position={position} onChange={onChange} />
       </MapContainer>
     </div>

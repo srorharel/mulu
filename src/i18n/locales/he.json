@@ -103,6 +103,20 @@
         "body": "אפשר מיקום בהגדרות ← Safari ← שירותי מיקום עבור אתר זה."
       }
     },
+    "locationSheet": {
+      "selectedLabel": "מיקום נבחר",
+      "fromMap": "מהמפה: {{address}}",
+      "searching": "מחפש...",
+      "notFound": "לא ניתן למצוא את הכתובת",
+      "fields": {
+        "street": "רחוב",
+        "number": "מספר בית",
+        "city": "עיר",
+        "streetPlaceholder": "לדוגמה הרצל",
+        "numberPlaceholder": "לדוגמה 12",
+        "cityPlaceholder": "לדוגמה ירושלים"
+      }
+    },
     "tracking": {
       "title": "סטטוס הזמנה",
       "back": "חזרה",
@@ -156,41 +170,6 @@
       "accepting": "מקבל...",
       "notFound": "העבודה לא נמצאה",
       "accepted": "העבודה התקבלה — יאללה!"
-    },
-    "activeJob": {
-      "title": "עבודה פעילה",
-      "back": "לוח בקרה",
-      "accessInstructions": "הוראות גישה",
-      "noAccessNotes": "אין הערות גישה מיוחדות — פגוש את הלקוח במיקום.",
-      "uploadEvidence": "העלה הוכחה",
-      "washVideo": "וידאו שטיפה (חובה)",
-      "wiperFluidEvidence": "💧 מילוי נוזל מגבים",
-      "tirePressureEvidence": "🛞 בדיקת לחץ צמיגים",
-      "videoTooLong": "הוידאו חייב להיות עד 30 שניות",
-      "videoReadError": "לא ניתן לקרוא את קובץ הוידאו",
-      "required": "חובה",
-      "uploaded": "הועלה",
-      "recordVideo": "הקלט וידאו",
-      "replaceVideo": "החלף וידאו",
-      "uploading": "מעלה...",
-      "uploadRequired": "נדרשת העלאה: {{items}}",
-      "updating": "מעדכן...",
-      "statusUpdated": "הסטטוס עודכן",
-      "cancelJob": "בטל עבודה",
-      "cancelling": "מבטל...",
-      "completed": "עבודה הושלמה — כל הכבוד!",
-      "videoTooLarge": "הוידאו חייב להיות מתחת ל-50 MB",
-      "transitions": {
-        "startHeading": "התחל נסיעה ללקוח",
-        "arrived": "הגעתי",
-        "startWashing": "התחל שטיפה",
-        "markCompleted": "סמן כהושלם"
-      },
-      "toasts": {
-        "enRoute": "בדרך ללקוח",
-        "arrived": "סומן כהגיע",
-        "inProgress": "שטיפה התחילה — עשה עבודה מצוינת!"
-      }
     },
     "earnings": {
       "title": "הכנסות",
@@ -264,11 +243,34 @@
         "startDrive": "התחל נסיעה",
         "markArrived": "סמן הגעה",
         "startWork": "התחל עבודה",
-        "complete": "הושלם"
+        "completeJob": "השלם עבודה"
       },
-      "manageJob": "נהל עבודה",
       "customerPays": "הלקוח משלם ₪{{amount}}",
-      "updating": "מעדכן..."
+      "updating": "מעדכן...",
+      "accessInstructions": "הוראות גישה",
+      "noAccessNotes": "אין הערות גישה מיוחדות — פגוש את הלקוח במיקום.",
+      "uploadEvidence": "העלה הוכחה",
+      "washVideo": "וידאו שטיפה (חובה)",
+      "wiperFluidEvidence": "💧 מילוי נוזל מגבים",
+      "tirePressureEvidence": "🛞 בדיקת לחץ צמיגים",
+      "videoTooLong": "הוידאו חייב להיות עד 30 שניות",
+      "videoReadError": "לא ניתן לקרוא את קובץ הוידאו",
+      "required": "חובה",
+      "uploaded": "הועלה",
+      "recordVideo": "הקלט וידאו",
+      "replaceVideo": "החלף וידאו",
+      "uploading": "מעלה...",
+      "uploadRequired": "נדרשת העלאה: {{items}}",
+      "cancelJob": "בטל עבודה",
+      "cancelling": "מבטל...",
+      "jobCompleted": "עבודה הושלמה — כל הכבוד!",
+      "videoTooLarge": "הוידאו חייב להיות מתחת ל-50 MB",
+      "toasts": {
+        "enRoute": "בדרך ללקוח",
+        "arrived": "סומן כהגיע",
+        "inProgress": "שטיפה התחילה — עשה עבודה מצוינת!",
+        "completed": "עבודה הושלמה! כל הכבוד."
+      }
     },
     "toggle": {
       "online": "מחובר",

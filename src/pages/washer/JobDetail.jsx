@@ -37,7 +37,7 @@ export default function JobDetail() {
     setAccepting(false)
     if (error) { showToast(error.message, 'error'); return }
     showToast(t('washer.jobDetail.accepted'), 'success')
-    navigate(`/washer/active/${id}`)
+    navigate('/washer')
   }
 
   if (loading) return (

@@ -47,6 +47,25 @@ export default function WasherDashboard() {
       })
   }, [user.id, online])
 
+  // Belt-and-suspenders: catch consumer-side cancel via realtime
+  useEffect(() => {
+    if (!activeJob?.id) return
+    const channel = supabase
+      .channel(`dash-active:${activeJob.id}`)
+      .on('postgres_changes', {
+        event:  'UPDATE',
+        schema: 'public',
+        table:  'orders',
+        filter: `id=eq.${activeJob.id}`,
+      }, (payload) => {
+        if (payload.new.status === 'completed' || payload.new.status === 'cancelled') {
+          setActiveJob(null)
+        }
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [activeJob?.id])
+
   async function toggleOnline() {
     const next = !online
     if (next && !position) {
@@ -64,6 +83,10 @@ export default function WasherDashboard() {
       await refreshProfile()
     }
     setToggling(false)
+  }
+
+  function handleJobDone() {
+    setActiveJob(null)
   }
 
   function handleJobPinTap(jobId) {
@@ -135,6 +158,7 @@ export default function WasherDashboard() {
         onToggle={toggleOnline}
         toggling={toggling}
         activeJob={activeJob}
+        onJobDone={handleJobDone}
       />
     </div>
   )

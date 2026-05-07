@@ -32,5 +32,9 @@ export function useRealtimeOrder(orderId) {
     return () => supabase.removeChannel(channel)
   }, [orderId])
 
-  return { order, loading, error }
+  function mutateOrder(patch) {
+    setOrder(o => o ? { ...o, ...patch } : o)
+  }
+
+  return { order, loading, error, mutateOrder }
 }

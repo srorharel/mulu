@@ -21,7 +21,7 @@ function cacheKey(lat, lng) {
 }
 
 // ── localStorage persistence ───────────────────────────────────────────────────
-const LS_KEY = 'sparkle_geocode_v1'
+const LS_KEY = 'sparkle_geocode_v3'
 
 function loadLocalCache() {
   try {
@@ -70,6 +70,48 @@ async function drain() {
   draining = false
 }
 
+// ── Short-form address builder ────────────────────────────────────────────────
+
+function buildShortAddress(addr) {
+  if (!addr) return null
+
+  const street = addr.road
+    ?? addr.pedestrian
+    ?? addr.footway
+    ?? addr.path
+    ?? addr.cycleway
+    ?? null
+
+  // City-first: prefer specific city over suburb/neighbourhood
+  const area = addr.city
+    ?? addr.town
+    ?? addr.village
+    ?? addr.suburb
+    ?? addr.neighbourhood
+    ?? null
+
+  const houseNumber = addr.house_number ?? null
+
+  // English-speaking countries use "number street"; everywhere else uses "street number"
+  const numberFirst = ['us', 'gb', 'ca', 'au', 'nz', 'ie'].includes(addr.country_code)
+
+  let streetPart
+  if (street && houseNumber) {
+    streetPart = numberFirst
+      ? `${houseNumber} ${street}`
+      : `${street} ${houseNumber}`
+  } else if (street) {
+    streetPart = street
+  } else {
+    streetPart = null
+  }
+
+  if (streetPart && area) return `${streetPart}, ${area}`
+  if (streetPart) return streetPart
+  if (area) return area
+  return null
+}
+
 // ── Core fetch ────────────────────────────────────────────────────────────────
 
 async function fetchAddress(lat, lng) {
@@ -84,16 +126,25 @@ async function fetchAddress(lat, lng) {
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
-    const a = data.address ?? {}
-    const street = a.road || a.pedestrian || a.path || ''
-    const area   = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.city || a.town || a.village || ''
-    return [street, area].filter(Boolean).join(', ') || data.display_name || `${lat}, ${lng}`
+    return buildShortAddress(data.address) ?? data.display_name ?? null
   } catch {
     return null  // caller falls back to coords
   } finally {
     clearTimeout(timer)
   }
 }
+
+// ── Coord-string detector — used by consumers to identify legacy address_label ─
+const COORDS_PATTERN = /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/
+
+export function looksLikeCoords(str) {
+  return typeof str === 'string' && COORDS_PATTERN.test(str.trim())
+}
+
+// ── Failure cooldown: prevents hammering Nominatim when it's down ─────────────
+// Not persisted — resets on every page load so the next session retries fresh.
+const recentFailures      = new Map()
+const FAILURE_COOLDOWN_MS = 60_000
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -102,10 +153,74 @@ export async function reverseGeocode(lat, lng) {
   const key = cacheKey(lat, lng)
   if (memCache.has(key)) return memCache.get(key)
 
+  const lastFailure = recentFailures.get(key)
+  if (lastFailure && Date.now() - lastFailure < FAILURE_COOLDOWN_MS) {
+    return `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`
+  }
+
   const address = await enqueue(() => fetchAddress(lat, lng))
-  const result  = address ?? `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`
-  memCache.set(key, result)
-  saveToLocalCache(key, result)
+  if (address) {
+    memCache.set(key, address)
+    saveToLocalCache(key, address)
+    return address
+  }
+  recentFailures.set(key, Date.now())
+  return `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`
+}
+
+// ── Forward geocoding ─────────────────────────────────────────────────────────
+
+const FORWARD_BASE = 'https://nominatim.openstreetmap.org/search'
+
+async function fetchForwardGeocode(query, countryCodes) {
+  const url = new URL(FORWARD_BASE)
+  url.searchParams.set('format',        'jsonv2')
+  url.searchParams.set('q',             query)
+  url.searchParams.set('limit',         '1')
+  url.searchParams.set('countrycodes',  countryCodes)
+  url.searchParams.set('accept-language', `${i18n.language ?? 'en'},en`)
+  url.searchParams.set('addressdetails', '1')
+
+  const ctrl  = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA } })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!Array.isArray(data) || data.length === 0) return null
+    const top = data[0]
+    return {
+      lat:         parseFloat(top.lat),
+      lng:         parseFloat(top.lon),
+      address:     top.address      ?? null,
+      displayName: top.display_name ?? null,
+    }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const forwardCache          = new Map()
+const forwardRecentFailures = new Map()
+
+export async function forwardGeocode(query, countryCodes = 'il') {
+  if (!query || query.trim().length < 3) return null
+  const key = `${countryCodes}:${query.trim().toLowerCase()}`
+
+  if (forwardCache.has(key)) return forwardCache.get(key)
+
+  const lastFailure = forwardRecentFailures.get(key)
+  if (lastFailure && Date.now() - lastFailure < FAILURE_COOLDOWN_MS) return null
+
+  const result = await enqueue(() => fetchForwardGeocode(query, countryCodes))
+
+  if (result) {
+    forwardCache.set(key, result)
+  } else {
+    forwardRecentFailures.set(key, Date.now())
+  }
   return result
 }
 

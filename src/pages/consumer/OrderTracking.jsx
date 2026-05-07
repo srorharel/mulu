@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, XCircle } from 'lucide-react'
+import { ArrowLeft, XCircle, MapPin } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
+import { useReverseGeocode, looksLikeCoords } from '../../lib/geocode.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { OrderTrackingSkeleton } from '../../components/Skeleton.jsx'
 import StatusTimeline from '../../components/StatusTimeline.jsx'
@@ -32,6 +33,15 @@ export default function OrderTracking() {
   const showToast = useToast()
   const { t } = useTranslation()
   const [cancelling, setCancelling] = useState(false)
+
+  const isLegacyAddress = looksLikeCoords(order?.address_label)
+  const { address: geocodedAddress } = useReverseGeocode(
+    isLegacyAddress ? order?.lat : null,
+    isLegacyAddress ? order?.lng : null,
+  )
+  const displayAddress = isLegacyAddress
+    ? (geocodedAddress ?? order.address_label)
+    : order?.address_label
 
   async function handleCancel() {
     setCancelling(true)
@@ -94,6 +104,16 @@ export default function OrderTracking() {
               </div>
             </GlassCard>
           </motion.div>
+
+          {/* Location */}
+          {displayAddress && (
+            <motion.div variants={itemVariants}>
+              <GlassCard className="p-4 flex items-center gap-2 text-sm text-neutral-600">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="truncate">{displayAddress}</span>
+              </GlassCard>
+            </motion.div>
+          )}
 
           {/* Status timeline */}
           <motion.div variants={itemVariants}>

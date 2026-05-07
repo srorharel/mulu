@@ -98,6 +98,11 @@ export default function OrderHistory() {
                       <p className="font-semibold text-sm text-neutral-900 truncate">
                         {t(`carLabels.${order.car_type}`)} · {t(`serviceLabels.${order.service_type}`)}
                       </p>
+                      {order.address_label && (
+                        <p className="text-xs text-neutral-500 truncate mt-0.5">
+                          {order.address_label}
+                        </p>
+                      )}
                       <p className="text-xs text-neutral-400 mt-0.5">
                         {new Date(order.created_at).toLocaleDateString(i18n.language)}
                       </p>

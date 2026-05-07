@@ -103,6 +103,20 @@
         "body": "Enable location in Settings → Safari → Location Services for this site."
       }
     },
+    "locationSheet": {
+      "selectedLabel": "Selected location",
+      "fromMap": "From map: {{address}}",
+      "searching": "Searching...",
+      "notFound": "Couldn't find this address",
+      "fields": {
+        "street": "Street",
+        "number": "House number",
+        "city": "City",
+        "streetPlaceholder": "e.g. Herzl",
+        "numberPlaceholder": "e.g. 12",
+        "cityPlaceholder": "e.g. Jerusalem"
+      }
+    },
     "tracking": {
       "title": "Order status",
       "back": "Back",
@@ -156,41 +170,6 @@
       "accepting": "Accepting…",
       "notFound": "Job not found",
       "accepted": "Job accepted — let's go!"
-    },
-    "activeJob": {
-      "title": "Active job",
-      "back": "Dashboard",
-      "accessInstructions": "Access instructions",
-      "noAccessNotes": "No special access notes — meet the customer at the location.",
-      "uploadEvidence": "Upload evidence",
-      "washVideo": "Wash video (required)",
-      "wiperFluidEvidence": "💧 Wiper fluid refill",
-      "tirePressureEvidence": "🛞 Tire pressure check",
-      "videoTooLong": "Video must be 30 seconds or less",
-      "videoReadError": "Could not read video file",
-      "required": "Required",
-      "uploaded": "Uploaded",
-      "recordVideo": "Record video",
-      "replaceVideo": "Replace video",
-      "uploading": "Uploading…",
-      "uploadRequired": "Upload required: {{items}}",
-      "updating": "Updating…",
-      "statusUpdated": "Status updated",
-      "cancelJob": "Cancel job",
-      "cancelling": "Cancelling…",
-      "completed": "Job complete — great work!",
-      "videoTooLarge": "Video must be under 50 MB",
-      "transitions": {
-        "startHeading": "Start heading to customer",
-        "arrived": "I have arrived",
-        "startWashing": "Start washing",
-        "markCompleted": "Mark as completed"
-      },
-      "toasts": {
-        "enRoute": "Heading to the customer",
-        "arrived": "Marked as arrived",
-        "inProgress": "Wash started — do great work!"
-      }
     },
     "earnings": {
       "title": "Earnings",
@@ -261,14 +240,37 @@
       "jobsNearbyCount_one": "{{count}} job nearby",
       "jobsNearbyCount_other": "{{count}} jobs nearby",
       "transitions": {
-        "startDrive": "Start drive",
+        "startDrive": "Start trip",
         "markArrived": "Mark arrived",
         "startWork": "Start work",
-        "complete": "Complete"
+        "completeJob": "Complete job"
       },
-      "manageJob": "Manage job",
       "customerPays": "Customer pays ₪{{amount}}",
-      "updating": "Updating…"
+      "updating": "Updating…",
+      "accessInstructions": "Access instructions",
+      "noAccessNotes": "No special access notes — meet the customer at the location.",
+      "uploadEvidence": "Upload evidence",
+      "washVideo": "Wash video (required)",
+      "wiperFluidEvidence": "💧 Wiper fluid refill",
+      "tirePressureEvidence": "🛞 Tire pressure check",
+      "videoTooLong": "Video must be 30 seconds or less",
+      "videoReadError": "Could not read video file",
+      "required": "Required",
+      "uploaded": "Uploaded",
+      "recordVideo": "Record video",
+      "replaceVideo": "Replace video",
+      "uploading": "Uploading…",
+      "uploadRequired": "Upload required: {{items}}",
+      "cancelJob": "Cancel job",
+      "cancelling": "Cancelling…",
+      "jobCompleted": "Job complete — great work!",
+      "videoTooLarge": "Video must be under 50 MB",
+      "toasts": {
+        "enRoute": "Heading to the customer",
+        "arrived": "Marked as arrived",
+        "inProgress": "Wash started — do great work!",
+        "completed": "Job complete! Great work."
+      }
     },
     "toggle": {
       "online": "Online",

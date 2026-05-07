@@ -16,7 +16,6 @@ import OrderHistory   from './pages/consumer/OrderHistory.jsx'
 
 import WasherDashboard from './pages/washer/Dashboard.jsx'
 import JobDetail       from './pages/washer/JobDetail.jsx'
-import ActiveJob       from './pages/washer/ActiveJob.jsx'
 import Earnings        from './pages/washer/Earnings.jsx'
 import Shop            from './pages/washer/Shop.jsx'
 import Support         from './pages/washer/Support.jsx'
@@ -75,7 +74,6 @@ export function AppRouter() {
           </Route>
           <Route element={<WasherShell />}>
             <Route path="/washer/job/:id"    element={<JobDetail />} />
-            <Route path="/washer/active/:id" element={<ActiveJob />} />
             <Route path="/washer/earnings"   element={<Earnings />} />
             <Route path="/washer/shop"       element={<Shop />} />
             <Route path="/washer/support"    element={<Support />} />

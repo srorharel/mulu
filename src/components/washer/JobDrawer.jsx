@@ -1,7 +1,10 @@
 import { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
-import { MoonStar, Sparkles, ChevronRight, Loader2, ExternalLink, Car, MapPin, DollarSign } from 'lucide-react'
+import {
+  MoonStar, Sparkles, ChevronRight, Loader2,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { JobCardSkeleton } from '../Skeleton.jsx'
 import JobCard from '../JobCard.jsx'
@@ -9,17 +12,101 @@ import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
+import StatusTimeline from '../StatusTimeline.jsx'
+import i18n from '../../i18n/index.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
 const BOTTOM_NAV_H  = 56
 
-// Transition key map for inline panel quick actions
 const TRANSITION_KEYS = {
-  accepted:    { next: 'en_route',    key: 'washer.drawer.transitions.startDrive'   },
-  en_route:    { next: 'arrived',     key: 'washer.drawer.transitions.markArrived'  },
-  arrived:     { next: 'in_progress', key: 'washer.drawer.transitions.startWork'    },
-  in_progress: { next: 'completed',   key: 'washer.drawer.transitions.complete'     },
+  accepted:    { next: 'en_route',    key: 'washer.drawer.transitions.startDrive'  },
+  en_route:    { next: 'arrived',     key: 'washer.drawer.transitions.markArrived' },
+  arrived:     { next: 'in_progress', key: 'washer.drawer.transitions.startWork'   },
+  in_progress: { next: 'completed',   key: 'washer.drawer.transitions.completeJob' },
+}
+
+const ADVANCE_TOAST_KEYS = {
+  en_route:    'washer.drawer.toasts.enRoute',
+  arrived:     'washer.drawer.toasts.arrived',
+  in_progress: 'washer.drawer.toasts.inProgress',
+}
+
+const FILE_NAMES = {
+  wash:          'wash.mp4',
+  wiper_fluid:   'wiper_fluid.mp4',
+  tire_pressure: 'tire_pressure.mp4',
+}
+
+const COLUMNS = {
+  wash:          'evidence_wash_path',
+  wiper_fluid:   'evidence_wiper_fluid_path',
+  tire_pressure: 'evidence_tire_pressure_path',
+}
+
+function checkVideoDuration(file) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
+      resolve(video.duration > 30 ? i18n.t('washer.drawer.videoTooLong') : null)
+    }
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src)
+      resolve(i18n.t('washer.drawer.videoReadError'))
+    }
+    video.src = URL.createObjectURL(file)
+  })
+}
+
+function EvidenceCard({ label, path, uploading, error, onRecord }) {
+  const { t }    = useTranslation()
+  const inputRef = useRef(null)
+
+  return (
+    <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-ink">{label}</p>
+        {path
+          ? <span className="flex items-center gap-1 text-accent text-xs font-medium">
+              <CheckCircle className="h-4 w-4" /> {t('washer.drawer.uploaded')}
+            </span>
+          : <span className="text-xs text-danger-500 font-medium">{t('washer.drawer.required')}</span>
+        }
+      </div>
+
+      {error && <p className="text-danger-500 text-xs -mt-1">{error}</p>}
+
+      {uploading && (
+        <div className="h-1.5 bg-neutral-100 dark:bg-edge rounded-full overflow-hidden">
+          <div className="h-full bg-accent rounded-full w-3/5 animate-pulse" />
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={e => { if (e.target.files[0]) onRecord(e.target.files[0]) }}
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className={`w-full ${path ? 'btn-ghost text-sm' : 'btn-outline text-sm'}`}
+      >
+        <Video className="h-4 w-4" />
+        {uploading
+          ? t('washer.drawer.uploading')
+          : path
+            ? t('washer.drawer.replaceVideo')
+            : t('washer.drawer.recordVideo')
+        }
+      </button>
+    </div>
+  )
 }
 
 function getSnaps() {
@@ -68,14 +155,57 @@ function SlideToggle({ online, onToggle, toggling }) {
   )
 }
 
-function ActiveJobPanel({ activeJob }) {
-  const navigate  = useNavigate()
+function ActiveJobPanel({ activeJob, onJobDone }) {
   const showToast = useToast()
   const { t }     = useTranslation()
-  const { order } = useRealtimeOrder(activeJob?.id)
-  const { address } = useReverseGeocode(activeJob?.lat, activeJob?.lng)
-  const [advancing, setAdvancing] = useState(false)
-  const advancingRef = useRef(false)
+  const { order, mutateOrder } = useRealtimeOrder(activeJob?.id)
+  const { address }            = useReverseGeocode(activeJob?.lat, activeJob?.lng)
+  const [advancing, setAdvancing]   = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const advancingRef  = useRef(false)
+  const cancellingRef = useRef(false)
+  const [uploading, setUploading]       = useState({})
+  const [uploadErrors, setUploadErrors] = useState({})
+
+  // Realtime consumer-cancel detection
+  useEffect(() => {
+    if (order?.status === 'cancelled') onJobDone()
+  }, [order?.status]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function uploadEvidence(type, file) {
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadErrors(e => ({ ...e, [type]: t('washer.drawer.videoTooLarge') }))
+      return
+    }
+    const durationError = await checkVideoDuration(file)
+    if (durationError) {
+      setUploadErrors(e => ({ ...e, [type]: durationError }))
+      return
+    }
+    setUploading(u => ({ ...u, [type]: true }))
+    setUploadErrors(e => ({ ...e, [type]: '' }))
+
+    const path = `${activeJob.id}/${FILE_NAMES[type]}`
+    const { error: uploadError } = await supabase.storage
+      .from('job-evidence')
+      .upload(path, file, { upsert: true })
+
+    if (uploadError) {
+      setUploadErrors(e => ({ ...e, [type]: uploadError.message }))
+      setUploading(u => ({ ...u, [type]: false }))
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({ [COLUMNS[type]]: path })
+      .eq('id', activeJob.id)
+
+    if (updateError) setUploadErrors(e => ({ ...e, [type]: updateError.message }))
+    else mutateOrder({ [COLUMNS[type]]: path })
+
+    setUploading(u => ({ ...u, [type]: false }))
+  }
 
   async function advance() {
     if (advancingRef.current || !order) return
@@ -84,7 +214,7 @@ function ActiveJobPanel({ activeJob }) {
     advancingRef.current = true
     setAdvancing(true)
     const { error } = await supabase.rpc('transition_order_status', {
-      order_id: activeJob.id,
+      order_id:   activeJob.id,
       new_status: trans.next,
     })
     advancingRef.current = false
@@ -93,77 +223,186 @@ function ActiveJobPanel({ activeJob }) {
       if (!error.message?.match(/Invalid transition: (\S+) → \1/)) {
         showToast(error.message, 'error')
       }
+      return
+    }
+    mutateOrder({ status: trans.next })
+    if (trans.next === 'completed') {
+      showToast(t('washer.drawer.toasts.completed'), 'success')
+      setTimeout(onJobDone, 2000)
+    } else {
+      showToast(t(ADVANCE_TOAST_KEYS[trans.next] ?? 'washer.drawer.updating'), 'success')
     }
   }
 
-  const trans = order ? TRANSITION_KEYS[order.status] : null
+  async function cancelJob() {
+    if (cancellingRef.current) return
+    cancellingRef.current = true
+    setCancelling(true)
+    const { error } = await supabase.rpc('transition_order_status', {
+      order_id:   activeJob.id,
+      new_status: 'cancelled',
+    })
+    cancellingRef.current = false
+    setCancelling(false)
+    if (error) { showToast(error.message, 'error'); return }
+    onJobDone()
+  }
+
+  if (!order) return (
+    <div className="flex justify-center py-8">
+      <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
+    </div>
+  )
+
+  const trans        = TRANSITION_KEYS[order.status]
+  const isCompleting = trans?.next === 'completed'
+  const anyUploading = Object.values(uploading).some(Boolean)
+
+  const canComplete = (
+    order.evidence_wash_path != null &&
+    (!order.addon_wiper_fluid   || order.evidence_wiper_fluid_path   != null) &&
+    (!order.addon_tire_pressure || order.evidence_tire_pressure_path != null)
+  )
+
+  const missingEvidence = [
+    !order.evidence_wash_path                                         && t('washer.drawer.washVideo'),
+    order.addon_wiper_fluid   && !order.evidence_wiper_fluid_path    && t('washer.drawer.wiperFluidEvidence'),
+    order.addon_tire_pressure && !order.evidence_tire_pressure_path  && t('washer.drawer.tirePressureEvidence'),
+  ].filter(Boolean)
 
   return (
-    <div className="flex flex-col gap-3 px-4 pb-4">
-      {order ? (
-        <>
-          <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-muted shrink-0">
-                <Car className="h-4 w-4 text-accent" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-ink">
-                  {t(`carLabels.${order.car_type}`)} — {t(`serviceLabels.${order.service_type}`)}
-                </p>
-                <p className="text-xs text-ink-muted">{t('washer.jobDetail.payout', { amount: order.base_price })}</p>
-              </div>
-            </div>
+    <div className="flex flex-col gap-3 px-4 pb-6">
 
-            <div className="flex items-start gap-2 text-xs text-ink-muted">
-              <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span className="leading-snug">{address}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-ink-muted">
-              <DollarSign className="h-3.5 w-3.5 shrink-0" />
-              <span>{t('washer.drawer.customerPays', { amount: order.total_price })}</span>
-            </div>
+      {/* Job info */}
+      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-muted shrink-0">
+            <Car className="h-4 w-4 text-accent" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-ink">
+              {t(`carLabels.${order.car_type}`)} — {t(`serviceLabels.${order.service_type}`)}
+            </p>
+            <p className="text-xs text-ink-muted">{t('washer.jobDetail.payout', { amount: order.base_price })}</p>
           </div>
+        </div>
 
-          {trans && (
-            <button
-              onClick={advance}
-              disabled={advancing}
-              className="btn-primary w-full"
-            >
-              {advancing
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <ChevronRight className="h-4 w-4 rtl:rotate-180" />
-              }
-              {advancing ? t('washer.drawer.updating') : t(trans.key)}
-            </button>
+        <div className="flex items-start gap-2 text-xs text-ink-muted">
+          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span className="leading-snug">{address}</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-ink-muted">
+          <DollarSign className="h-3.5 w-3.5 shrink-0" />
+          <span>{t('washer.drawer.customerPays', { amount: order.total_price })}</span>
+        </div>
+      </div>
+
+      {/* Access instructions */}
+      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Key className="h-4 w-4 text-accent shrink-0" />
+          <p className="text-sm font-semibold text-accent">{t('washer.drawer.accessInstructions')}</p>
+        </div>
+        <p className="text-sm text-ink">
+          {order.key_location || t('washer.drawer.noAccessNotes')}
+        </p>
+      </div>
+
+      {/* Status timeline */}
+      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4">
+        <StatusTimeline status={order.status} />
+      </div>
+
+      {/* Evidence section — only when in_progress */}
+      {order.status === 'in_progress' && (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-semibold text-ink px-1">{t('washer.drawer.uploadEvidence')}</p>
+
+          <EvidenceCard
+            label={t('washer.drawer.washVideo')}
+            path={order.evidence_wash_path}
+            uploading={!!uploading.wash}
+            error={uploadErrors.wash}
+            onRecord={file => uploadEvidence('wash', file)}
+          />
+
+          {order.addon_wiper_fluid && (
+            <EvidenceCard
+              label={t('washer.drawer.wiperFluidEvidence')}
+              path={order.evidence_wiper_fluid_path}
+              uploading={!!uploading.wiper_fluid}
+              error={uploadErrors.wiper_fluid}
+              onRecord={file => uploadEvidence('wiper_fluid', file)}
+            />
           )}
 
-          <button
-            onClick={() => navigate(`/washer/active/${activeJob.id}`)}
-            className="btn-ghost text-sm w-full"
-          >
-            <ExternalLink className="h-4 w-4" />
-            {t('washer.drawer.manageJob')}
-          </button>
-        </>
-      ) : (
-        <div className="flex justify-center py-6">
-          <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
+          {order.addon_tire_pressure && (
+            <EvidenceCard
+              label={t('washer.drawer.tirePressureEvidence')}
+              path={order.evidence_tire_pressure_path}
+              uploading={!!uploading.tire_pressure}
+              error={uploadErrors.tire_pressure}
+              onRecord={file => uploadEvidence('tire_pressure', file)}
+            />
+          )}
         </div>
+      )}
+
+      {/* Completed card */}
+      {order.status === 'completed' && (
+        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 text-center">
+          <p className="font-semibold text-accent">{t('washer.drawer.jobCompleted')}</p>
+        </div>
+      )}
+
+      {/* Primary action */}
+      {trans && (
+        <>
+          <button
+            onClick={advance}
+            disabled={advancing || anyUploading || (isCompleting && !canComplete)}
+            className="btn-primary w-full"
+          >
+            {advancing
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            }
+            {advancing ? t('washer.drawer.updating') : t(trans.key)}
+          </button>
+
+          {isCompleting && !canComplete && (
+            <p className="text-xs text-center text-ink-muted px-2">
+              {t('washer.drawer.uploadRequired', { items: missingEvidence.join(', ') })}
+            </p>
+          )}
+        </>
+      )}
+
+      {/* Cancel — only from accepted */}
+      {order.status === 'accepted' && (
+        <button
+          onClick={cancelJob}
+          disabled={cancelling}
+          className="btn-ghost text-danger-500 w-full"
+        >
+          <XCircle className="h-4 w-4" />
+          {cancelling ? t('washer.drawer.cancelling') : t('washer.drawer.cancelJob')}
+        </button>
       )}
     </div>
   )
 }
 
-export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob }) {
+export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone }) {
   const navigate = useNavigate()
   const { t }    = useTranslation()
   const snaps    = useRef(getSnaps())
   const y        = useMotionValue(snaps.current.default)
   const listRef  = useRef(null)
   const cardRefs = useRef({})
+
+  const isActive = !!activeJob
 
   useEffect(() => {
     if (!selectedJobId) return
@@ -176,8 +415,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   }, [selectedJobId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!activeJob) return
-    animate(y, snaps.current.default, SPRING)
+    animate(y, activeJob ? snaps.current.expanded : snaps.current.default, SPRING)
   }, [activeJob?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function onDragEnd(_, info) {
@@ -197,25 +435,26 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   }
 
   const { expandedH, collapsed } = snaps.current
-
-  const isActive    = !!activeJob
   const drawerTitle = isActive ? t('washer.drawer.activeJob') : t('washer.drawer.jobsNearby')
 
   return (
     <motion.div
-      drag="y"
+      drag={isActive ? false : 'y'}
       dragConstraints={{ top: 0, bottom: collapsed }}
       dragElastic={{ top: 0.05, bottom: 0.12 }}
       style={{ y, height: expandedH, bottom: BOTTOM_NAV_H }}
       onDragEnd={onDragEnd}
       className="fixed inset-x-0 z-30 flex flex-col bg-glass border-t border-glass-border backdrop-blur-xl rounded-t-3xl"
     >
-      {/* Drag handle */}
-      <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing touch-none">
-        <div className="w-9 h-1 bg-neutral-400/40 rounded-full" />
+      {/* Drag handle — visible only in job-list mode */}
+      <div className="flex justify-center pt-3 pb-2 shrink-0 touch-none" style={{ cursor: isActive ? 'default' : undefined }}>
+        {isActive
+          ? <div className="w-9 h-1" />
+          : <div className="w-9 h-1 bg-neutral-400/40 rounded-full cursor-grab active:cursor-grabbing" />
+        }
       </div>
 
-      {/* Header row: title + toggle */}
+      {/* Header */}
       <div className="px-4 pb-3 shrink-0 flex items-center justify-between gap-3">
         <div className="flex flex-col gap-0.5 min-w-0">
           <p className="text-base font-bold text-ink leading-tight">{drawerTitle}</p>
@@ -237,7 +476,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
           className="flex-1 overflow-y-auto"
           onPointerDown={e => e.stopPropagation()}
         >
-          <ActiveJobPanel activeJob={activeJob} />
+          <ActiveJobPanel activeJob={activeJob} onJobDone={onJobDone} />
         </div>
       ) : (
         <div
