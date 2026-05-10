@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 
 const tealMarker = L.divIcon({
   html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
-    <path d="M12 0C5.37 0 0 5.37 0 12c0 6.63 12 24 12 24S24 18.63 24 12C24 5.37 18.63 0 12 0z" fill="#0EA5A4"/>
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 6.63 12 24 12 24S24 18.63 24 12C24 5.37 18.63 0 12 0z" fill="#7DD9A2"/>
     <circle cx="12" cy="12" r="5" fill="white"/>
   </svg>`,
   iconSize: [24, 36],

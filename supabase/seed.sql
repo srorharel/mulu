@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- SparkleGo seed data — development / smoke testing
+-- Wash seed data — development / smoke testing
 --
 -- Run from the Supabase SQL Editor AFTER all three migration files.
 -- The SQL Editor executes as the postgres role, which bypasses RLS and can

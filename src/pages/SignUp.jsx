@@ -101,7 +101,7 @@ export default function SignUp() {
           <div className="rounded-xl bg-primary-500 p-2">
             <Droplets className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-primary-600">SparkleGo</span>
+          <span className="text-xl font-bold text-primary-600">Wash</span>
         </motion.div>
 
         {/* Glass form card */}

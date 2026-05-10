@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import i18n from '../i18n/index.js'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse'
-const UA        = 'SparkleGo/1.0'
+const UA        = 'Wash/1.0'
 const TIMEOUT_MS = 5000
 
 // ── In-memory cache keyed by "lat4,lng4" (4 decimal places ≈ 11m precision) ──

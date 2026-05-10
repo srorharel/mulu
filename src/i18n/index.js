@@ -5,6 +5,17 @@ import { z } from 'zod'
 import en from './locales/en.json'
 import he from './locales/he.json'
 
+// Migrate saved locale from old key so existing users keep their preference.
+const OLD_LOCALE_KEY = 'sparklego_locale'
+const NEW_LOCALE_KEY = 'wash_locale'
+try {
+  const saved = localStorage.getItem(OLD_LOCALE_KEY)
+  if (saved && !localStorage.getItem(NEW_LOCALE_KEY)) {
+    localStorage.setItem(NEW_LOCALE_KEY, saved)
+  }
+  if (saved) localStorage.removeItem(OLD_LOCALE_KEY)
+} catch (_) { /* private browsing — ignore */ }
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -18,7 +29,7 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
-      lookupLocalStorage: 'sparklego_locale',
+      lookupLocalStorage: NEW_LOCALE_KEY,
     },
     interpolation: { escapeValue: false },
   })

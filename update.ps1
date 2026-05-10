@@ -1,4 +1,4 @@
-﻿# update.ps1 — SparkleGo one-command deploy script
+﻿# update.ps1 — Wash one-command deploy script
 # Usage: .\update.ps1 "my commit message"
 #        .\update.ps1          (auto-generates timestamp message)
 param(
@@ -115,7 +115,7 @@ if ($buildApk -match '^[Yy]$') {
     if ($LASTEXITCODE -ne 0) { Write-Fail "Gradle assembleDebug failed — check the output above." }
 
     $apkSrc  = "$PSScriptRoot\android\app\build\outputs\apk\debug\app-debug.apk"
-    $apkDest = "$PSScriptRoot\sparklego-latest.apk"
+    $apkDest = "$PSScriptRoot\wash-latest.apk"
     if (-not (Test-Path $apkSrc)) {
         Write-Fail "APK not found at expected path ($apkSrc) after build."
     }
@@ -126,7 +126,7 @@ if ($buildApk -match '^[Yy]$') {
     $apkBuilt = $true
 
     Write-OK "APK ready: $apkFullPath  ($apkSizeMB MB)"
-    Write-Host "  → Send sparklego-latest.apk to your phone via WhatsApp/Drive and tap to install." -ForegroundColor Yellow
+    Write-Host "  → Send wash-latest.apk to your phone via WhatsApp/Drive and tap to install." -ForegroundColor Yellow
 
 } else {
     Write-Warn "APK rebuild skipped (web-only update)."
@@ -142,10 +142,10 @@ if ($committed) {
     Write-Host "  ✓ Pushed to GitHub — no new commit  (HEAD: $commitHash)" -ForegroundColor Green
 }
 
-Write-Host "  ✓ Vercel deploy triggered — check https://sparklego.vercel.app in ~60s" -ForegroundColor Green
+Write-Host "  ✓ Vercel deploy triggered — check https://wash.vercel.app in ~60s" -ForegroundColor Green
 
 if ($apkBuilt) {
-    Write-Host "  ✓ APK rebuilt: sparklego-latest.apk  ($apkSizeMB MB)" -ForegroundColor Green
+    Write-Host "  ✓ APK rebuilt: wash-latest.apk  ($apkSizeMB MB)" -ForegroundColor Green
     Write-Host "     → Send this file to your phone to install the update" -ForegroundColor Yellow
 } else {
     Write-Host "  - APK not rebuilt (web-only update)" -ForegroundColor Gray

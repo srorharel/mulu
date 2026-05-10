@@ -25,7 +25,7 @@
     "signInToAccount": "כנס לחשבונך",
     "forgotPassword": "שכחת סיסמה?",
     "forgotPasswordSoon": "בקרוב",
-    "newToSparkleGo": "חדש ב-SparkleGo?",
+    "newToWash": "חדש ב-Wash?",
     "createAccount": "יצירת חשבון",
     "alreadyHaveAccount": "כבר יש לך חשבון?",
     "signIn": "כניסה",
@@ -38,7 +38,7 @@
   },
   "signup": {
     "title": "יצירת חשבון",
-    "subtitle": "הצטרף לרשת SparkleGo",
+    "subtitle": "הצטרף לרשת Wash",
     "iAmA": "אני...",
     "customer": "לקוח",
     "washer": "שוטף",

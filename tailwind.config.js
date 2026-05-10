@@ -10,16 +10,16 @@ export default {
       colors: {
         // ── Existing palette (all consumers of primary-*, success-*, etc. unchanged) ──
         primary: {
-          50:  '#f0fafa',
-          100: '#ccf2f2',
-          200: '#99e5e5',
-          300: '#5cd0cf',
-          400: '#2cb8b7',
-          500: '#0EA5A4',
-          600: '#0b8888',
-          700: '#096b6a',
-          800: '#074f4e',
-          900: '#053433',
+          50:  '#F3FCF7',
+          100: '#E5F6EC',
+          200: '#D4EDDE',
+          300: '#B9E5CB',
+          400: '#9CDEB6',
+          500: '#7DD9A2',
+          600: '#47D17F',
+          700: '#26B55F',
+          800: '#1C8747',
+          900: '#135C30',
         },
         success: {
           50:  '#f0fdf4',

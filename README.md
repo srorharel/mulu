@@ -1,4 +1,4 @@
-# SparkleGo — Mobile Car Wash Marketplace
+# Wash — Mobile Car Wash Marketplace
 
 On-demand mobile car wash PWA. Connects car owners with washers who travel to the customer's location.
 
@@ -20,7 +20,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 .\update.ps1 "describe what changed"
 ```
 
-Answer **Y** at the APK prompt. The script commits, pushes to GitHub (Vercel auto-deploys), builds the bundle, syncs to Android, runs Gradle, and copies the APK to `sparklego-latest.apk` in the project root. Send that file to your phone and tap to install.
+Answer **Y** at the APK prompt. The script commits, pushes to GitHub (Vercel auto-deploys), builds the bundle, syncs to Android, runs Gradle, and copies the APK to `wash-latest.apk` in the project root. Send that file to your phone and tap to install.
 
 ### Web-only update — no APK rebuild
 
@@ -60,7 +60,7 @@ Auto-generates a message: `"update: YYYY-MM-DD HH:MM"`.
 ### 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) → **New project**
-2. Enter a name (e.g. `sparklego`), choose a region, and generate a strong database password — **save it**, you'll need it in the next step
+2. Enter a name (e.g. `wash`), choose a region, and generate a strong database password — **save it**, you'll need it in the next step
 3. Click **Create new project** and wait ~2 minutes for provisioning
 
 ### 2. Copy three values into .env

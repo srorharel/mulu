@@ -1,6 +1,6 @@
 {
   "appId": "com.sparklego.app",
-  "appName": "SparkleGo",
+  "appName": "Wash",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

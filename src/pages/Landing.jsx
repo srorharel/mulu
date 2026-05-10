@@ -42,7 +42,7 @@ export default function Landing() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">SparkleGo</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Wash</h1>
             <p className="text-neutral-500 text-sm mt-1 max-w-xs">
               {t('landing.tagline')}
             </p>

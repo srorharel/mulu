@@ -25,7 +25,7 @@
     "signInToAccount": "Sign in to your account",
     "forgotPassword": "Forgot password?",
     "forgotPasswordSoon": "Coming soon",
-    "newToSparkleGo": "New to SparkleGo?",
+    "newToWash": "New to Wash?",
     "createAccount": "Create account",
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
@@ -38,7 +38,7 @@
   },
   "signup": {
     "title": "Create account",
-    "subtitle": "Join the SparkleGo network",
+    "subtitle": "Join the Wash network",
     "iAmA": "I am a…",
     "customer": "I'm a customer",
     "washer": "I'm a washer",

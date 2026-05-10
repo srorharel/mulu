@@ -70,7 +70,7 @@ export default function Login() {
           <div className="rounded-xl bg-primary-500 p-2">
             <Droplets className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-primary-600">SparkleGo</span>
+          <span className="text-xl font-bold text-primary-600">Wash</span>
         </motion.div>
 
         {/* Glass form card */}
@@ -125,7 +125,7 @@ export default function Login() {
         </motion.div>
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
-          {t('auth.newToSparkleGo')}{' '}
+          {t('auth.newToWash')}{' '}
           <Link to="/signup" className="text-primary-600 font-medium">{t('auth.createAccount')}</Link>
         </motion.p>
       </motion.div>

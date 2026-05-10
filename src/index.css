@@ -12,8 +12,8 @@
   --color-ink:              #171717;
   --color-ink-muted:        #737373;
   --color-edge:             #f5f5f5;
-  --color-accent:           #0EA5A4;
-  --color-accent-muted:     rgba(14, 165, 164, 0.12);
+  --color-accent:           #7DD9A2;
+  --color-accent-muted:     rgba(125, 217, 162, 0.12);
   /* Phase C — glass surface & border */
   --color-glass-surface:    rgba(255, 255, 255, 0.60);
   --color-glass-border:     rgba(255, 255, 255, 0.50);
@@ -26,8 +26,8 @@
   --color-ink:              #f5f5f5;
   --color-ink-muted:        #a3a3a3;
   --color-edge:             #2a2d3a;
-  --color-accent:           #0EA5A4;
-  --color-accent-muted:     rgba(14, 165, 164, 0.18);
+  --color-accent:           #7DD9A2;
+  --color-accent-muted:     rgba(125, 217, 162, 0.18);
   /* Phase C — glass surface & border (dark) */
   --color-glass-surface:    rgba(26, 29, 39, 0.50);
   --color-glass-border:     rgba(255, 255, 255, 0.08);
@@ -54,9 +54,9 @@
   .bg-mesh {
     background-color: var(--color-surface);
     background-image:
-      radial-gradient(ellipse 70% 60% at  5% 15%, rgba(14, 165, 164, 0.18) 0%, transparent 65%),
-      radial-gradient(ellipse 55% 50% at 90% 10%, rgba(14, 165, 164, 0.14) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 55% at 55% 90%, rgba(14, 165, 164, 0.10) 0%, transparent 65%),
+      radial-gradient(ellipse 70% 60% at  5% 15%, rgba(125, 217, 162, 0.18) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 50% at 90% 10%, rgba(125, 217, 162, 0.14) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 55% at 55% 90%, rgba(125, 217, 162, 0.10) 0%, transparent 65%),
       radial-gradient(ellipse 45% 40% at 80% 70%, rgba(251, 146, 60,  0.12) 0%, transparent 60%);
   }
 }

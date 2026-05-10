@@ -20,7 +20,7 @@
 .washer-dot__core {
   position: absolute;
   inset: 30%;                   /* 30% of 24px = ~7px from each edge → ~10px diameter */
-  background: #0EA5A4;
+  background: #7DD9A2;
   border-radius: 50%;
   border: 2px solid #ffffff;
   z-index: 2;
@@ -30,7 +30,7 @@
 .washer-dot__ring {
   position: absolute;
   inset: 10%;                   /* slightly inset so ring starts just outside the core */
-  border: 2px solid #0EA5A4;
+  border: 2px solid #7DD9A2;
   border-radius: 50%;
   animation: washer-pulse 2s ease-out infinite;
   z-index: 1;
@@ -53,7 +53,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #2cb8b7;        /* primary-400 */
+  background: #9CDEB6;        /* primary-400 */
   border: 2.5px solid #ffffff;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }

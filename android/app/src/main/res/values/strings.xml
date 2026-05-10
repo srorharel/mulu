@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SparkleGo</string>
-    <string name="title_activity_main">SparkleGo</string>
+    <string name="app_name">Wash</string>
+    <string name="title_activity_main">Wash</string>
     <string name="package_name">com.sparklego.app</string>
     <string name="custom_url_scheme">com.sparklego.app</string>
 </resources>

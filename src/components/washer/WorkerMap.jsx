@@ -270,7 +270,7 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
                 [activeJob.lat,      activeJob.lng],
               ]
             }
-            color="#0EA5A4"
+            color="#7DD9A2"
             weight={3}
             opacity={0.85}
             dashArray="6 8"
