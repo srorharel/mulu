@@ -263,6 +263,13 @@
       "uploadRequired": "נדרשת העלאה: {{items}}",
       "cancelJob": "בטל עבודה",
       "cancelling": "מבטל...",
+      "cancel": {
+        "title": "לבטל את העבודה?",
+        "message": "הלקוח יקבל הודעה. לא ניתן לבטל פעולה זו.",
+        "confirmLabel": "כן, לבטל",
+        "cancelLabel": "שמור את העבודה",
+        "shortLabel": "ביטול"
+      },
       "jobCompleted": "עבודה הושלמה — כל הכבוד!",
       "videoTooLarge": "הוידאו חייב להיות מתחת ל-50 MB",
       "toasts": {
@@ -276,6 +283,9 @@
       "online": "מחובר",
       "offline": "לא מחובר",
       "ariaLabel": "שנה סטטוס חיבור"
+    },
+    "online": {
+      "cantGoOfflineActive": "לא ניתן להיות לא מקוון בזמן עבודה פעילה"
     },
     "nav": {
       "openIn": "פתח ב-{{app}}"

@@ -263,6 +263,13 @@
       "uploadRequired": "Upload required: {{items}}",
       "cancelJob": "Cancel job",
       "cancelling": "Cancelling…",
+      "cancel": {
+        "title": "Cancel job?",
+        "message": "The customer will be notified. This action cannot be undone.",
+        "confirmLabel": "Yes, cancel",
+        "cancelLabel": "Keep job",
+        "shortLabel": "Cancel"
+      },
       "jobCompleted": "Job complete — great work!",
       "videoTooLarge": "Video must be under 50 MB",
       "toasts": {
@@ -276,6 +283,9 @@
       "online": "Online",
       "offline": "Offline",
       "ariaLabel": "Toggle online status"
+    },
+    "online": {
+      "cantGoOfflineActive": "You can't go offline while a job is active"
     },
     "nav": {
       "openIn": "Open in {{app}}"

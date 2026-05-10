@@ -12,12 +12,16 @@ import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
+import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import StatusTimeline from '../StatusTimeline.jsx'
 import i18n from '../../i18n/index.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
 const BOTTOM_NAV_H  = 56
+
+// Statuses from which a washer is allowed to cancel.
+const CANCEL_STATUSES = ['accepted', 'en_route']
 
 const TRANSITION_KEYS = {
   accepted:    { next: 'en_route',    key: 'washer.drawer.transitions.startDrive'  },
@@ -155,15 +159,13 @@ function SlideToggle({ online, onToggle, toggling }) {
   )
 }
 
-function ActiveJobPanel({ activeJob, onJobDone }) {
+// order and mutateOrder are passed down from JobDrawer (which owns useRealtimeOrder).
+function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
   const showToast = useToast()
   const { t }     = useTranslation()
-  const { order, mutateOrder } = useRealtimeOrder(activeJob?.id)
-  const { address }            = useReverseGeocode(activeJob?.lat, activeJob?.lng)
+  const { address } = useReverseGeocode(activeJob?.lat, activeJob?.lng)
   const [advancing, setAdvancing]   = useState(false)
-  const [cancelling, setCancelling] = useState(false)
   const advancingRef  = useRef(false)
-  const cancellingRef = useRef(false)
   const [uploading, setUploading]       = useState({})
   const [uploadErrors, setUploadErrors] = useState({})
 
@@ -232,20 +234,6 @@ function ActiveJobPanel({ activeJob, onJobDone }) {
     } else {
       showToast(t(ADVANCE_TOAST_KEYS[trans.next] ?? 'washer.drawer.updating'), 'success')
     }
-  }
-
-  async function cancelJob() {
-    if (cancellingRef.current) return
-    cancellingRef.current = true
-    setCancelling(true)
-    const { error } = await supabase.rpc('transition_order_status', {
-      order_id:   activeJob.id,
-      new_status: 'cancelled',
-    })
-    cancellingRef.current = false
-    setCancelling(false)
-    if (error) { showToast(error.message, 'error'); return }
-    onJobDone()
   }
 
   if (!order) return (
@@ -378,31 +366,50 @@ function ActiveJobPanel({ activeJob, onJobDone }) {
           )}
         </>
       )}
-
-      {/* Cancel — only from accepted */}
-      {order.status === 'accepted' && (
-        <button
-          onClick={cancelJob}
-          disabled={cancelling}
-          className="btn-ghost text-danger-500 w-full"
-        >
-          <XCircle className="h-4 w-4" />
-          {cancelling ? t('washer.drawer.cancelling') : t('washer.drawer.cancelJob')}
-        </button>
-      )}
     </div>
   )
 }
 
 export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone }) {
-  const navigate = useNavigate()
-  const { t }    = useTranslation()
-  const snaps    = useRef(getSnaps())
-  const y        = useMotionValue(snaps.current.default)
-  const listRef  = useRef(null)
-  const cardRefs = useRef({})
+  const navigate  = useNavigate()
+  const { t }     = useTranslation()
+  const showToast = useToast()
+  const snaps     = useRef(getSnaps())
+  const y         = useMotionValue(snaps.current.default)
+  const listRef   = useRef(null)
+  const cardRefs  = useRef({})
 
-  const isActive = !!activeJob
+  const { order, mutateOrder }                    = useRealtimeOrder(activeJob?.id)
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
+  const [cancelling, setCancelling]               = useState(false)
+  const cancellingRef                             = useRef(false)
+
+  const isActive   = !!activeJob
+  const canCancel  = isActive && CANCEL_STATUSES.includes(order?.status)
+
+  async function cancelJob() {
+    if (cancellingRef.current) return
+    cancellingRef.current = true
+    setCancelling(true)
+    const { error } = await supabase.rpc('transition_order_status', {
+      order_id:   activeJob.id,
+      new_status: 'cancelled',
+    })
+    cancellingRef.current = false
+    setCancelling(false)
+    if (error) { showToast(error.message, 'error'); return }
+    onJobDone()
+  }
+
+  // Safety net: block going offline while a job is active (shouldn't trigger
+  // in normal flow since the toggle is hidden during active jobs).
+  function handleToggle() {
+    if (activeJob) {
+      showToast(t('washer.online.cantGoOfflineActive'), 'error')
+      return
+    }
+    onToggle()
+  }
 
   useEffect(() => {
     if (!selectedJobId) return
@@ -437,6 +444,26 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   const { expandedH, collapsed } = snaps.current
   const drawerTitle = isActive ? t('washer.drawer.activeJob') : t('washer.drawer.jobsNearby')
 
+  // Header trailing slot:
+  //   active job + cancellable status → compact danger pill
+  //   active job + non-cancellable status (arrived+) → nothing
+  //   no active job → online toggle
+  const headerTrailing = isActive
+    ? (canCancel
+        ? <button
+            onClick={() => setCancelConfirmOpen(true)}
+            disabled={cancelling}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-danger-500 bg-danger-500/10 border border-danger-500/20 hover:bg-danger-500/20 transition-colors shrink-0"
+          >
+            {cancelling
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <XCircle className="h-3.5 w-3.5" />
+            }
+            {cancelling ? t('washer.drawer.cancelling') : t('washer.drawer.cancel.shortLabel')}
+          </button>
+        : null)
+    : <SlideToggle online={online} onToggle={handleToggle} toggling={toggling} />
+
   return (
     <motion.div
       drag={isActive ? false : 'y'}
@@ -467,7 +494,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
             <p className="text-xs text-ink-muted">{t('washer.drawer.lookingForJobs')}</p>
           )}
         </div>
-        <SlideToggle online={online} onToggle={onToggle} toggling={toggling} />
+        {headerTrailing}
       </div>
 
       {/* Body */}
@@ -476,7 +503,12 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
           className="flex-1 overflow-y-auto"
           onPointerDown={e => e.stopPropagation()}
         >
-          <ActiveJobPanel activeJob={activeJob} onJobDone={onJobDone} />
+          <ActiveJobPanel
+            activeJob={activeJob}
+            order={order}
+            mutateOrder={mutateOrder}
+            onJobDone={onJobDone}
+          />
         </div>
       ) : (
         <div
@@ -522,6 +554,17 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onConfirm={() => { setCancelConfirmOpen(false); cancelJob() }}
+        onCancel={() => setCancelConfirmOpen(false)}
+        title={t('washer.drawer.cancel.title')}
+        message={t('washer.drawer.cancel.message')}
+        confirmLabel={t('washer.drawer.cancel.confirmLabel')}
+        cancelLabel={t('washer.drawer.cancel.cancelLabel')}
+        destructive
+      />
     </motion.div>
   )
 }
