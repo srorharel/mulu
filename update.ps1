@@ -106,17 +106,23 @@ if ($buildApk -match '^[Yy]$') {
     if ($LASTEXITCODE -ne 0) { Write-Fail "npx cap sync android failed." }
 
     Write-Host "`n  ▸ gradlew assembleDebug" -ForegroundColor Cyan
-    & ".\android\gradlew.bat" assembleDebug
+    Push-Location "$PSScriptRoot\android"
+    try {
+        .\gradlew assembleDebug
+    } finally {
+        Pop-Location
+    }
     if ($LASTEXITCODE -ne 0) { Write-Fail "Gradle assembleDebug failed — check the output above." }
 
-    $apkSrc = "android\app\build\outputs\apk\debug\app-debug.apk"
+    $apkSrc  = "$PSScriptRoot\android\app\build\outputs\apk\debug\app-debug.apk"
+    $apkDest = "$PSScriptRoot\sparklego-latest.apk"
     if (-not (Test-Path $apkSrc)) {
         Write-Fail "APK not found at expected path ($apkSrc) after build."
     }
 
-    Copy-Item $apkSrc "sparklego-latest.apk" -Force
-    $apkSizeMB  = [math]::Round((Get-Item "sparklego-latest.apk").Length / 1MB, 1)
-    $apkFullPath = (Resolve-Path "sparklego-latest.apk").Path
+    Copy-Item $apkSrc $apkDest -Force
+    $apkSizeMB  = [math]::Round((Get-Item $apkDest).Length / 1MB, 1)
+    $apkFullPath = $apkDest
     $apkBuilt = $true
 
     Write-OK "APK ready: $apkFullPath  ($apkSizeMB MB)"
