@@ -10,6 +10,12 @@ export default function NavLauncher({ activeJob }) {
   const { t }       = useTranslation()
 
   if (!activeJob) return null
+  if (
+    typeof activeJob.lat !== 'number' ||
+    typeof activeJob.lng !== 'number' ||
+    Number.isNaN(activeJob.lat) ||
+    Number.isNaN(activeJob.lng)
+  ) return null
 
   const pref  = profile?.nav_app_preference ?? 'waze'
   const label = pref === 'google' ? 'Google Maps' : 'Waze'
@@ -18,22 +24,16 @@ export default function NavLauncher({ activeJob }) {
     ? `https://www.google.com/maps/dir/?api=1&destination=${activeJob.lat},${activeJob.lng}&travelmode=driving`
     : `https://waze.com/ul?ll=${activeJob.lat},${activeJob.lng}&navigate=yes`
 
-  function open() {
-    if (window.Capacitor?.Plugins?.App?.openUrl) {
-      window.Capacitor.Plugins.App.openUrl({ url })
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer')
-    }
-  }
-
   return (
-    <motion.button
+    <motion.a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       whileTap={{ scale: 0.92 }}
       transition={SPRING}
-      onClick={open}
       aria-label={t('washer.nav.openIn', { app: label })}
       className="fixed z-40 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-semibold shadow-lg backdrop-blur-xl border bg-glass border-glass-border text-ink"
       style={{
@@ -43,6 +43,6 @@ export default function NavLauncher({ activeJob }) {
     >
       <Navigation className="h-4 w-4 text-accent" />
       {label}
-    </motion.button>
+    </motion.a>
   )
 }

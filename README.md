@@ -2,6 +2,52 @@
 
 On-demand mobile car wash PWA. Connects car owners with washers who travel to the customer's location.
 
+## Daily workflow
+
+Use `update.ps1` from the project root whenever you ship a change.
+
+### First-time setup (PowerShell execution policy)
+
+If PowerShell blocks the script on first run, allow it once:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+### Full update — web + new APK
+
+```powershell
+.\update.ps1 "describe what changed"
+```
+
+Answer **Y** at the APK prompt. The script commits, pushes to GitHub (Vercel auto-deploys), builds the bundle, syncs to Android, runs Gradle, and copies the APK to `sparklego-latest.apk` in the project root. Send that file to your phone and tap to install.
+
+### Web-only update — no APK rebuild
+
+```powershell
+.\update.ps1 "describe what changed"
+```
+
+Answer **N** at the APK prompt. Vercel redeploys; no new APK is built. Use this when the change is frontend-only and the installed app doesn't need updating.
+
+### npm-style invocation
+
+```bash
+npm run update -- "describe what changed"
+```
+
+The `--` separator is required so npm passes the argument through to the PowerShell script.
+
+### Omitting the commit message
+
+```powershell
+.\update.ps1
+```
+
+Auto-generates a message: `"update: YYYY-MM-DD HH:MM"`.
+
+---
+
 ## Tech stack
 
 - **Frontend:** React 18 + Vite, Tailwind CSS, Lucide React, React Router v6

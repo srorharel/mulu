@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -20,6 +21,7 @@ export default function WasherDashboard() {
   const { user }                    = useAuth()
   const showToast                   = useToast()
   const { t }                       = useTranslation()
+  const location                    = useLocation()
 
   const [online, setOnline]               = useState(profile?.is_online ?? false)
   const [toggling, setToggling]           = useState(false)
@@ -38,13 +40,30 @@ export default function WasherDashboard() {
       .eq('id', user.id)
   }, [position?.lat, position?.lng, online]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fix 2: immediately apply accepted job passed via navigation state
   useEffect(() => {
+    const accepted = location.state?.acceptedJob
+    if (accepted?.id) {
+      setActiveJob(accepted)
+      window.history.replaceState({}, document.title)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fix 3: async fetch as safety net — errors logged, never clobber state set above
+  useEffect(() => {
+    let cancelled = false
     supabase
       .rpc('get_washer_active_job')
       .maybeSingle()
-      .then(({ data }) => {
-        setActiveJob(data ?? null)
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          console.error('[Dashboard] Failed to fetch active job:', error)
+          return
+        }
+        if (data) setActiveJob(data)
       })
+    return () => { cancelled = true }
   }, [user.id, online])
 
   // Belt-and-suspenders: catch consumer-side cancel via realtime

@@ -37,7 +37,11 @@ export default function JobDetail() {
     setAccepting(false)
     if (error) { showToast(error.message, 'error'); return }
     showToast(t('washer.jobDetail.accepted'), 'success')
-    navigate('/washer')
+    navigate('/washer', {
+      state: {
+        acceptedJob: { id: order.id, lat: order.lat, lng: order.lng },
+      },
+    })
   }
 
   if (loading) return (

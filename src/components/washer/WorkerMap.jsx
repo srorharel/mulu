@@ -19,6 +19,14 @@ const ROUTE_REFETCH_DIST_M = 100
 const ROUTE_DEBOUNCE_MS    = 500
 const ROUTE_TIMEOUT_MS     = 5000
 
+// Defensive guard — Leaflet throws synchronously on undefined/NaN coords
+function validCoord(lat, lng) {
+  return (
+    typeof lat === 'number' && typeof lng === 'number' &&
+    !Number.isNaN(lat) && !Number.isNaN(lng)
+  )
+}
+
 function haversineM(p1, p2) {
   const R    = 6371000
   const dLat = (p2.lat - p1.lat) * Math.PI / 180
@@ -45,6 +53,7 @@ function useOsrmRoute(washerPosition, activeJob) {
 
   function fetchRoute(from, job) {
     if (!from || !job) return
+    if (!validCoord(from.lat, from.lng) || !validCoord(job.lat, job.lng)) return
     abortCtrl.current?.abort()
     const ctrl = new AbortController()
     abortCtrl.current = ctrl
@@ -71,6 +80,8 @@ function useOsrmRoute(washerPosition, activeJob) {
 
   useEffect(() => {
     if (!washerPosition || !activeJobRef.current) return
+    if (!validCoord(washerPosition.lat, washerPosition.lng)) return
+    if (!validCoord(activeJobRef.current.lat, activeJobRef.current.lng)) return
     const dist = lastFetchPos.current
       ? haversineM(lastFetchPos.current, washerPosition)
       : Infinity
@@ -115,7 +126,7 @@ function WasherMarkerLayer({ position }) {
   const markerRef = useRef(null)
 
   useEffect(() => {
-    if (!position) return
+    if (!position || !validCoord(position.lat, position.lng)) return
     if (!markerRef.current) {
       markerRef.current = L.marker([position.lat, position.lng], {
         icon: washerIcon,
@@ -145,6 +156,8 @@ function AutoFitLayer({ washerPosition, activeJob }) {
 
   useEffect(() => {
     if (!washerPosition || !activeJob) return
+    if (!validCoord(washerPosition.lat, washerPosition.lng)) return
+    if (!validCoord(activeJob.lat, activeJob.lng)) return
     const bounds = L.latLngBounds(
       [washerPosition.lat, washerPosition.lng],
       [activeJob.lat,      activeJob.lng],
@@ -156,38 +169,31 @@ function AutoFitLayer({ washerPosition, activeJob }) {
 }
 
 // ── Camera follow + manual-pan pause ──────────────────────────────────────────
-// Two mutually exclusive modes:
-//   no active job → smooth follow (unless user manually dragged)
-//   active job    → AutoFitLayer owns the camera; follow is suppressed
 function FollowLayer({ washerPosition, activeJob, followPaused, setFollowPaused }) {
   const map = useMap()
   const initializedRef  = useRef(false)
-  // Refs keep effects from capturing stale props without extra re-runs.
   const activeJobRef    = useRef(activeJob)
   const followPausedRef = useRef(followPaused)
 
   useEffect(() => { activeJobRef.current    = activeJob    })
   useEffect(() => { followPausedRef.current = followPaused })
 
-  // One-shot initial center: fires the first time GPS position arrives
-  // (skipped when there's already an active job — AutoFitLayer handles it).
   useEffect(() => {
     if (!washerPosition || initializedRef.current || activeJobRef.current) return
+    if (!validCoord(washerPosition.lat, washerPosition.lng)) return
     initializedRef.current = true
     map.setView([washerPosition.lat, washerPosition.lng], FOLLOW_ZOOM, { animate: false })
   }, [washerPosition?.lat, washerPosition?.lng]) // eslint-disable-line
 
-  // Smooth follow: pan on each position update when not paused and no active job.
-  // Threshold (FOLLOW_DIST_M) suppresses micro-pans from GPS noise.
   useEffect(() => {
     if (!washerPosition || activeJobRef.current || followPausedRef.current) return
+    if (!validCoord(washerPosition.lat, washerPosition.lng)) return
     const dist = haversineM(map.getCenter(), washerPosition)
     if (dist > FOLLOW_DIST_M) {
       map.panTo([washerPosition.lat, washerPosition.lng], { animate: true, duration: 0.8 })
     }
   }, [washerPosition?.lat, washerPosition?.lng]) // eslint-disable-line
 
-  // Pause follow when user drags or pinches the map.
   useEffect(() => {
     const pause = () => setFollowPaused(true)
     map.on('dragstart', pause)
@@ -211,19 +217,21 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
   const [followPaused, setFollowPaused] = useState(false)
   const mapRef = useRef(null)
 
-  // Resume follow automatically when an active job clears.
   useEffect(() => {
     if (!activeJob) setFollowPaused(false)
   }, [activeJob])
 
-  const initialCenter = washerPosition
+  const washerCoordsValid = validCoord(washerPosition?.lat, washerPosition?.lng)
+  const activeCoordsValid = validCoord(activeJob?.lat, activeJob?.lng)
+
+  const initialCenter = washerPosition && washerCoordsValid
     ? [washerPosition.lat, washerPosition.lng]
     : DEFAULT_CENTER
 
   const routeCoords = useOsrmRoute(washerPosition, activeJob)
 
   function handleRecenter() {
-    if (!mapRef.current || !washerPosition) return
+    if (!mapRef.current || !washerPosition || !washerCoordsValid) return
     mapRef.current.setView(
       [washerPosition.lat, washerPosition.lng],
       FOLLOW_ZOOM,
@@ -253,8 +261,8 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
           setFollowPaused={setFollowPaused}
         />
 
-        {/* Road polyline to active job; straight-line fallback when OSRM unavailable */}
-        {washerPosition && activeJob && (
+        {/* Road polyline — only when both endpoints have valid coords */}
+        {washerCoordsValid && activeCoordsValid && (
           <Polyline
             positions={
               routeCoords ?? [
@@ -269,9 +277,9 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
           />
         )}
 
-        {/* Job pins — lat/lng from nearby_jobs RPC geometry columns */}
+        {/* Job pins — skip any pin with missing or invalid coords */}
         {jobs.map(job => {
-          if (job.lat == null || job.lng == null) return null
+          if (!validCoord(job.lat, job.lng)) return null
           return (
             <Marker
               key={job.id}
@@ -283,15 +291,14 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
         })}
       </MapContainer>
 
-      {/* Recenter FAB — hidden while auto-fit owns the camera (active job present).
-          z-[800] clears Leaflet's popup-pane (700) within this isolate context. */}
-      {!activeJob && washerPosition && (
+      {/* Recenter FAB — hidden while auto-fit owns the camera or coords unavailable */}
+      {!activeJob && washerCoordsValid && (
         <button
           onClick={handleRecenter}
           aria-label="Recenter map on my location"
           className="absolute z-[800] flex items-center justify-center rounded-2xl bg-glass border border-glass-border backdrop-blur-xl shadow-lg transition-transform active:scale-90"
           style={{
-            bottom: 'calc(56px + 120px + 1.5rem)', // above collapsed drawer (120px) + BottomNav (56px)
+            bottom: 'calc(56px + 120px + 1.5rem)',
             right:  '1rem',
             width:  44,
             height: 44,

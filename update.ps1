@@ -1,0 +1,148 @@
+﻿# update.ps1 — SparkleGo one-command deploy script
+# Usage: .\update.ps1 "my commit message"
+#        .\update.ps1          (auto-generates timestamp message)
+param(
+    [string]$CommitMessage = ""
+)
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+function Write-Step ($n, $total, $msg) {
+    Write-Host "`n▶ Step $n/$total — $msg" -ForegroundColor Cyan
+}
+function Write-OK   ($msg) { Write-Host "  ✓ $msg" -ForegroundColor Green }
+function Write-Warn ($msg) { Write-Host "  ⚠ $msg" -ForegroundColor Yellow }
+function Write-Fail ($msg) {
+    Write-Host "`n✗ ERROR: $msg`n" -ForegroundColor Red
+    exit 1
+}
+
+# Always run from the script's directory, regardless of where it was invoked
+Set-Location $PSScriptRoot
+
+# ── Step 1: Sanity checks ─────────────────────────────────────────────────────
+Write-Step 1 4 "Sanity checks"
+
+if (-not (Test-Path "package.json") -or -not (Test-Path "capacitor.config.json")) {
+    Write-Fail "Missing package.json or capacitor.config.json — are you in the right project?"
+}
+
+$gitVersion = git --version 2>&1
+if ($LASTEXITCODE -ne 0) { Write-Fail "git not found on PATH." }
+
+if (-not (Test-Path ".git")) {
+    Write-Fail "Not a git repository (no .git folder found)."
+}
+
+if (-not (Test-Path "node_modules")) {
+    Write-Warn "node_modules not found — running npm install first..."
+    npm install
+    if ($LASTEXITCODE -ne 0) { Write-Fail "npm install failed." }
+}
+
+$branch = git rev-parse --abbrev-ref HEAD 2>&1
+if ($branch -ne "main") {
+    Write-Warn "Current branch is '$branch', not 'main'."
+    $ok = Read-Host "  Continue anyway? [y/N]"
+    if ($ok -notmatch '^[Yy]$') { Write-Fail "Aborted by user." }
+}
+
+Write-OK "All checks passed  (branch: $branch, git: $gitVersion)"
+
+# ── Step 2: Web / Vercel deploy ───────────────────────────────────────────────
+Write-Step 2 4 "Pushing to GitHub → Vercel"
+
+if ($CommitMessage -eq "") {
+    $CommitMessage = "update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+}
+
+# Show a compact diff before touching anything
+$statusLines = git status --short 2>&1 | Where-Object { $_ -ne "" }
+$fileCount = if ($statusLines) { @($statusLines).Count } else { 0 }
+
+if ($fileCount -gt 0) {
+    Write-Host "  Changed files ($fileCount):" -ForegroundColor Cyan
+    $statusLines | ForEach-Object { Write-Host "    $_" }
+} else {
+    Write-Host "  No uncommitted changes detected." -ForegroundColor Gray
+}
+
+git add .
+
+# Check whether there is anything staged to commit
+git diff --cached --quiet 2>&1 | Out-Null
+$hasStagedChanges = ($LASTEXITCODE -ne 0)
+
+$committed = $false
+if ($hasStagedChanges) {
+    git commit -m "$CommitMessage"
+    if ($LASTEXITCODE -ne 0) { Write-Fail "git commit failed." }
+    $committed = $true
+} else {
+    Write-Warn "Nothing new to commit — skipping commit step."
+}
+
+$commitHash = git rev-parse --short HEAD 2>&1
+
+git push
+if ($LASTEXITCODE -ne 0) { Write-Fail "git push failed." }
+
+Write-OK "Pushed to GitHub  (HEAD: $commitHash)"
+
+# ── Step 3: Android APK ───────────────────────────────────────────────────────
+Write-Step 3 4 "Android APK"
+
+$buildApk = Read-Host "  Rebuild Android APK? [y/N]"
+$apkBuilt  = $false
+$apkSizeMB = 0
+
+if ($buildApk -match '^[Yy]$') {
+
+    Write-Host "`n  ▸ npm run build" -ForegroundColor Cyan
+    npm run build
+    if ($LASTEXITCODE -ne 0) { Write-Fail "npm run build failed — fix errors before retrying." }
+
+    Write-Host "`n  ▸ npx cap sync android" -ForegroundColor Cyan
+    npx cap sync android
+    if ($LASTEXITCODE -ne 0) { Write-Fail "npx cap sync android failed." }
+
+    Write-Host "`n  ▸ gradlew assembleDebug" -ForegroundColor Cyan
+    & ".\android\gradlew.bat" assembleDebug
+    if ($LASTEXITCODE -ne 0) { Write-Fail "Gradle assembleDebug failed — check the output above." }
+
+    $apkSrc = "android\app\build\outputs\apk\debug\app-debug.apk"
+    if (-not (Test-Path $apkSrc)) {
+        Write-Fail "APK not found at expected path ($apkSrc) after build."
+    }
+
+    Copy-Item $apkSrc "sparklego-latest.apk" -Force
+    $apkSizeMB  = [math]::Round((Get-Item "sparklego-latest.apk").Length / 1MB, 1)
+    $apkFullPath = (Resolve-Path "sparklego-latest.apk").Path
+    $apkBuilt = $true
+
+    Write-OK "APK ready: $apkFullPath  ($apkSizeMB MB)"
+    Write-Host "  → Send sparklego-latest.apk to your phone via WhatsApp/Drive and tap to install." -ForegroundColor Yellow
+
+} else {
+    Write-Warn "APK rebuild skipped (web-only update)."
+}
+
+# ── Step 4: Summary ───────────────────────────────────────────────────────────
+Write-Step 4 4 "Done"
+Write-Host ""
+
+if ($committed) {
+    Write-Host "  ✓ Pushed $fileCount file(s) to GitHub  (commit: $commitHash)" -ForegroundColor Green
+} else {
+    Write-Host "  ✓ Pushed to GitHub — no new commit  (HEAD: $commitHash)" -ForegroundColor Green
+}
+
+Write-Host "  ✓ Vercel deploy triggered — check https://sparklego.vercel.app in ~60s" -ForegroundColor Green
+
+if ($apkBuilt) {
+    Write-Host "  ✓ APK rebuilt: sparklego-latest.apk  ($apkSizeMB MB)" -ForegroundColor Green
+    Write-Host "     → Send this file to your phone to install the update" -ForegroundColor Yellow
+} else {
+    Write-Host "  - APK not rebuilt (web-only update)" -ForegroundColor Gray
+}
+
+Write-Host ""
