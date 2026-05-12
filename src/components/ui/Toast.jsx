@@ -37,11 +37,11 @@ export function ToastProvider({ children }) {
                 animate={{ opacity: 1, y: 0,  scale: 1    }}
                 exit={{    opacity: 0, y: -8,  scale: 0.95 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="pointer-events-auto flex items-start gap-3 rounded-xl bg-white p-3 shadow-lg border border-neutral-100"
+                className="pointer-events-auto flex items-start gap-3 rounded-xl bg-white p-3 shadow-lg border border-neutral-100 dark:bg-surface-elevated dark:border-edge dark:shadow-[0_8px_24px_-8px_rgba(255,255,255,0.08)]"
               >
                 {ICONS[t.type]}
-                <p className="flex-1 text-sm text-neutral-800">{t.message}</p>
-                <button onClick={() => dismiss(t.id)} className="text-neutral-400 hover:text-neutral-600">
+                <p className="flex-1 text-sm text-neutral-800 dark:text-ink">{t.message}</p>
+                <button onClick={() => dismiss(t.id)} className="text-neutral-400 hover:text-neutral-600 dark:text-ink-muted dark:hover:text-ink">
                   <X className="h-4 w-4" />
                 </button>
               </motion.div>

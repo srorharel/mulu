@@ -4,6 +4,7 @@ import { motion, useMotionValue, animate } from 'framer-motion'
 import { Car, MapPin, Clock, GripHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useReverseGeocode } from '../lib/geocode.js'
+import Badge from './ui/Badge.jsx'
 
 const SPRING         = { type: 'spring', stiffness: 400, damping: 35 }
 const SWIPE_VELOCITY = 500
@@ -62,11 +63,11 @@ export default function JobCard({ job, onClick, highlight = false }) {
       animate={{
         boxShadow: highlight
           ? [
-              '0 0 0 0px rgba(14,165,164,0)',
-              '0 0 0 3px rgba(14,165,164,0.65)',
-              '0 0 0 3px rgba(14,165,164,0)',
+              '0 0 0 0px rgba(125,217,162,0)',
+              '0 0 0 3px rgba(125,217,162,0.65)',
+              '0 0 0 3px rgba(125,217,162,0)',
             ]
-          : '0 0 0 0px rgba(14,165,164,0)',
+          : '0 0 0 0px rgba(125,217,162,0)',
       }}
       transition={{ duration: 0.7 }}
       className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3 cursor-grab active:cursor-grabbing select-none"
@@ -77,9 +78,9 @@ export default function JobCard({ job, onClick, highlight = false }) {
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-muted shrink-0">
             <Car className="h-4 w-4 text-accent" />
           </span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-surface-elevated border border-edge text-ink-muted">
+          <Badge variant="pill" className="bg-surface-elevated border border-edge text-ink-muted">
             {t(`serviceLabels.${job.service_type}`)}
-          </span>
+          </Badge>
         </div>
         <GripHorizontal className="h-4 w-4 text-ink-muted/40 shrink-0" />
       </div>

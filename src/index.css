@@ -11,12 +11,23 @@
   --color-surface-glass:    rgba(255, 255, 255, 0.60);
   --color-ink:              #171717;
   --color-ink-muted:        #737373;
+  --color-ink-subtle:       #9ca3af;
   --color-edge:             #f5f5f5;
   --color-accent:           #7DD9A2;
   --color-accent-muted:     rgba(125, 217, 162, 0.12);
   /* Phase C — glass surface & border */
   --color-glass-surface:    rgba(255, 255, 255, 0.60);
   --color-glass-border:     rgba(255, 255, 255, 0.50);
+  /* ── Skeleton placeholder (1.64–1.71:1 on light card/surface) ── */
+  --color-surface-skeleton: #bcc7d2;
+  /* ── Layout heights ─────────────────────────────────────────────────────────
+     --nav-height = total vertical space occupied from screen bottom by nav chrome
+     (content area + safe-area-inset-bottom). Compose against this — don't add
+     safe-area separately. Always include fallback: var(--nav-height, 56px).
+     ──────────────────────────────────────────────────────────────────────── */
+  --nav-height:              calc(56px + env(safe-area-inset-bottom, 0px));
+  --drawer-collapsed-height: 120px;
+  --stack-gap:               12px;
 }
 
 .dark {
@@ -25,12 +36,22 @@
   --color-surface-glass:    rgba(26, 29, 39, 0.72);
   --color-ink:              #f5f5f5;
   --color-ink-muted:        #a3a3a3;
+  --color-ink-subtle:       #555e73;
   --color-edge:             #2a2d3a;
   --color-accent:           #7DD9A2;
   --color-accent-muted:     rgba(125, 217, 162, 0.18);
   /* Phase C — glass surface & border (dark) */
   --color-glass-surface:    rgba(26, 29, 39, 0.50);
   --color-glass-border:     rgba(255, 255, 255, 0.08);
+  /* ── Skeleton placeholder (1.48:1 on dark card, blue-shifted from border) ── */
+  --color-surface-skeleton: #2e3657;
+}
+
+/* Washer routes have no consumer BottomNav, but still need safe-area clearance
+   for the home indicator on notched devices. JobDrawer and NavLauncher both
+   compose against --nav-height, so this gives them the correct bottom offset. */
+[data-layout="washer"] {
+  --nav-height: env(safe-area-inset-bottom, 0px);
 }
 
 @tailwind base;

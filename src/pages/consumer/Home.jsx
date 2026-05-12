@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, CheckCircle, MapPin } from 'lucide-react'
+import { ChevronRight, Loader2, CheckCircle, MapPin, Droplets, Droplet, Zap, Gauge } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
@@ -16,7 +16,7 @@ import LocationSheet from '../../components/consumer/LocationSheet.jsx'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
-function ToggleCard({ emoji, label, desc, checked, onToggle }) {
+function ToggleCard({ icon: Icon, label, desc, checked, onToggle }) {
   return (
     <MotionButton
       type="button"
@@ -26,7 +26,7 @@ function ToggleCard({ emoji, label, desc, checked, onToggle }) {
       }`}
       style={{ minHeight: 44 }}
     >
-      <span className="text-lg leading-none">{emoji}</span>
+      <Icon className={`h-5 w-5 shrink-0 ${checked ? 'text-primary-600' : 'text-neutral-400'}`} />
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-medium ${checked ? 'text-primary-700' : 'text-neutral-800'}`}>{label}</p>
         {desc && <p className="text-xs text-neutral-500">{desc}</p>}
@@ -254,8 +254,8 @@ export default function ConsumerHome() {
           <div>
             <p className="label mb-2">{t('consumer.home.siteResources')}</p>
             <div className="flex flex-col gap-2">
-              <ToggleCard emoji="💧" label={t('consumer.home.waterAccessible')}    checked={siteHasWater} onToggle={() => setSiteHasWater(v => !v)} />
-              <ToggleCard emoji="🔌" label={t('consumer.home.powerAccessible')} checked={siteHasPower} onToggle={() => setSiteHasPower(v => !v)} />
+              <ToggleCard icon={Droplets} label={t('consumer.home.waterAccessible')}    checked={siteHasWater} onToggle={() => setSiteHasWater(v => !v)} />
+              <ToggleCard icon={Zap}      label={t('consumer.home.powerAccessible')} checked={siteHasPower} onToggle={() => setSiteHasPower(v => !v)} />
             </div>
             <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.siteResourcesHint')}</p>
           </div>
@@ -264,8 +264,8 @@ export default function ConsumerHome() {
           <div>
             <p className="label mb-2">{t('consumer.home.addons')} <span className="font-normal text-neutral-400">{t('consumer.home.optional')}</span></p>
             <div className="flex flex-col gap-2">
-              <ToggleCard emoji="💧" label={t('consumer.home.wiperFluidRefill')}  desc={`+₪${ADDON_PRICE}`} checked={addonWiper} onToggle={() => setAddonWiper(v => !v)} />
-              <ToggleCard emoji="🛞" label={t('consumer.home.tirePressureCheck')} desc={`+₪${ADDON_PRICE}`} checked={addonTire}  onToggle={() => setAddonTire(v => !v)} />
+              <ToggleCard icon={Droplet} label={t('consumer.home.wiperFluidRefill')}  desc={`+₪${ADDON_PRICE}`} checked={addonWiper} onToggle={() => setAddonWiper(v => !v)} />
+              <ToggleCard icon={Gauge}   label={t('consumer.home.tirePressureCheck')} desc={`+₪${ADDON_PRICE}`} checked={addonTire}  onToggle={() => setAddonTire(v => !v)} />
             </div>
           </div>
 

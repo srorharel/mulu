@@ -40,26 +40,26 @@ export default function StatusTimeline({ status }) {
                 ) : active ? (
                   <motion.div
                     layoutId="timeline-active-indicator"
-                    className="h-5 w-5 rounded-full border-4 border-primary-500 bg-white"
+                    className="h-5 w-5 rounded-full border-4 border-primary-500 bg-surface-elevated"
                     transition={SPRING}
                   />
                 ) : (
-                  <Circle className="h-5 w-5 text-neutral-200" />
+                  <Circle className="h-5 w-5 text-ink-subtle" />
                 )}
               </div>
 
               {i < STEP_KEYS.length - 1 && (
                 <div
-                  className={`w-0.5 flex-1 my-1 transition-colors duration-300 ${done ? 'bg-success-500' : 'bg-neutral-100'}`}
+                  className={`w-0.5 flex-1 my-1 transition-colors duration-300 ${done ? 'bg-success-500' : 'bg-edge'}`}
                   style={{ minHeight: 20 }}
                 />
               )}
             </div>
 
             <p className={`pb-4 text-sm ${
-              active  ? 'font-semibold text-neutral-900' :
-              future  ? 'text-neutral-300' :
-                        'text-neutral-500'
+              active  ? 'font-semibold text-ink' :
+              future  ? 'text-ink-subtle' :
+                        'text-ink-muted'
             }`}>
               {t(i18nKey)}
             </p>

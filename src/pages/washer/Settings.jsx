@@ -5,6 +5,7 @@ import PageShell from '../../components/ui/PageShell.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
+import { useTheme } from '../../hooks/useTheme.js'
 import i18n from '../../i18n/index.js'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
@@ -18,7 +19,7 @@ function PillRow({ groupId, options, value, onChange }) {
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
-            className="relative flex-1 py-2.5 text-sm font-medium transition-colors"
+            className="relative flex-1 py-3 text-sm font-medium transition-colors"
           >
             {value === opt.value && (
               <motion.div
@@ -46,7 +47,7 @@ function GridPill({ groupId, options, value, onChange }) {
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
-            className="relative rounded-xl py-2.5 px-3 text-sm font-medium border border-edge bg-surface transition-colors overflow-hidden"
+            className="relative rounded-xl py-3 px-3 text-sm font-medium border border-edge bg-surface transition-colors overflow-hidden"
           >
             {value === opt.value && (
               <motion.div
@@ -67,6 +68,7 @@ function GridPill({ groupId, options, value, onChange }) {
 
 export default function Settings() {
   const { profile, user, refreshProfile } = useAuth()
+  const { setTheme } = useTheme()
   const showToast = useToast()
   const { t } = useTranslation()
 
@@ -158,7 +160,11 @@ export default function Settings() {
             groupId="display"
             options={DISPLAY_OPTIONS}
             value={prefs.display}
-            onChange={v => save('display', v)}
+            onChange={async v => {
+              setPrefs(p => ({ ...p, display: v }))
+              const { error } = await setTheme(v)
+              if (error) showToast(error.message, 'error')
+            }}
           />
         </section>
 

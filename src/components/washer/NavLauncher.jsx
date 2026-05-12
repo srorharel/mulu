@@ -37,7 +37,7 @@ export default function NavLauncher({ activeJob }) {
       aria-label={t('washer.nav.openIn', { app: label })}
       className="fixed z-40 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-semibold shadow-lg backdrop-blur-xl border bg-glass border-glass-border text-ink"
       style={{
-        bottom: 188,
+        bottom: 'calc(var(--nav-height, 56px) + var(--drawer-collapsed-height, 120px) + var(--stack-gap, 12px))',
         insetInlineEnd: '1rem',
       }}
     >

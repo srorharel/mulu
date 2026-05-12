@@ -299,7 +299,7 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
           className="absolute z-[800] flex items-center justify-center rounded-2xl bg-glass border border-glass-border backdrop-blur-xl shadow-lg transition-transform active:scale-90"
           style={{
             bottom: 'calc(56px + 120px + 1.5rem)',
-            right:  '1rem',
+            insetInlineEnd: '1rem',
             width:  44,
             height: 44,
           }}

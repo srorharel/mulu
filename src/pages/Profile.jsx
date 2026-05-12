@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import PageShell from '../components/ui/PageShell.jsx'
+import { useTheme } from '../hooks/useTheme.js'
+import Badge from '../components/ui/Badge.jsx'
 
 const schema = z.object({
   full_name:       z.string().min(2),
@@ -19,6 +21,7 @@ const schema = z.object({
 
 export default function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth()
+  const { isDark } = useTheme()
   const showToast = useToast()
   const { t } = useTranslation()
 
@@ -42,10 +45,8 @@ export default function Profile() {
     showToast(t('profile.updated'), 'success')
   }
 
-  const isWasher = profile?.role === 'washer'
-
   return (
-    <div className={isWasher ? 'dark h-full' : 'h-full'}>
+    <div className={isDark ? 'dark h-full' : 'h-full'}>
       <PageShell>
         <div className="px-5 pt-10 pb-6">
           <div className="flex items-center gap-3 mb-6">
@@ -54,9 +55,9 @@ export default function Profile() {
             </div>
             <div className="min-w-0">
               <h1 className="text-lg font-bold truncate">{profile?.full_name ?? t('profile.title')}</h1>
-              <span className="text-xs font-medium uppercase tracking-wide text-primary-600 dark:text-accent bg-primary-50 dark:bg-accent-muted rounded px-2 py-0.5">
+              <Badge variant="default" className="uppercase tracking-wide text-primary-600 dark:text-accent bg-primary-50 dark:bg-accent-muted">
                 {profile?.role}
-              </span>
+              </Badge>
             </div>
           </div>
 

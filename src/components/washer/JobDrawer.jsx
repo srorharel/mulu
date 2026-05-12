@@ -18,7 +18,6 @@ import i18n from '../../i18n/index.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
-const BOTTOM_NAV_H  = 56
 
 // Statuses from which a washer is allowed to cancel.
 const CANCEL_STATUSES = ['accepted', 'en_route']
@@ -141,8 +140,8 @@ function SlideToggle({ online, onToggle, toggling }) {
       <motion.div
         className="relative w-11 h-6 rounded-full border"
         animate={{
-          backgroundColor: online ? 'rgba(20,184,166,0.20)' : 'rgba(255,255,255,0.06)',
-          borderColor:      online ? 'rgba(20,184,166,0.45)' : 'rgba(255,255,255,0.12)',
+          backgroundColor: online ? 'rgba(125,217,162,0.20)' : 'rgba(255,255,255,0.06)',
+          borderColor:      online ? 'rgba(125,217,162,0.45)' : 'rgba(255,255,255,0.12)',
         }}
         transition={TOGGLE_SPRING}
       >
@@ -150,7 +149,7 @@ function SlideToggle({ online, onToggle, toggling }) {
           className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow-md"
           animate={{
             x:               online ? 20 : 0,
-            backgroundColor: online ? 'rgb(20,184,166)' : 'rgb(115,115,115)',
+            backgroundColor: online ? 'rgb(71,209,127)' : 'rgb(115,115,115)',
           }}
           transition={TOGGLE_SPRING}
         />
@@ -469,7 +468,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
       drag={isActive ? false : 'y'}
       dragConstraints={{ top: 0, bottom: collapsed }}
       dragElastic={{ top: 0.05, bottom: 0.12 }}
-      style={{ y, height: expandedH, bottom: BOTTOM_NAV_H }}
+      style={{ y, height: expandedH, bottom: 'var(--nav-height, 56px)' }}
       onDragEnd={onDragEnd}
       className="fixed inset-x-0 z-30 flex flex-col bg-glass border-t border-glass-border backdrop-blur-xl rounded-t-3xl"
     >

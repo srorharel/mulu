@@ -28,11 +28,15 @@ export default {
         },
         warning: {
           50:  '#fffbeb',
+          200: '#fde68a',
           500: '#f59e0b',
           600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
         },
         danger: {
           50:  '#fff1f2',
+          400: '#f87171',
           500: '#ef4444',
           600: '#dc2626',
         },
@@ -46,10 +50,12 @@ export default {
           DEFAULT:  'var(--color-surface)',
           elevated: 'var(--color-surface-elevated)',
           glass:    'var(--color-surface-glass)',
+          skeleton: 'var(--color-surface-skeleton)',
         },
         ink: {
           DEFAULT: 'var(--color-ink)',
           muted:   'var(--color-ink-muted)',
+          subtle:  'var(--color-ink-subtle)',
         },
         edge:   'var(--color-edge)',
         accent: {

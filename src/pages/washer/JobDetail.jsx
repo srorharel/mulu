@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2 } from 'lucide-react'
+import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2, Droplets, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 
 export default function JobDetail() {
   const { id } = useParams()
@@ -88,14 +89,14 @@ export default function JobDetail() {
             <div className="flex items-center gap-2 text-sm text-ink-muted ps-1">
               <span className="text-xs font-medium text-ink-muted uppercase tracking-wide">{t('washer.jobDetail.addons')}</span>
               {order.addon_wiper_fluid   && (
-                <span className="bg-neutral-100 dark:bg-edge rounded px-2 py-0.5 text-xs dark:text-ink-muted">
+                <Badge variant="default" className="bg-neutral-100 dark:bg-edge dark:text-ink-muted">
                   {t('washer.jobDetail.wiperFluid')}
-                </span>
+                </Badge>
               )}
               {order.addon_tire_pressure && (
-                <span className="bg-neutral-100 dark:bg-edge rounded px-2 py-0.5 text-xs dark:text-ink-muted">
+                <Badge variant="default" className="bg-neutral-100 dark:bg-edge dark:text-ink-muted">
                   {t('washer.jobDetail.tirePressure')}
-                </span>
+                </Badge>
               )}
             </div>
           )}
@@ -124,12 +125,14 @@ export default function JobDetail() {
           {/* Site resources */}
           <div className="border-t border-neutral-100 dark:border-edge pt-3 flex items-center gap-3 text-sm flex-wrap">
             <span className="text-xs font-medium text-ink-muted uppercase tracking-wide w-full">{t('washer.jobDetail.siteResources')}</span>
-            <span className={order.site_has_water ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}>
-              💧 {order.site_has_water ? t('washer.jobDetail.waterAvailable') : t('washer.jobDetail.noWater')}
+            <span className={`flex items-center gap-1 ${order.site_has_water ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}`}>
+              <Droplets className="h-3.5 w-3.5 shrink-0" />
+              {order.site_has_water ? t('washer.jobDetail.waterAvailable') : t('washer.jobDetail.noWater')}
             </span>
             <span className="text-neutral-200 dark:text-edge">·</span>
-            <span className={order.site_has_power ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}>
-              🔌 {order.site_has_power ? t('washer.jobDetail.powerAvailable') : t('washer.jobDetail.ownPower')}
+            <span className={`flex items-center gap-1 ${order.site_has_power ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}`}>
+              <Zap className="h-3.5 w-3.5 shrink-0" />
+              {order.site_has_power ? t('washer.jobDetail.powerAvailable') : t('washer.jobDetail.ownPower')}
             </span>
           </div>
 

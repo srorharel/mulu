@@ -1,5 +1,13 @@
-function Box({ className }) {
-  return <div className={`bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse ${className}`} />
+const RADIUS = {
+  sm:   'rounded-sm',
+  md:   'rounded-md',
+  lg:   'rounded-lg',
+  full: 'rounded-full',
+  none: '',
+}
+
+function Box({ className = '', radius = 'md' }) {
+  return <div className={`bg-surface-skeleton ${RADIUS[radius]} animate-pulse ${className}`} />
 }
 
 export function JobCardSkeleton() {
@@ -7,7 +15,7 @@ export function JobCardSkeleton() {
     <div className="card flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Box className="h-9 w-9 rounded-lg" />
+          <Box className="h-9 w-9" radius="lg" />
           <div className="flex flex-col gap-2">
             <Box className="h-3.5 w-24" />
             <Box className="h-3 w-16" />
@@ -36,7 +44,7 @@ export function HistoryRowSkeleton() {
       </div>
       <div className="flex flex-col items-end gap-2">
         <Box className="h-4 w-14" />
-        <Box className="h-4 w-4 rounded-full" />
+        <Box className="h-4 w-4" radius="full" />
       </div>
     </div>
   )
@@ -63,7 +71,7 @@ export function OrderTrackingSkeleton() {
       <div className="card flex flex-col gap-5">
         {[0, 1, 2, 3, 4, 5].map(i => (
           <div key={i} className="flex gap-3 items-center">
-            <Box className="h-5 w-5 rounded-full shrink-0" />
+            <Box className="h-5 w-5 shrink-0" radius="full" />
             <Box className="h-3.5 w-32" />
           </div>
         ))}

@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { HistoryRowSkeleton } from '../../components/Skeleton.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 
 // Status band colors (left edge accent strip)
 const STATUS_BAND = {
@@ -106,9 +107,9 @@ export default function OrderHistory() {
                       <p className="text-xs text-neutral-400 mt-0.5">
                         {new Date(order.created_at).toLocaleDateString(i18n.language)}
                       </p>
-                      <span className={`mt-1.5 inline-block text-xs font-medium rounded px-2 py-0.5 ${STATUS_BADGE[order.status] ?? ''}`}>
+                      <Badge variant="default" className={`mt-1.5 ${STATUS_BADGE[order.status] ?? ''}`}>
                         {t(`status.labels.${order.status}`, order.status)}
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="text-end flex-shrink-0 flex flex-col items-end gap-1">
