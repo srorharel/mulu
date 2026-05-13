@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2,
-  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video, MessageCircle,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { JobCardSkeleton } from '../Skeleton.jsx'
@@ -14,6 +14,8 @@ import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import StatusTimeline from '../StatusTimeline.jsx'
+import SupportChatSheet from '../support/SupportChatSheet.jsx'
+import { getOrCreateOrderConversation } from '../../lib/support.js'
 import i18n from '../../i18n/index.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
@@ -167,6 +169,19 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
   const advancingRef  = useRef(false)
   const [uploading, setUploading]       = useState({})
   const [uploadErrors, setUploadErrors] = useState({})
+  const [supportConvId, setSupportConvId] = useState(null)
+  const [supportOpen, setSupportOpen]     = useState(false)
+  const [openingSupport, setOpeningSupport] = useState(false)
+
+  async function handleOpenSupport() {
+    setOpeningSupport(true)
+    const consumerId = order?.consumer_id || null
+    const { data, error } = await getOrCreateOrderConversation(activeJob.id, consumerId)
+    setOpeningSupport(false)
+    if (error || !data) { showToast(i18n.t('support.errors.createFailed'), 'error'); return }
+    setSupportConvId(data.id)
+    setSupportOpen(true)
+  }
 
   // Realtime consumer-cancel detection
   useEffect(() => {
@@ -365,6 +380,21 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
           )}
         </>
       )}
+
+      <button
+        onClick={handleOpenSupport}
+        disabled={openingSupport}
+        className="btn-ghost w-full text-sm"
+      >
+        <MessageCircle className="h-4 w-4" />
+        {openingSupport ? t('common.loading') : t('support.needHelp')}
+      </button>
+
+      <SupportChatSheet
+        open={supportOpen}
+        convId={supportConvId}
+        onClose={() => setSupportOpen(false)}
+      />
     </div>
   )
 }

@@ -349,5 +349,39 @@
   },
   "app": {
     "setupRequired": "Setup required: copy .env.example to .env and add your Supabase credentials."
+  },
+  "support": {
+    "title": "Support",
+    "newConversation": "New conversation",
+    "empty": "No support conversations",
+    "emptyDesc": "Need help? Start a new conversation and our team will respond shortly.",
+    "general": "General question",
+    "orderLinked": "Order #{{id}}",
+    "waitingForAgent": "Waiting for agent...",
+    "agentName": "Support Agent",
+    "needHelp": "Need help?",
+    "chatTitle": "Support chat",
+    "sendPlaceholder": "Type a message...",
+    "send": "Send",
+    "attachImage": "Attach image",
+    "seen": "Seen",
+    "agentBadge": "Support",
+    "conversationClosed": "This conversation is closed",
+    "typing": "{{name}} is typing...",
+    "agentTyping": "Agent is typing...",
+    "resolve": "Resolve",
+    "release": "Release to queue",
+    "status": {
+      "open": "Open",
+      "pending_agent": "Waiting",
+      "assigned": "In progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "errors": {
+      "createFailed": "Couldn't start conversation",
+      "sendFailed": "Couldn't send message",
+      "uploadFailed": "Couldn't upload image"
+    }
   }
 }

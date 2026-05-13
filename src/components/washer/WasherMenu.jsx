@@ -5,6 +5,7 @@ import { User, DollarSign, ShoppingBag, MessageCircle, Settings, LogOut, Chevron
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHistoryDismissible } from '../../hooks/useHistoryDismissible.js'
+import { useSupportUnread } from '../../hooks/useSupportUnread.js'
 
 const MENU_SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
@@ -22,6 +23,7 @@ export default function WasherMenu({ open, onClose, online }) {
   const { t }                 = useTranslation()
   const menuRef               = useRef(null)
   const pendingNavRef         = useRef(null)
+  const supportUnread         = useSupportUnread()
 
   const { dismiss } = useHistoryDismissible(open, onClose, 'washer-menu')
 
@@ -122,7 +124,12 @@ export default function WasherMenu({ open, onClose, online }) {
                   onClick={() => go(to)}
                   className="w-full flex items-center gap-4 px-5 py-3.5 text-sm font-medium text-ink hover:bg-white/5 transition-colors"
                 >
-                  <Icon className="h-5 w-5 text-ink-muted shrink-0" />
+                  <div className="relative shrink-0">
+                    <Icon className="h-5 w-5 text-ink-muted" />
+                    {to === '/washer/support' && supportUnread > 0 && (
+                      <span className="absolute -top-1 -end-1 h-2 w-2 rounded-full bg-accent" />
+                    )}
+                  </div>
                   <span className="flex-1 text-start">{t(key)}</span>
                   <ChevronRight className="h-4 w-4 text-ink-muted/40 rtl:rotate-180 shrink-0" />
                 </motion.button>

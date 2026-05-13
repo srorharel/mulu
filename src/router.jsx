@@ -20,12 +20,14 @@ import Earnings        from './pages/washer/Earnings.jsx'
 import Shop            from './pages/washer/Shop.jsx'
 import Support         from './pages/washer/Support.jsx'
 import Settings        from './pages/washer/Settings.jsx'
+import ConsumerSupport from './pages/consumer/Support.jsx'
 
 // Redirects authenticated users away from public pages
 function AuthRedirect({ children }) {
   const { user, profile, loading } = useAuth()
   if (loading) return null
   if (!user) return children
+  if (profile?.role === 'agent') return children // agents use support-app, not this app
   return <Navigate to={profile?.role === 'washer' ? '/washer' : '/home'} replace />
 }
 
@@ -63,6 +65,7 @@ export function AppRouter() {
           <Route path="/home"       element={<ConsumerHome />} />
           <Route path="/order/:id"  element={<OrderTracking />} />
           <Route path="/history"    element={<OrderHistory />} />
+          <Route path="/support"    element={<ConsumerSupport />} />
         </Route>
 
         {/* Washer-only — two layout shells:

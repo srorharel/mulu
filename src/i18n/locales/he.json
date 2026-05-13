@@ -349,5 +349,39 @@
   },
   "app": {
     "setupRequired": "נדרשת הגדרה: העתק .env.example ל-.env והוסף את פרטי Supabase שלך."
+  },
+  "support": {
+    "title": "תמיכה",
+    "newConversation": "שיחה חדשה",
+    "empty": "אין שיחות תמיכה",
+    "emptyDesc": "צריך עזרה? פתח שיחה חדשה ואנחנו נגיב בקרוב.",
+    "general": "שאלה כללית",
+    "orderLinked": "הזמנה #{{id}}",
+    "waitingForAgent": "ממתין לנציג...",
+    "agentName": "נציג תמיכה",
+    "needHelp": "צריך עזרה?",
+    "chatTitle": "צ'אט תמיכה",
+    "sendPlaceholder": "הקלד הודעה...",
+    "send": "שלח",
+    "attachImage": "צרף תמונה",
+    "seen": "נראה",
+    "agentBadge": "תמיכה",
+    "conversationClosed": "שיחה זו סגורה",
+    "typing": "{{name}} מקליד...",
+    "agentTyping": "הנציג מקליד...",
+    "resolve": "סגור",
+    "release": "החזר לתור",
+    "status": {
+      "open": "פתוח",
+      "pending_agent": "ממתין",
+      "assigned": "בטיפול",
+      "resolved": "נפתר",
+      "closed": "סגור"
+    },
+    "errors": {
+      "createFailed": "לא ניתן לפתוח שיחה",
+      "sendFailed": "לא ניתן לשלוח הודעה",
+      "uploadFailed": "לא ניתן להעלות תמונה"
+    }
   }
 }

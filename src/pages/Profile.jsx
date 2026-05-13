@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, MessageCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -24,6 +25,7 @@ export default function Profile() {
   const { isDark } = useTheme()
   const showToast = useToast()
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
@@ -95,7 +97,17 @@ export default function Profile() {
             </button>
           </form>
 
-          <button onClick={signOut} className="btn-ghost w-full mt-6 text-danger-500 hover:bg-danger-50">
+          {profile?.role === 'consumer' && (
+            <button
+              onClick={() => navigate('/support')}
+              className="btn-ghost w-full mt-4"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {t('support.title')}
+            </button>
+          )}
+
+          <button onClick={signOut} className="btn-ghost w-full mt-2 text-danger-500 hover:bg-danger-50">
             <LogOut className="h-4 w-4" />
             {t('profile.signOut')}
           </button>

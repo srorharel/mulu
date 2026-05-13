@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, XCircle, MapPin } from 'lucide-react'
+import { ArrowLeft, XCircle, MapPin, MessageCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
@@ -12,6 +12,8 @@ import StatusTimeline from '../../components/StatusTimeline.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import MotionButton from '../../components/ui/MotionButton.jsx'
+import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
+import { getOrCreateOrderConversation } from '../../lib/support.js'
 
 const CAR_LABELS     = { sedan: 'carLabels.sedan', suv: 'carLabels.suv', pickup: 'carLabels.pickup', van: 'carLabels.van' }
 const SERVICE_LABELS = { exterior: 'serviceLabels.exterior', interior: 'serviceLabels.interior', full: 'serviceLabels.full' }
@@ -33,6 +35,9 @@ export default function OrderTracking() {
   const showToast = useToast()
   const { t } = useTranslation()
   const [cancelling, setCancelling] = useState(false)
+  const [supportConvId, setSupportConvId] = useState(null)
+  const [supportOpen, setSupportOpen] = useState(false)
+  const [openingSupport, setOpeningSupport] = useState(false)
 
   const isLegacyAddress = looksLikeCoords(order?.address_label)
   const { address: geocodedAddress } = useReverseGeocode(
@@ -42,6 +47,16 @@ export default function OrderTracking() {
   const displayAddress = isLegacyAddress
     ? (geocodedAddress ?? order.address_label)
     : order?.address_label
+
+  async function handleOpenSupport() {
+    setOpeningSupport(true)
+    const counterpartyId = order?.washer_id || null
+    const { data, error } = await getOrCreateOrderConversation(id, counterpartyId)
+    setOpeningSupport(false)
+    if (error || !data) { showToast(t('support.errors.createFailed'), 'error'); return }
+    setSupportConvId(data.id)
+    setSupportOpen(true)
+  }
 
   async function handleCancel() {
     setCancelling(true)
@@ -153,8 +168,25 @@ export default function OrderTracking() {
               </MotionButton>
             </motion.div>
           )}
+
+          <motion.div variants={itemVariants}>
+            <MotionButton
+              onClick={handleOpenSupport}
+              disabled={openingSupport}
+              className="btn-ghost w-full"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {openingSupport ? t('common.loading') : t('support.needHelp')}
+            </MotionButton>
+          </motion.div>
         </motion.div>
       </div>
+
+      <SupportChatSheet
+        open={supportOpen}
+        convId={supportConvId}
+        onClose={() => setSupportOpen(false)}
+      />
     </PageShell>
   )
 }

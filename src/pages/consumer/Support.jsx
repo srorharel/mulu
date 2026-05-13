@@ -16,7 +16,7 @@ function isUnread(conv, userId) {
   return !conv.counterparty_last_read_at || new Date(conv.last_message_at) > new Date(conv.counterparty_last_read_at)
 }
 
-export default function WasherSupport() {
+export default function ConsumerSupport() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [conversations, setConversations] = useState([])
@@ -45,6 +45,7 @@ export default function WasherSupport() {
   return (
     <PageShell>
       <div className="px-0 pt-0 pb-6 flex flex-col h-full">
+        {/* Header */}
         <div className="px-5 pt-6 pb-4 flex items-center justify-between shrink-0">
           <h1 className="text-xl font-bold text-ink">{t('support.title')}</h1>
           <motion.button
