@@ -36,13 +36,14 @@ export default function Landing() {
         {/* Hero glass card */}
         <GlassCard className="p-6 flex flex-col items-center gap-4 text-center">
           <motion.div variants={itemVariants}>
-            <div className="rounded-2xl bg-primary-500/10 p-4">
-              <Waves className="h-10 w-10 text-primary-500" />
-            </div>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Wash</h1>
+            <img
+              src="/logo.png"
+              alt="Wash"
+              width={1104}
+              height={975}
+              loading="eager"
+              className="w-[140px] md:w-[180px] h-auto mx-auto"
+            />
             <p className="text-neutral-500 text-sm mt-1 max-w-xs">
               {t('landing.tagline')}
             </p>
