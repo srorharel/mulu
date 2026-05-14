@@ -285,6 +285,12 @@ Examples in this codebase: `JobDrawer.jsx` cancel pill is a compact button. `Job
 
 **RTL-aware icons:** `ArrowLeft`, `ChevronRight`, `Navigation` — add `rtl:rotate-180`. Icons without directionality (search, settings, map pin, checkmark) — do NOT flip.
 
+**Reserved icons.** The following Lucide icons have established semantic roles in this app and must not be used as decorative or brand elements:
+- `Droplets` — water availability state (site resource indicator, wiper fluid add-on)
+- `SprayCan` — wiper fluid add-on (planned use, reserved)
+
+When choosing icons for new features, check this list first. If a needed concept overlaps a reserved icon, choose a visually distinct alternative; do not reuse a semantically-loaded icon for a different meaning.
+
 **Icon containers:**
 - `rounded-full` — avatar circles, nav active pill, floating action buttons
 - `rounded-lg` — icon containers inside detail cards (car type, payout, address in JobDetail)

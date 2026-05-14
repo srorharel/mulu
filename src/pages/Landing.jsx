@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import { Droplets, MapPin, Clock } from 'lucide-react'
+import { Waves, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import GlassCard from '../components/ui/GlassCard.jsx'
 
-const FEATURE_ICONS = [MapPin, Droplets, Clock]
+const FEATURE_ICONS = [MapPin, Waves, Clock]
 
 const containerVariants = {
   hidden:  {},
@@ -37,7 +37,7 @@ export default function Landing() {
         <GlassCard className="p-6 flex flex-col items-center gap-4 text-center">
           <motion.div variants={itemVariants}>
             <div className="rounded-2xl bg-primary-500/10 p-4">
-              <Droplets className="h-10 w-10 text-primary-500" />
+              <Waves className="h-10 w-10 text-primary-500" />
             </div>
           </motion.div>
 
