@@ -68,6 +68,8 @@ Theme is resolved in this priority order:
 
 Every component that conditionally applies theme styles must resolve through a single `useTheme()` hook (`src/hooks/useTheme.js`). Components never read `profile.role` to make visual decisions.
 
+**Exception — `WasherMapShell`:** The map shell always applies `.dark` unconditionally and does not call `useTheme()`. The CartoDB `dark_all` tile source is fixed and cannot change at runtime, so every floating overlay (JobDrawer, WasherMenu, OnlinePill, EarningsWidget) must always use dark tokens regardless of the washer's `display_preference`. The non-map shell (`WasherShell`) continues to respect `display_preference` for Earnings, Settings, Shop, and Support.
+
 ### Primary palette (green)
 
 Defined in `tailwind.config.js`. All shades exist — this is what each is for:

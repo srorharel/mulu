@@ -88,8 +88,8 @@ function OnlinePill({ online, toggling, profile, user, onToggle, onMenuOpen, t }
 function EarningsWidget({ t }) {
   const WIDGET_STYLE = {
     background: 'rgba(26,29,39,0.70)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
+    backdropFilter: 'blur(16px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(16px) saturate(160%)',
     border: '1px solid rgba(255,255,255,0.08)',
     boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
   }
@@ -101,7 +101,8 @@ function EarningsWidget({ t }) {
       >
         {t('washer.dashboard.today')}
       </p>
-      <p className="text-[16px] font-extrabold tracking-[-0.3px] mt-0.5" style={{ color: '#7DD9A2' }}>
+      {/* dir="ltr" keeps ₪ left-of-dash in RTL bidi context */}
+      <p className="text-[16px] font-extrabold tracking-[-0.3px] mt-0.5" style={{ color: '#7DD9A2' }} dir="ltr">
         ₪—
       </p>
     </div>
@@ -249,8 +250,9 @@ export default function WasherDashboard() {
       </Suspense>
 
       {/* ── Top chrome: online pill (start) + earnings widget (end) ── */}
+      {/* inset-x-4 (physical left/right) avoids inset-inline-* WebView gaps in RTL */}
       <div
-        className="fixed start-4 end-4 flex items-center gap-3 z-40"
+        className="fixed inset-x-4 flex items-center gap-3 z-40"
         style={{ top: 'max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))' }}
       >
         <OnlinePill

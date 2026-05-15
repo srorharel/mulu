@@ -904,7 +904,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
 
           {!loading && online && jobs.length === 0 && (
             <div className="flex flex-col items-center gap-3 pt-10 text-center">
-              <Sparkles className="h-9 w-9 text-ink-muted/50" />
+              <Sparkles className="h-9 w-9 text-primary-700" />
               <p className="text-sm font-semibold text-ink">{t('washer.drawer.noJobs')}</p>
               <p className="text-xs text-ink-muted/70">{t('washer.drawer.noJobsHint')}</p>
             </div>

@@ -1,15 +1,13 @@
 import { Outlet } from 'react-router-dom'
-import { useTheme } from '../../hooks/useTheme.js'
 
-// Full-viewport dark shell for the map-first Dashboard.
-// Direction is driven globally by useDirection hook in App.jsx — no hardcoded dir here.
-// overflow-hidden prevents the full-bleed map from creating a page-level scrollbar.
-// Theme is resolved through useTheme() — do not read display_preference or role directly here.
+// Full-viewport shell for the map-first Dashboard and Active Job view.
+// Always applies .dark — the CartoDB dark_all tile source cannot be changed
+// per-session, so every overlay (JobDrawer, WasherMenu, OnlinePill) must
+// always use dark tokens. Do not read display_preference or useTheme here.
+// WasherShell (non-map pages) still respects the user's display_preference.
 export default function WasherMapShell() {
-  const { isDark } = useTheme()
-
   return (
-    <div data-layout="washer" className={`${isDark ? 'dark ' : ''}h-full overflow-hidden bg-surface text-ink`}>
+    <div data-layout="washer" className="dark h-full overflow-hidden bg-surface text-ink">
       <Outlet />
     </div>
   )
