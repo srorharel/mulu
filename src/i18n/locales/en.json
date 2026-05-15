@@ -205,7 +205,16 @@
       }
     },
     "history": {
-      "title": "My Orders",
+      "title": "History",
+      "filter": "Filter",
+      "today": "Today",
+      "summaryLabel": "This year",
+      "summaryWashes": "washes",
+      "summarySpent": "₪{{amount}} spent",
+      "groupThisWeek": "This week",
+      "groupThisMonth": "This month",
+      "groupLastMonth": "Last month",
+      "groupOlder": "Older",
       "empty": "No washes yet",
       "emptyDesc": "Book your first on-demand car wash — it takes under a minute.",
       "bookNow": "Book a wash"

@@ -205,7 +205,16 @@
       }
     },
     "history": {
-      "title": "ההזמנות שלי",
+      "title": "היסטוריה",
+      "filter": "סינון",
+      "today": "היום",
+      "summaryLabel": "השנה",
+      "summaryWashes": "שטיפות",
+      "summarySpent": "הוצאה ₪{{amount}}",
+      "groupThisWeek": "השבוע",
+      "groupThisMonth": "החודש",
+      "groupLastMonth": "חודש שעבר",
+      "groupOlder": "ישן יותר",
       "empty": "עדיין אין שטיפות",
       "emptyDesc": "הזמן את שטיפת הרכב הראשונה שלך — פחות מדקה.",
       "bookNow": "הזמן שטיפה"
