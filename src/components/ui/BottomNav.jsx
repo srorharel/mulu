@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { MapPin, Clock, User, ArrowLeft } from 'lucide-react'
+import { Home, Clock, User, ArrowLeft } from 'lucide-react'
 import { motion, LayoutGroup } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
@@ -13,9 +13,9 @@ export default function BottomNav() {
   const isWasher    = profile?.role === 'washer'
 
   const consumerLinks = [
-    { to: '/home',    icon: MapPin,  label: t('nav.book')    },
-    { to: '/history', icon: Clock,   label: t('nav.orders')  },
-    { to: '/profile', icon: User,    label: t('nav.profile') },
+    { to: '/home',    icon: Home,  label: t('nav.home')    },
+    { to: '/history', icon: Clock, label: t('nav.history') },
+    { to: '/profile', icon: User,  label: t('nav.profile') },
   ]
 
   if (isWasher) {

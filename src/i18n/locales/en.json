@@ -356,8 +356,8 @@
     }
   },
   "nav": {
-    "book": "Book",
-    "orders": "Orders",
+    "home": "Home",
+    "history": "History",
     "profile": "Profile",
     "backToJobs": "Back to Jobs"
   },
