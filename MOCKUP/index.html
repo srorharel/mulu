@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Wash — Hi-Fi Designs</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: Inter, system-ui; }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="screens-consumer.jsx"></script>
+<script type="text/babel" src="screens-washer.jsx"></script>
+
+<script type="text/babel">
+const FRAME_W = 390;
+const FRAME_H = 844;
+
+// IOS-style chrome around a Wash screen — Wash already draws its own status bar area
+// via SAFE_TOP, so we use the IOSDevice wrapper for outer bezel and let our screen
+// content render its own internal chrome at the top.
+function Phone({ children }) {
+  return (
+    <div style={{
+      width: FRAME_W + 16, height: FRAME_H + 16,
+      borderRadius: 54, padding: 8,
+      background: '#0a0a0a',
+      boxShadow: '0 24px 60px rgba(0,0,0,0.25), 0 0 0 1.5px rgba(0,0,0,0.4)',
+      position: 'relative',
+    }}>
+      <div style={{
+        width: FRAME_W, height: FRAME_H, borderRadius: 46,
+        overflow: 'hidden', position: 'relative', background: '#000',
+      }}>
+        {children}
+        {/* dynamic island */}
+        <div style={{
+          position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+          width: 122, height: 36, borderRadius: 22, background: '#000', zIndex: 50,
+          pointerEvents: 'none',
+        }}/>
+        {/* status bar overlay */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 54,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '18px 30px 0', zIndex: 49, pointerEvents: 'none',
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 600, fontSize: 16,
+        }}/>
+        {/* home indicator */}
+        <div style={{
+          position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+          width: 138, height: 5, borderRadius: 100, zIndex: 60, pointerEvents: 'none',
+          background: 'rgba(0,0,0,0.25)',
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+function PhoneDark({ children }) {
+  return (
+    <div style={{
+      width: FRAME_W + 16, height: FRAME_H + 16,
+      borderRadius: 54, padding: 8,
+      background: '#0a0a0a',
+      boxShadow: '0 24px 60px rgba(0,0,0,0.4), 0 0 0 1.5px rgba(0,0,0,0.6)',
+      position: 'relative',
+    }}>
+      <div style={{
+        width: FRAME_W, height: FRAME_H, borderRadius: 46,
+        overflow: 'hidden', position: 'relative', background: '#000',
+      }}>
+        {children}
+        <div style={{
+          position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+          width: 122, height: 36, borderRadius: 22, background: '#000', zIndex: 50,
+          pointerEvents: 'none',
+        }}/>
+        <div style={{
+          position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+          width: 138, height: 5, borderRadius: 100, zIndex: 60, pointerEvents: 'none',
+          background: 'rgba(255,255,255,0.7)',
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+const AB_W = FRAME_W + 16;
+const AB_H = FRAME_H + 16;
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="consumer" title="Consumer flow" subtitle="Mobile-first · glass over green mesh · Inter">
+        <DCArtboard id="home"     label="01 · Home / Booking"      width={AB_W} height={AB_H}>
+          <Phone><ConsumerHome /></Phone>
+        </DCArtboard>
+        <DCArtboard id="tracking" label="02 · Live order tracking" width={AB_W} height={AB_H}>
+          <Phone><OrderTracking /></Phone>
+        </DCArtboard>
+        <DCArtboard id="history"  label="03 · History"             width={AB_W} height={AB_H}>
+          <Phone><ConsumerHistory /></Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="washer" title="Washer flow" subtitle="Dark base · same green semantic · safe-area aware">
+        <DCArtboard id="map"      label="04 · Dashboard map"       width={AB_W} height={AB_H}>
+          <PhoneDark><WasherDashboard /></PhoneDark>
+        </DCArtboard>
+        <DCArtboard id="active"   label="05 · Active job"          width={AB_W} height={AB_H}>
+          <PhoneDark><WasherActiveJob /></PhoneDark>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="spec" title="Component states" subtitle="LicensePlatePicker — single persistent input, trailing-icon swap">
+        <DCArtboard id="plate"    label="06 · Plate states"        width={AB_W} height={AB_H}>
+          <Phone><PlateStateStack /></Phone>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+// Wait for all babel scripts to define globals before mounting
+function mount() {
+  if (!window.ConsumerHome || !window.WasherDashboard || !window.DesignCanvas) {
+    return setTimeout(mount, 50);
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+}
+mount();
+</script>
+</body>
+</html>
