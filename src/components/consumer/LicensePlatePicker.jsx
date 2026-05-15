@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Loader2, AlertTriangle, AlertCircle, RefreshCw, Check } from 'lucide-react'
+import { Loader2, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
 import { lookupPlate, clearPlateFailure } from '../../lib/vehicleLookup.js'
