@@ -6,7 +6,7 @@ Single source of truth for all visual and UX decisions in Wash. Every UI change 
 
 ## 1. Brand & voice
 
-Wash is a utility: fast, practical, trustworthy. Think Wolt or Bolt, not Soho House. The visual language is clean and direct — the mint is confident, not soft or pastel. Information is presented densely enough to be immediately scannable outdoors, in sunlight, one-handed.
+Wash is a utility: fast, practical, trustworthy. Think Wolt or Bolt, not Soho House. The visual language is clean and direct — the green is confident, not soft or pastel. Information is presented densely enough to be immediately scannable outdoors, in sunlight, one-handed.
 
 What Wash is NOT: luxury, playful-childish, eco-preachy, or corporate-cold. No decorative flourishes that slow the user down.
 
@@ -25,6 +25,36 @@ Washer dark mode is applied by `WasherShell.jsx` based on `profile.display_prefe
 
 **Rule:** Consumer pages use concrete palette classes. Washer pages use semantic token classes. Never mix the two systems on the same screen. Profile.jsx is the only shared page — it conditionally wraps in `.dark` based on role.
 
+### Consumer screen pattern (glass over mesh)
+
+Consumer screens sit on `.bg-mesh` (green radial gradient overlay over `#fafafa`). Content is organized into discrete `GlassCard` panels — one card per logical group. Page headers show the `WashMark` wordmark on the left and a user avatar on the right. The primary CTA is always the last card in the scroll area.
+
+### Washer screen pattern (map + floating chrome)
+
+The washer dashboard is a full-screen `WorkerMap` (Leaflet, dark tiles). All UI floats above it:
+- **Top-start:** `OnlinePill` — dark glass pill containing the washer avatar, online/offline status, and menu trigger.
+- **Top-end:** Earnings widget — dark glass chip showing today's earnings (currently a placeholder; see §3 planned features).
+- **Bottom:** `JobDrawer` — a draggable glass bottom sheet that collapses to 120px and expands to 80% of viewport height for the job list, or fully to 100% for the active-job panel.
+- No `BottomNav` on washer routes. `--nav-height` is set to `env(safe-area-inset-bottom, 0px)` by `[data-layout="washer"]`.
+
+### Screen inventory
+
+| Screen | Route | Role | Visual mode | Layout shell |
+|--------|-------|------|-------------|--------------|
+| Landing | `/` | public | light | `bg-mesh`, `GlassCard` |
+| Login | `/login` | public | light | `bg-mesh`, `GlassCard` |
+| SignUp | `/signup` | public | light | `bg-mesh`, `GlassCard` |
+| Consumer Home | `/home` | consumer | light | `PageShell`, `bg-mesh`, card-per-section |
+| Order Tracking | `/order/:id` | consumer | light | Full-height, `MapBG` + bottom sheet (no `PageShell`) |
+| Order History | `/history` | consumer | light | `PageShell`, `bg-mesh`, grouped list |
+| Profile | `/profile` | consumer + washer | light / dark | `PageShell` |
+| Washer Dashboard | `/washer` | washer | dark | `WasherMapShell`, full-screen `WorkerMap` |
+| Active Job | (within Dashboard) | washer | dark | `JobDrawer` expanded, no separate route |
+| Job Detail | `/washer/job/:id` | washer | dark | `WasherShell` |
+| Earnings | `/washer/earnings` | washer | dark | `WasherShell` |
+| Settings | `/washer/settings` | washer | dark | `WasherShell` |
+| Support | `/support` | consumer + washer + agent | light / dark | `PageShell` |
+
 ---
 
 ## 3. Color system
@@ -36,41 +66,45 @@ Theme is resolved in this priority order:
 2. **Role-based default** — washer → dark, consumer → light
 3. **System `prefers-color-scheme`** — fallback if no profile exists yet
 
-Every component that conditionally applies theme styles must resolve through a single `useTheme()` hook (`src/hooks/useTheme.js`). This hook does not exist yet — create it before writing any theme-conditional component. Components never read `profile.role` to make visual decisions.
+Every component that conditionally applies theme styles must resolve through a single `useTheme()` hook (`src/hooks/useTheme.js`). Components never read `profile.role` to make visual decisions.
 
-### Primary palette (mint)
+### Primary palette (green)
 
 Defined in `tailwind.config.js`. All shades exist — this is what each is for:
 
 | Token | Hex | Allowed uses |
 |-------|-----|-------------|
-| `primary-50` | `#F3FCF7` | Selected item backgrounds, subtle tinted areas |
-| `primary-100` | `#E5F6EC` | Icon container backgrounds (consumer side) |
+| `primary-50` | `#F3FCF7` | Selected item backgrounds, subtle tinted areas, live-order row bg |
+| `primary-100` | `#E5F6EC` | Icon container backgrounds (consumer side), active nav pill bg |
 | `primary-200` | `#D4EDDE` | Decorative borders on active/selected cards |
-| `primary-400` | `#9CDEB6` | Status band accents (history row leading edge) |
-| `primary-500` | `#7DD9A2` | Primary CTAs, brand mark, active tab indicator, map polyline |
-| `primary-600` | `#47D17F` | Hover state on primary-500 elements; price text; links |
-| `primary-700` | `#26B55F` | Active/pressed state; text on `primary-50` backgrounds for AA contrast |
-| `primary-800` / `primary-900` | — | Reserved; not currently used |
-| `primary-300` | `#B9E5CB` | NOT for text (fails contrast); decorative dividers only |
+| `primary-300` | `#B9E5CB` | NOT for text (fails contrast); decorative dividers, WashMark sphere gradient start |
+| `primary-400` | `#9CDEB6` | Status band accents; washer avatar gradient start |
+| `primary-500` | `#7DD9A2` | Primary CTAs, accent color (`--color-accent`), active tab indicator, map polyline, stage-progress dots |
+| `primary-600` | `#47D17F` | Hover state on primary-500; price text; active CTA gradient end |
+| `primary-700` | `#26B55F` | Active/pressed state; text on `primary-50` for AA contrast; status badge bg; CTA gradient end |
+| `primary-800` | `#1C8747` | WashMark wordmark text (`text-primary-800`); brand anchor for dark-on-light text |
+| `primary-900` | `#135C30` | Reserved — not currently used |
 
 **Forbidden:** `primary-500` as a card background fill (too loud). `primary-300` as text color (contrast failure).
 
-### Semantic tokens (washer dark mode)
+### Semantic tokens (both modes)
 
-Defined as CSS variables in `src/index.css`, mapped in `tailwind.config.js`. Use these on washer screens instead of concrete palette classes:
+Defined as CSS variables in `src/index.css`, mapped in `tailwind.config.js`. Use these on washer screens instead of concrete palette classes. Also used for theming shared components on consumer screens where dark support is needed.
 
 | Token | Light value | Dark value | Use |
 |-------|-------------|------------|-----|
 | `bg-surface` | `#fafafa` | `#0f1117` | Page background |
 | `bg-surface-elevated` | `#ffffff` | `#1a1d27` | Cards, nav bar |
-| `bg-glass` | `rgba(255,255,255,0.60)` | `rgba(26,29,39,0.50)` | Glass-surface cards |
-| `border-glass-border` | `rgba(255,255,255,0.50)` | `rgba(255,255,255,0.08)` | Glass card borders |
+| `bg-glass` | `rgba(255,255,255,0.60)` | `rgba(26,29,39,0.50)` | Glass-surface cards (`GlassCard`, inline glass patterns) |
+| `border-glass-border` | `rgba(255,255,255,0.55)` | `rgba(255,255,255,0.08)` | Glass card borders |
 | `text-ink` | `#171717` | `#f5f5f5` | Primary text |
 | `text-ink-muted` | `#737373` | `#a3a3a3` | Secondary/hint text |
+| `text-ink-subtle` | `#9ca3af` | `#555e73` | Placeholder text, disabled labels |
 | `border-edge` | `#f5f5f5` | `#2a2d3a` | Dividers, card borders |
 | `text-accent` / `bg-accent` | `#7DD9A2` | `#7DD9A2` | Mint accent (same in both modes) |
 | `bg-accent-muted` | `rgba(125,217,162,0.12)` | `rgba(125,217,162,0.18)` | Tinted mint backgrounds |
+
+**Legacy alias:** `bg-surface-glass` (maps to `--color-surface-glass`) still exists in the Tailwind config but is not used by any current component. It carries the old dark value of `rgba(26,29,39,0.72)`. Do not use it; use `bg-glass` instead.
 
 ### Semantic status colors
 
@@ -81,48 +115,54 @@ Only for status communication — never decorative.
 | `success-500` | `#22c55e` | Completed states, checkmarks |
 | `success-600` | `#16a34a` | Text on success-50 backgrounds |
 | `success-50` | `#f0fdf4` | Completed order background tint |
-| `warning-500` | `#f59e0b` | Pending order badge, warning icons |
+| `warning-500` | `#f59e0b` | Pending order badge, warning icons, star ratings |
 | `warning-600` | `#d97706` | Warning text on warning-50 |
 | `warning-50` | `#fffbeb` | Warning banner background |
 | `danger-500` | `#ef4444` | Error states, cancel actions, destructive buttons |
 | `danger-600` | `#dc2626` | Danger text on danger-50 backgrounds |
 | `danger-50` | `#fff1f2` | Error/cancelled state backgrounds |
 
-**Missing shades that need to be added to `tailwind.config.js`** (currently silently fail):
-- `warning-200` — used in consumer Home location-denied banner
-- `warning-700` / `warning-800` — used in same banner for text
-- `danger-400` — used in OrderHistory status band
+All of `warning-200`, `warning-700`, `warning-800`, `danger-400` are defined in `tailwind.config.js`.
 
-Until fixed, replace `warning-200` border → `warning-500/30`, `warning-700` text → `warning-600`, `warning-800` text → `warning-600`, `danger-400` → `danger-500`.
+### Planned features not yet in the color system
 
-**Rule:** Any Tailwind palette shade referenced in code (e.g., `warning-200`) must be defined in `tailwind.config.js`. Use of an undefined shade is a bug, not a styling choice — Tailwind silently outputs nothing.
-
-### The teal bug
-
-`JobCard.jsx` and `SlideToggle` in `JobDrawer.jsx` use hardcoded rgba values that resolve to Tailwind's `teal-500` (#14B8A6 / #0EA5A4) — NOT the brand mint (#7DD9A2). The highlight ring on JobCard and the SlideToggle track color are therefore wrong. Replace with the brand mint via `primary-500` / `accent`.
+- **Earnings widget** (Washer Dashboard top-right): currently shows `₪—`. Real value requires a `get_washer_today_earnings` RPC. See ADR-015.
+- **ETA pill** (Order Tracking): currently shows `~15 min`. Real value requires a consumer-side realtime subscription to washer GPS + OSRM routing. See ADR-016.
+- **Star ratings** (Order Tracking washer card, Active Job customer card): currently show `4.8` as a placeholder. Real values require `rating numeric` + `completed_jobs_count int` on `profiles`. See ADR-017.
 
 ---
 
 ## 4. Typography
 
-**Font:** Inter (loaded via Google Fonts: weights 400, 500, 600, 700).
+**Font:** Inter (loaded via Google Fonts: weights 400, 500, 600, 700, **800**).  
 Stack: `['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif']`
 
 **Hebrew note:** Inter supports Hebrew but falls back to system serif on some Android devices. For Hebrew text, add `'Heebo'` before `ui-sans-serif` in the font stack — Heebo is designed for Hebrew and matches Inter's feel. Hebrew text also reads slightly better at 1px smaller than the English equivalent at the same hierarchy level.
 
-### Size scale (Tailwind classes in use)
+### Size scale
+
+Standard Tailwind classes in active use:
 
 | Class | px | Use |
 |-------|----|-----|
 | `text-xs` | 12px | Metadata, hints below inputs, timestamps, uppercase section labels, badge pills |
 | `text-sm` | 14px | Body text, button text (`.btn`), form labels (`.label`), most card content |
-| `text-base` | 16px | Drawer/dialog section headers (`"Active Job"`, `"Jobs nearby"`, dialog titles) |
+| `text-base` | 16px | Drawer section headers, dialog titles |
 | `text-lg` | 18px | Sub-page headings (Shop, Support coming-soon cards) |
-| `text-xl` | 20px | Page `h1` on all standard pages (Home, History, Earnings, Settings, etc.) |
-| `text-2xl` | 24px | Form card headings (Login `"Welcome back"`, SignUp card title), earnings figures |
+| `text-xl` | 20px | Page `h1` on standard pages (Earnings, Settings, JobDetail, etc.) |
+| `text-2xl` | 24px | Form card headings (Login, SignUp), earnings figures |
 | `text-3xl` | 30px | Landing hero brand name only |
 
-Do not introduce other sizes without updating this table.
+**Arbitrary hero sizes:** The card-per-section consumer screens and washer active job use Tailwind arbitrary sizes for display numbers and primary headings. These are intentional departures from the standard scale — not violations:
+
+| Usage | Class | px |
+|-------|-------|----|
+| Consumer screen `h1` (Home, History) | `text-[26–28px] font-extrabold` | 26–28px |
+| Price heroes (Home CTA, Active Job earnings) | `text-[26px] font-extrabold` | 26px |
+| Year-stat number (History summary card) | `text-[30px] font-extrabold` | 30px |
+| Active wash title (JobDrawer header) | `text-[17px] font-extrabold` | 17px |
+
+Do not introduce other arbitrary sizes without updating this table.
 
 ### Weight scale
 
@@ -131,15 +171,14 @@ Do not introduce other sizes without updating this table.
 | 400 | `font-normal` | Body prose, hint text |
 | 500 | `font-medium` | Labels, badges, secondary UI chrome |
 | 600 | `font-semibold` | Card subheadings, list item titles, nav labels |
-| 700 | `font-bold` | Page h1, price heroes, brand wordmark |
-
-`font-bold` is for page-level headings and hero numbers only. `font-semibold` covers everything else that needs visual weight.
+| 700 | `font-bold` | Standard page h1, card section headers |
+| **800** | **`font-extrabold`** | **Brand wordmark (WashMark), hero screen headings, price display numbers** |
 
 ### Specific rules
 
-- Prices, distances, times, counts: add `tabular-nums` (`font-variant-numeric: tabular-nums`) so they align in lists. Add `font-variant-numeric: tabular-nums` to Tailwind config's `fontFamily` or use `@apply` in a utility class.
-- Uppercase labels (`text-xs font-medium uppercase tracking-wide`): only for section sub-labels in detail cards (e.g. "ADDONS", "SITE RESOURCES"). Max 2 per screen.
-- `tracking-tight` (`-0.025em`): Landing hero only (`text-3xl font-bold tracking-tight`). Nowhere else.
+- Prices, distances, times, counts: add `tabular-nums` so they align in lists.
+- Uppercase labels (`text-[11px] font-semibold uppercase tracking-[0.4px]`): used for section sub-labels in cards (e.g. "VEHICLE", "PICKUP LOCATION", "TOTAL · VAT INCLUDED"). Max 2 per screen. Note: the new screens use `text-[11px]` (Tailwind arbitrary) rather than `text-xs` (12px) for uppercase section labels — this is deliberate; the tighter 11px feels less heavy at all-caps.
+- `tracking-tight` (`-0.025em`): Landing hero only. Elsewhere, negative letter spacing is expressed with arbitrary values (`tracking-[-0.7px]`, etc.) on hero headings only.
 
 ---
 
@@ -151,30 +190,27 @@ Base: 4px. The Tailwind scale values in active use:
 
 (Tailwind: `p-1` / `p-2` / `p-3` / `p-4` / `p-5` / `p-6` / `p-8` / `p-10` / `p-12`)
 
-### Component-level rules (standardized from audit)
+### Component-level rules
 
 | Context | Value | Class |
 |---------|-------|-------|
-| Screen edge padding — app pages | **16px** | `px-4` |
-| Screen edge padding — auth / landing | **20px** | `px-5` |
-| Inside GlassCard / card | **16px** | `p-4` |
-| Inside section cards (Settings, form cards) | **20px** | `p-5` |
-| Between sections within a page | **24px** | `gap-6` |
-| Major page-level structural breaks | **32px** | `gap-8` |
-| Between related items in a list | **12px** | `gap-3` |
+| Screen edge padding — content sections | **16px** | `px-4` |
+| Screen edge padding — page header chrome (WashMark row) | **20px** | `px-5` |
+| Screen edge padding — auth / landing full-screen pages | **20px** | `px-5` |
+| Inside standard `GlassCard` | **16px** | `p-4` |
+| Inside site-resource pills, compact cards | **12px** | `p-3` |
+| Between cards on a screen | **12px** | `gap-3` |
 | Between form fields | **16px** | `gap-4` |
-| Page top padding | **24px** | `pt-6` |
-| Page bottom padding | **24px** | `pb-6` |
+| Between sections within auth form cards | **24px** | `gap-6` |
+| Page top padding | **16px** | `pt-4` |
 | Bottom nav height | **56px** | `minHeight: 56` |
 | Touch targets | **44×44px minimum** | `min-height: 44px` on interactive elements |
-
-**Note:** App pages (Home, History, Earnings, Settings, etc.) use `px-4` (16px). Auth and full-screen onboarding pages (Landing, Login, SignUp) use `px-5` (20px) — these pages have no peripheral chrome (tabs, nav) so the extra breathing room is intentional.
 
 ---
 
 ## 6. Component primitives
 
-These are the ground-truth specs defined in `src/index.css` `@layer components`. Do not redefine these inline — extend or override by adding classes.
+These are the ground-truth specs. Do not redefine these inline — extend or override by adding classes.
 
 ### Button
 
@@ -187,13 +223,13 @@ These are the ground-truth specs defined in `src/index.css` `@layer components`.
               (dark: text-ink-muted hover:bg-surface-elevated)
 ```
 
-Rules:
-- All interactive buttons use `MotionButton` (which wraps `motion.button`) for `whileTap` spring feedback at 0.97 scale. The only exceptions are buttons inside Framer Motion already handling their own animation (e.g., `motion.button` in WasherMenu, NavLauncher).
-- Destructive actions use `btn-ghost text-danger-500 hover:bg-danger-500/10` (as used in WasherMenu sign-out and JobDrawer cancel). Do NOT use `btn-danger` for cancel flows — it reads as too aggressive. `btn-danger` is for final confirmations in dialogs.
-- Loading state: replace button text with `<Loader2 className="h-4 w-4 animate-spin" />` + inline text. Preserve button width by using `flex items-center gap-2`.
-- Full-width: `w-full` only for primary page CTAs and bottom-of-sheet actions. Never full-width for ghost or secondary actions unless they are in a modal/sheet footer.
+**Gradient CTA buttons** (Consumer Home "Book wash", Washer Active Job action button): use `bg-gradient-to-b from-primary-500 to-primary-700` with a colored box-shadow (`0 4–8px 14–22px rgba(38,181,95,0.4–0.45)`). Height is `h-[52–54px]` with `rounded-2xl`. These are the only gradient buttons in the app.
 
-**Pill selectors** (Settings PillRow/GridPill, role picker in SignUp, car type in Home): these use `py-2.5` which falls short of 44px. Fix: change to `py-3` (`min-height: 44px` explicit) to meet touch target requirements.
+Rules:
+- All interactive buttons use `MotionButton` for `whileTap` spring feedback at 0.97 scale. Exceptions: buttons inside Framer Motion already handling their own animation.
+- Destructive actions use `btn-ghost text-danger-500 hover:bg-danger-500/10`. `btn-danger` is for final confirmations in dialogs only.
+- Loading state: `<Loader2 className="h-4 w-4 animate-spin" />` + inline text. Preserve button width with `flex items-center gap-2`.
+- Full-width: `w-full` only for primary page CTAs and bottom-of-sheet actions.
 
 ### Input / Textarea
 
@@ -202,130 +238,128 @@ Rules:
          min-height: 44px; focus:border-primary-500 focus:ring-2 focus:ring-primary-100
 ```
 
-- Label: always use `.label` class (`text-sm font-medium text-neutral-700 mb-1`).
+- Label: always `.label` class (`text-sm font-medium text-neutral-700 mb-1`).
 - Error: `.field-error` below the input (`text-danger-500 text-xs mt-1`).
 - Never floating labels. Never placeholder-as-label.
-- LocationSheet's inline labels (`text-xs font-medium text-neutral-500`) are intentionally smaller because they're inside a compact two-column layout — this is the only exception.
-- Textarea: add `resize-none` + explicit `min-h-[N]` (e.g., `min-h-[76px]`, `min-h-[80px]`).
+- Textarea: `resize-none` + explicit `min-h-[N]`.
 
 ### Card surfaces
 
-There are two card primitives — use the right one for the right context:
-
-**`GlassCard` component** — consumer light mode, also used on glass overlay elements:
-- `bg-glass border border-glass-border backdrop-blur-xl rounded-2xl shadow-lg shadow-black/5`
-- Used in: consumer pages (Home, OrderTracking, OrderHistory, Login, SignUp, Landing)
+**`GlassCard` component** (`src/components/ui/GlassCard.jsx`):
+```
+bg-glass border border-glass-border backdrop-blur-xl rounded-glass shadow-glass
+```
+- `rounded-glass` = 22px (defined in `tailwind.config.js`)
+- `shadow-glass` = `0 6px 20px rgba(15,40,30,0.06), 0 2px 6px rgba(15,40,30,0.04)` (warm green tint)
+- Accepts `as` prop for polymorphic rendering (`<GlassCard as={Link} ...>`)
+- Used on: all consumer pages, Login, SignUp, Landing, permission banners
 
 **`.card` class** — the simpler white card:
-- `bg-white rounded-2xl shadow-sm border border-neutral-100 p-4`
-- Dark mode: `dark:bg-surface-elevated dark:border-edge dark:text-ink`
-- Used in: Skeleton components. JobDetail currently misuses this — it should use `GlassCard` or the washer inline glass pattern for consistency.
+```
+bg-white rounded-2xl shadow-sm border border-neutral-100 p-4
+dark:bg-surface-elevated dark:border-edge dark:text-ink
+```
+Used in: `Skeleton` components only. Do not use `.card` for new UI — use `GlassCard` or the inline glass pattern.
 
-**Inline glass** (washer pages that don't use GlassCard component):
-- `bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4`
-- This is the same visual as GlassCard but without the shadow. Prefer using the GlassCard component to keep things DRY. JobDrawer/ActiveJobPanel and EvidenceCard use the inline pattern — this is acceptable since they are inside a complex draggable container where the component boundary matters.
+**Inline glass** (washer pages that don't use the GlassCard component):
+```
+bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4
+```
+Use `rounded-glass` (22px) for consistency with the GlassCard component. Note: some older components in `JobDrawer.jsx` (`EvidenceCard`, `VehicleSection`) still use `rounded-2xl` (16px) — see §16 for the open fix.
 
-**Rule:** Consumer pages → GlassCard. Washer pages → GlassCard or inline glass pattern. Never `.card` (white bg) on washer pages.
+**Rule:** Consumer pages → `GlassCard`. Washer pages → `GlassCard` or inline glass pattern. Never `.card` on washer pages.
 
 ### GlassCard shadow
-Only GlassCard applies a shadow (`shadow-lg shadow-black/5`). Regular `.card` uses `shadow-sm`. All other UI elements (buttons, inputs, nav items) have no shadow. The one exception is map markers — they receive a drop shadow for map depth.
+
+`GlassCard` applies `shadow-glass` (warm green-tinted double shadow). Regular `.card` uses `shadow-sm`. All other UI elements have no shadow. Map markers are the only other shadow exception (they need depth cues on a textured map background).
+
+### New shared primitives
+
+**`WashMark`** (`src/components/ui/WashMark.jsx`)  
+The brand wordmark. Green gradient sphere (primary-300→primary-600 radial, 23×23px) + the text "wash" in Inter 800, `text-primary-800`, `tracking-[-0.6px]`. Sphere uses inline styles (radial-gradient has no Tailwind equivalent). Use as the app's top-left header identity on consumer screens.
+
+**`IsraeliPlate`** (`src/components/ui/IsraeliPlate.jsx`)  
+Full visual license plate widget. Standard Israeli plate appearance: yellow `#FFE74A` body, `14px` blue `#1452AF` EU country strip labeled "IL", dark `#1a1a1a` plate digits in font-mono at `text-[20px] font-extrabold`. Fixed height `h-[38px]`. The `number` prop receives the formatted plate string (e.g. `"12-345-67"`). Always rendered `dir="ltr"` regardless of app locale. The 1.5px border uses a single inline style — no Tailwind equivalent for sub-2px borders.
+
+**`MapBG`** (`src/components/ui/MapBG.jsx`)  
+Static SVG map placeholder (390×600 viewBox, `preserveAspectRatio="xMidYMid slice"`). Renders a stylized city map with road network, park area, water body, and building blocks. Accepts `dark` boolean prop — switches palette between `#E9EEF2` land (light) and `#1a1d27` land (dark). Used as:
+- **Consumer Order Tracking** — the 55vh map area (live map planned, ADR-013)
+- **Washer Dashboard** — `<Suspense>` fallback while `WorkerMap` lazy-loads
 
 ### Bottom sheet / drawer
 
-Pattern from `LocationSheet.jsx` and `JobDrawer.jsx`:
-- Top radius: `rounded-t-3xl` (24px) on mobile, zero on bottom
-- Drag handle: `w-9 h-1 bg-neutral-400/40 rounded-full` (36×4px), centered, 12px from top
-- Backdrop: `bg-black/40 backdrop-blur-sm` (LocationSheet) or `bg-black/50 backdrop-blur-sm` (ConfirmDialog). Standardize to `bg-black/50 backdrop-blur-sm`.
-- Primary action: full-width `.btn-primary` in a `px-4 py-4 border-t border-neutral-100` footer
+Two patterns in the codebase with different radii — standardize on `rounded-t-[28px]` for new work:
+
+| Component | Top radius | Notes |
+|-----------|-----------|-------|
+| `JobDrawer.jsx` | `rounded-t-3xl` (24px) | Legacy value; unchanged during redesign |
+| Order Tracking bottom sheet | `rounded-t-[28px]` (28px) | Matches mockup spec |
+
+Common elements:
+- Drag handle: `w-9 h-1 bg-neutral-400/40 rounded-full` centered, 12px padding
+- Backdrop: `bg-black/50 backdrop-blur-sm`
+- Primary action: full-width button in `px-4 pb-safe` footer
 
 ### Confirm dialog
 
-From `ConfirmDialog.jsx`:
-- `rounded-3xl p-6 max-w-sm`, spring scale animation
+From `ConfirmDialog.jsx`: `rounded-3xl p-6 max-w-sm`, spring scale animation.
 - Cancel: `.btn-ghost flex-1`
-- Destructive confirm: `.btn-ghost text-danger-500 flex-1` (NOT `.btn-danger` — the dialog's contained context makes red text sufficient)
+- Destructive confirm: `.btn-ghost text-danger-500 flex-1`
 - Non-destructive confirm: `.btn-primary flex-1`
 
 ### Badge
 
-Small inline classification labels. Not interactive — purely informational.
+Small inline classification labels — not interactive.
 
 | Variant | Radius | Padding | Font | Use |
 |---------|--------|---------|------|-----|
-| Default badge | `rounded-md` (6px) | `px-2 py-0.5` | `text-[13px] font-medium` | Status labels, category tags, add-on chips |
-| Pill badge | `rounded-full` | `px-3 py-1` | `text-[13px] font-medium` | Status capsules with leading dot (e.g., `● Available`) |
+| Default | `rounded-md` (6px) | `px-2 py-0.5` | `text-[13px] font-medium` | Status labels, category tags, add-on chips |
+| Pill | `rounded-full` | `px-3 py-1` | `text-[13px] font-medium` | Status capsules with leading dot |
 | Status band | `rounded-md` | `px-3 py-2` | `text-sm` | Full-width inline status banner inside a card |
 
-**Forbidden:** `rounded` (4px) on any badge. `rounded-lg` or larger on default or pill badges — reserve larger radii for cards and containers.
-
-**Current violations to fix:**
-- `OrderHistory.jsx:109` — `rounded px-2 py-0.5` → `rounded-md px-2 py-0.5`
-- `Profile.jsx:57` — role badge `rounded px-2 py-0.5` → `rounded-md px-2 py-0.5`
-- `JobDetail.jsx:91,96` — add-on chips `rounded px-2 py-0.5` → `rounded-md px-2 py-0.5`
-
-**Pill selector height:** 44px minimum touch target. Two valid patterns:
-- **Connected group** (e.g., Settings PillRow): buttons are `flex-1 py-3` with no own border; a shared `border border-edge` wrapper provides the outline, `overflow-hidden` clips corners. Renders at 44px.
-- **Standalone tile** (e.g., Settings GridPill): each button is `py-3 border border-edge rounded-xl`. Renders at 46px (44px + 1px border top/bottom). Both heights are acceptable; choose based on whether the pills are visually connected or separated.
-
-**Badge vs compact button — the boundary.**
-
-A Badge is informational only. It uses `<span>` semantics, has no hover/active/disabled states, and never takes `onClick`. If an element is `rounded-full` + small + carries text but is clickable, it is a compact button, not a Badge. Style compact buttons inline with their own classes — do not migrate them to `<Badge>`. The visual similarity is coincidence; the semantic distinction is non-negotiable.
-
-Examples in this codebase: `JobDrawer.jsx` cancel pill is a compact button. `JobCard.jsx` service-type pill is a Badge. The first responds to user input; the second describes data.
+**Forbidden:** `rounded` (4px) on any badge. A clickable `rounded-full` small element is a compact button, not a Badge — style it inline.
 
 ---
 
 ## 7. Iconography
 
-**Library:** `lucide-react` exclusively. Do not mix with other icon sets on any screen.
+**Library:** `lucide-react` exclusively.
 
-**Sizes in use:** `h-3 w-3` (12px, tight inline rows), `h-3.5 w-3.5` (14px, compact metadata), `h-4 w-4` (16px, standard UI actions), `h-5 w-5` (20px, nav and prominent actions), `h-6 w-6` (24px, profile avatar context), `h-9 w-9` / `h-10 w-10` (empty-state illustrations)
+**Sizes in use:** `h-3 w-3` (12px), `h-3.5 w-3.5` (14px), `h-4 w-4` (16px), `h-5 w-5` (20px), `h-6 w-6` (24px), `h-9 w-9` / `h-10 w-10` (empty-state illustrations)
 
-**Color:** Every icon takes its color from `currentColor` — no hardcoded fills, no hardcoded stroke colors. Control icon color through the parent element's text color class (`text-primary-500`, `text-ink-muted`, etc.).
+**Color:** Every icon takes its color from `currentColor`. Never hardcoded fills or strokes.
 
-**RTL-aware icons:** `ArrowLeft`, `ChevronRight`, `Navigation` — add `rtl:rotate-180`. Icons without directionality (search, settings, map pin, checkmark) — do NOT flip.
+**RTL-aware icons:** `ArrowLeft`, `ChevronRight`, `Navigation` — add `rtl:rotate-180`. Icons without directionality — do NOT flip.
 
-**Reserved icons.** The following Lucide icons have established semantic roles in this app and must not be used as decorative or brand elements:
-- `Droplets` — water availability state (site resource indicator, wiper fluid add-on)
-- `SprayCan` — wiper fluid add-on (planned use, reserved)
-
-When choosing icons for new features, check this list first. If a needed concept overlaps a reserved icon, choose a visually distinct alternative; do not reuse a semantically-loaded icon for a different meaning.
+**Reserved icons:**
+- `Droplets` — water availability (site resource indicator)
+- `Zap` — power availability (site resource indicator)
+- `Home` — consumer BottomNav first tab
+- `Car` — vehicle/job type throughout
+- `Star` — rating display (static placeholder; real review system planned)
 
 **Icon containers:**
-- `rounded-full` — avatar circles, nav active pill, floating action buttons
-- `rounded-lg` — icon containers inside detail cards (car type, payout, address in JobDetail)
+- `rounded-full` — avatar circles, online status indicator, floating action buttons
+- `rounded-[10–14px]` — icon containers inside detail cards
 - Never mix shapes for the same semantic element type on one screen.
 
 ### Emoji rules
 
-Use `lucide-react` exclusively for functional UI. **Emojis are forbidden in:** category labels, feature tags, status indicators, button labels, navigation items, form labels, or any element a user interacts with or uses to identify state.
-
-**Emojis are allowed only in:** user-generated content (chat, reviews — not currently in scope) and purely decorative empty-state graphics.
-
-**Lucide replacements for all current emoji usage:**
-
-| Emoji | File | Context | Lucide replacement |
-|-------|------|---------|-------------------|
-| 💧 | `Home.jsx:257` | Site resource: water access toggle | `Droplets` |
-| 🔌 | `Home.jsx:258` | Site resource: power access toggle | `Zap` |
-| 💧 | `Home.jsx:267` | Add-on: wiper fluid refill toggle | `Droplet` (distinct from `Droplets`) |
-| 🛞 | `Home.jsx:268` | Add-on: tire pressure check toggle | `Gauge` |
-| 💧 | `JobDetail.jsx:128` | Washer: water availability indicator | `Droplets` |
-| 🔌 | `JobDetail.jsx:132` | Washer: power availability indicator | `Zap` |
+`lucide-react` only for functional UI. **Emojis are forbidden** in category labels, feature tags, status indicators, button labels, navigation items, form labels, or any interactive/state-indicating element. All previously documented emoji usages in `Home.jsx`, `JobDetail.jsx` have been replaced with Lucide icons in the redesign.
 
 ---
 
 ## 8. Motion
 
-All motion uses Framer Motion. The standard spring:
+All motion uses Framer Motion. Standard spring:
 
 ```js
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 ```
 
-Heavier/faster variants used in specific contexts:
-- `stiffness: 350–500, damping: 28–40` — toggles, confirms (TOGGLE_SPRING in JobDrawer)
-- `stiffness: 400, damping: 35` — swipe/drag (JobCard SPRING)
+Heavier/faster variants:
+- `stiffness: 350–500, damping: 28–40` — toggles, confirms
+- `stiffness: 400, damping: 35` — swipe/drag (JobCard)
 
 ### Timings
 
@@ -333,52 +367,54 @@ Heavier/faster variants used in specific contexts:
 |------------|----------|--------|
 | Fade in/out (backdrop, toast) | 200ms | `easeOut` |
 | `whileTap` scale | Spring (instant feel) | SPRING |
-| Page stagger (child items) | 250ms per item, 80–100ms stagger | `easeOut` |
-| `layoutId` morphing pill | Spring | SPRING |
+| Page stagger (child items) | 250ms per item, 70–80ms stagger | `easeOut` |
+| `layoutId` morphing pill (BottomNav active indicator) | Spring | SPRING |
 | Drawer drag snap | Spring | SPRING |
 | Map pan | 500–800ms | Leaflet default |
 
-### Stagger pattern
-
-Auth pages and list pages use `staggerChildren: 0.06–0.1` on a container variant, with children animating `opacity 0→1, y 16→0`. This is the standard entrance pattern.
-
 ### Banned
 
-- Bounce easing (the spring values above are already springy enough)
+- Bounce easing
 - Animations over 400ms (map pans excepted)
-- `whileTap` on already-disabled elements (`.disabled:opacity-50` is the only disabled indicator)
-- Slide-from-far-offscreen (WasherMenu uses 100% = full panel width, which is correct for a side drawer)
+- `whileTap` on disabled elements
+- Slide-from-far-offscreen for panels wider than the viewport
 
 ### Prefers-reduced-motion
 
-Currently not implemented. When added: replace `y` transitions with instant opacity-only transitions. Spring scales on tap are acceptable to keep (they're below the motion threshold that causes discomfort).
+Currently not implemented. When added: replace `y` transitions with instant opacity-only transitions. Spring tap scales are acceptable to keep.
 
 ---
 
 ## 9. Map UI
 
-Two distinct map contexts:
-
 ### Consumer MapPicker (`MapPicker.jsx`)
 
-- Tile: OpenStreetMap standard `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` (light)
-- Pin: SVG mint drop pin with white center circle, 24×36px, anchor at bottom tip. Color hardcoded as `#7DD9A2` in SVG `fill` — keep in sync with `primary-500`.
+- Tile: OpenStreetMap standard (light)
+- Pin: SVG green drop pin, `fill="#7DD9A2"` — keep in sync with `primary-500`
 - Container: `rounded-2xl overflow-hidden border border-neutral-200`
-- Zoom controls: disabled (`zoomControl={false}`)
+- Zoom controls: disabled
 
 ### Washer WorkerMap (`WorkerMap.jsx`)
 
-- Tile: CartoDB Dark (`dark_all`) — low-contrast dark tiles so mint markers pop
-- Washer position: CSS-animated `washer-dot` (div with core + pulsing ring, see `WasherMarker.css`)
-- Job pins: `job-pin-dot` small CSS dots — 12×12px
-- Route polyline: `color="#7DD9A2"` (hardcoded, same as `primary-500`), `weight=3`, `opacity=0.85`, `dashArray="6 8"`
-- Recenter FAB: `bg-glass border-glass-border`, 44×44px, `rounded-2xl`
+- Tile: CartoDB Dark (`dark_all`) — dark tiles so green markers pop
+- Washer position: CSS-animated `washer-dot` (core + pulsing ring, `WasherMarker.css`)
+- Job pins: `job-pin-dot` 12×12px CSS dots
+- Route polyline: `color="#7DD9A2"`, `weight=3`, `opacity=0.85`, `dashArray="6 8"`
+- Suspense fallback: `<MapBG dark className="absolute inset-0 w-full h-full" />` while lazy chunk loads
+
+### Consumer Order Tracking MapBG (static placeholder)
+
+- Component: `MapBG` SVG (light mode, `dark={false}`)
+- Height: `h-[55vh]` in the page layout
+- Markers: SVG overlay — customer position (white dot + green ring) and a static washer position (green filled circle with initials)
+- Decorative route line rendered in the same SVG overlay
+- **Live map is planned (ADR-013):** will require a consumer-side realtime subscription to `profiles.current_location` for the assigned washer's GPS, plus a second Leaflet instance.
 
 ### Rules
 
-- Never use red markers (conflicts with semantic danger color).
-- Shadows are allowed on map markers (they need depth cues on a textured map background).
-- The `dir="ltr"` wrapper on `WorkerMap` is intentional — Leaflet maps must always be LTR regardless of app locale.
+- Never use red markers.
+- Shadows allowed on map markers.
+- `dir="ltr"` wrapper on `WorkerMap` is intentional — Leaflet must always be LTR.
 
 ---
 
@@ -387,116 +423,116 @@ Two distinct map contexts:
 The app switches direction based on `i18next` locale. The `useDirection` hook in `App.jsx` sets `document.dir`.
 
 **Directional CSS rules:**
-- Use `ms-*` / `me-*` (margin-inline-start/end), NOT `ml-*` / `mr-*`
-- Use `ps-*` / `pe-*` (padding-inline-start/end), NOT `pl-*` / `pr-*`
-- Use `insetInlineStart` / `insetInlineEnd` for fixed/absolute positioning, NOT `left` / `right`
+- Use `ms-*` / `me-*`, NOT `ml-*` / `mr-*`
+- Use `ps-*` / `pe-*`, NOT `pl-*` / `pr-*`
+- Use `insetInlineStart` / `insetInlineEnd` for fixed/absolute positioning
 - Use `start-0` / `end-0`, NOT `left-0` / `right-0`
 - `text-start` / `text-end`, NOT `text-left` / `text-right`
 
 **Exceptions:**
-- `dir="ltr"` on map containers (`WorkerMap.jsx`) — Leaflet requires this, don't change it.
-- `rtl:rotate-180` on directional icons (ArrowLeft, ChevronRight) — explicit flip class.
+- `dir="ltr"` on map containers and `IsraeliPlate` — required, don't change.
+- `rtl:rotate-180` on directional icons.
 
-**Numbers and prices:** `₪` symbol and numeric values must render LTR even in Hebrew context. Wrap with `<bdi>` or `dir="ltr"` span: `<span dir="ltr">₪{price}</span>`.
+**Numbers and prices:** `₪` symbol and numeric values must render LTR even in Hebrew context. Wrap price displays with `dir="ltr"` where RTL context might reverse them.
 
-**Date/time formatting:** Use `new Date().toLocaleDateString(i18n.language)` — already done consistently.
+**Date/time formatting:** `new Date().toLocaleDateString(i18n.language)` — already done consistently.
 
 ---
 
 ## 11. Mobile-specific
 
 **Safe areas:**
-- Bottom nav: `paddingBottom: 'env(safe-area-inset-bottom, 0px)'` already in `BottomNav.jsx`.
-- Map FABs and fixed elements: `top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))'` — already in `OnlineToggle.jsx` and `WasherDashboard.jsx`. Apply this pattern to any new fixed-position top element.
-- Bottom sheets: `safe-bottom` utility class (`padding-bottom: env(safe-area-inset-bottom, 0px)`) on footer confirm buttons.
+- Bottom nav: `paddingBottom: 'env(safe-area-inset-bottom, 0px)'` in `BottomNav.jsx`.
+- Fixed top elements: `top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))'` — used on `OnlinePill` and map chrome.
+- Bottom sheets: `safe-bottom` utility class on footer confirm buttons.
 
-**Tap delay:** `body { -webkit-tap-highlight-color: transparent; }` already set in `index.css`. Add `touch-action: manipulation` to any element that uses `onClick` without drag behavior.
+**Tap delay:** `body { -webkit-tap-highlight-color: transparent; }` set in `index.css`. Add `touch-action: manipulation` to onClick elements without drag behavior.
 
-**Keyboard handling:** Inputs within scrollable containers (`flex-1 overflow-y-auto`) naturally scroll into view. Don't use `fixed` positioning for inputs.
+**One-handed reach:** Primary CTAs belong in the bottom 60% of the screen. The JobDrawer satisfies this for washers. Consumer booking CTA is the last card in the scroll area.
 
-**One-handed reach:** Primary CTAs belong in the bottom 60% of the screen. The JobDrawer's slide-up architecture satisfies this for washers. Consumer booking CTA is inside a scrollable form — acceptable, since the user has engaged in a form flow.
+**Bottom nav height:** 56px fixed, `pb-16` (64px) in `PageShell.jsx`.
 
-**Bottom nav height:** 56px fixed, with safe-area padding added below. Content below the nav must have `pb-16` (64px) to clear it — this is handled by `PageShell.jsx`.
-
-**Layout height variables:** All vertical layout heights for fixed or sticky surfaces are defined as CSS variables in `src/index.css`:
+**Layout height variables (CSS vars in `src/index.css`):**
 
 ```css
---nav-height: 56px;
+--nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
 --drawer-collapsed-height: 120px;
---stack-gap: 12px;          /* gap between stacked floating elements */
+--stack-gap: 12px;
 ```
 
-Components compose these with `calc()` — never hardcode pixel offsets. `NavLauncher`'s bottom position, for example, must be `calc(var(--nav-height) + var(--drawer-collapsed-height) + var(--stack-gap))` not `188px`. Variables must compose with `env(safe-area-inset-*)` at the consumer site (the component), not at the variable definition.
+Never hardcode pixel offsets for floating elements that compose against these. Use `calc(var(--nav-height) + ...)`.
 
 ---
 
 ## 12. Outdoor / bright-light usage
 
 **Contrast requirements:**
-- Body text on white/light backgrounds: minimum 4.5:1 (AA). Text on `primary-50` backgrounds: use `primary-700` (not `primary-600`) for AA compliance.
-- `text-neutral-400` (the `ink-muted` light equivalent) on white: ~3.5:1 — acceptable for hint text only (not body, not labels).
-- Never `text-neutral-300` on white for readable text (fails all contrast thresholds).
+- Body text on white/light: minimum 4.5:1 (AA). Text on `primary-50`: use `primary-700` for AA.
+- `text-ink-muted` on white: ~3.5:1 — hint text only.
+- Never `text-neutral-300` on white for readable text.
 
-**Status indicators:** Always combine color AND shape or text. A green dot alone is not enough — the dot AND the label "Online" / "Offline" are already implemented in `WasherMenu.jsx`. Maintain this pattern.
+**Status indicators:** Always combine color AND shape or text. Never color alone.
 
-**Borders in sunlight:** `border-neutral-100` (the light `.card` border and many dividers) may wash out in direct sunlight. For cards that display critical information outdoors (JobCard, active job panel) use `border-glass-border` (washer) or `border-neutral-200` (consumer) minimum.
+**Borders in sunlight:** For cards displaying critical outdoor information (JobCard, active job panel) use `border-glass-border` (washer) or `border-neutral-200` (consumer) minimum.
 
 ---
 
 ## 13. Information density
 
-Target density: Wolt-level, not Calm-level. The user is between jobs, checking quickly.
+Target: Wolt-level, not Calm-level.
 
-- Job list: 2-3 JobCards visible without scrolling in the default drawer snap point (40% of viewport height). Cards are compact enough: ~100px each, 12px gap.
-- Bento tiles on Earnings: 2-column grid, 4 tiles in view without scrolling. ✓
-- Do not increase card vertical padding beyond `p-4` on washer-side cards.
-- Section spacing `gap-5` (20px) between sections is the maximum. `gap-6` (24px) is allowed only in form flows (Login, SignUp, Settings) where reading pace is slower.
-- Empty states: center-aligned icon + 2 lines of text + one CTA. No more. No large decorative illustrations.
+- Job list: 2-3 JobCards visible at the default drawer snap (40% viewport). Cards ~100px each, 12px gap.
+- Consumer history: rows ~70px each at 12px gap — history list visible without scrolling down more than a screen.
+- Do not increase card padding beyond `p-4` on washer-side cards.
+- Section spacing `gap-3` (12px) between cards on consumer screens; `gap-4` (16px) between form fields; `gap-6` (24px) only in auth form cards.
+- Empty states: centered icon + 2 lines of text + one CTA. No large decorative illustrations.
 
 ---
 
 ## 14. Background treatment
 
-**Consumer pages:** `bg-mesh` (defined in `index.css`) — a background color with 4 radial gradient overlays at 10–18% opacity. Glass cards sit in front. Do NOT use solid white backgrounds on consumer pages.
+**Consumer pages:** `.bg-mesh` — 4 radial gradients at up to 0.42 opacity over `var(--color-surface)`. Radials are top-left (green, 0.42), top-right (green, 0.22), bottom-right (amber, 0.16), bottom-left (green, 0.30). Glass cards sit in front. Do NOT use solid white backgrounds on consumer pages.
 
-**Washer pages:** `bg-surface` (dark: `#0f1117`). The WorkerMap is full-bleed with UI elements floating above it.
+**Washer dark screen surfaces (non-map):** `.bg-mesh-dark` — 2 subtle green radials (0.10–0.14 opacity) over `var(--color-surface)` (dark: `#0f1117`). Used on dark screens that don't have a full-bleed map (Active Job header area via `MeshDark` pattern from brand spec).
 
-**Overlays/backdrops:** `bg-black/50 backdrop-blur-sm` for all modals, sheets, and menu backdrops. No other backdrop treatment.
+**Washer map screens:** The `WorkerMap` is full-bleed. UI elements float above it; no surface class needed on the page root.
 
-**Glassmorphism:** Used for cards and drawers (`backdrop-blur-xl`). This is the deliberate aesthetic. Blur above 16px would be too heavy on mid-range Android — `backdrop-blur-xl` (24px) is the maximum. No frosted glass panels with nested blur.
+**Overlays/backdrops:** `bg-black/50 backdrop-blur-sm` for all modals, sheets, menu backdrops.
+
+**Glassmorphism:** `backdrop-blur-xl` (24px) is the maximum blur. No nested blur panels.
 
 ---
 
 ## 15. Patterns banned project-wide
 
 - Gradient text
-- Glassmorphism beyond what already exists (no new frosted panels)
-- Neumorphism (soft inner/outer shadows)
+- Glassmorphism beyond existing patterns (no new frosted panels)
+- Neumorphism
 - More than one font family on a single screen
 - Skeumorphic shadows on flat buttons
-- Centered text in lists (always `text-start`; empty states are the only exception)
-- Pure `#000000` — use `neutral-900` or `ink` (which is `#171717`)
+- Centered text in lists (empty states are the only exception)
+- Pure `#000000` — use `neutral-900` or `ink` (`#171717`)
 - Pure `#ffffff` in dark mode — use `surface-elevated` (`#1a1d27`)
-- Skeleton loaders that use a different shape than the actual content they represent
-- Full-width buttons outside of bottom-sheet footers and modals
-- `shadow-*` on buttons (the design is flat; map markers are the only shadow exception)
+- Skeleton loaders shaped differently from the content they represent
+- Full-width buttons outside bottom-sheet footers and modals
+- `shadow-*` on buttons (map markers are the only shadow exception)
 
 ---
 
 ## 16. Known inconsistencies to fix
 
-These are places where the current code drifts from the rules above. Listed in priority order:
+These are places where the current code drifts from the rules above, in priority order:
 
 | # | Issue | Location | Fix |
 |---|-------|----------|-----|
-| 1 | Teal (#14B8A6) used instead of brand mint (#7DD9A2) | `JobCard.jsx` highlight ring, `SlideToggle` in `JobDrawer.jsx` | Replace with `primary-500` / `var(--color-accent)` |
-| 2 | Missing palette shades silently fail | `warning-200`, `warning-700`, `warning-800`, `danger-400` in `Home.jsx`, `OrderHistory.jsx` | Add to `tailwind.config.js` or replace with available shades |
-| 3 | Screen edge padding inconsistent | `px-4` vs `px-5` across pages | Standardize to `px-4` everywhere |
-| 4 | `StatusTimeline` uses hardcoded neutral classes | `StatusTimeline.jsx` — `text-neutral-900`, `text-neutral-300` | Replace with `text-ink` / `text-neutral-300 dark:text-ink-muted/30` |
+| 1 | `EvidenceCard` and `VehicleSection` use `rounded-2xl` (16px), not `rounded-glass` (22px) | `JobDrawer.jsx` lines 80, 294 | Replace `rounded-2xl` → `rounded-glass` in those two inline glass divs |
+| 2 | `JobCard` uses `rounded-2xl` (16px) — not updated in the redesign | `JobCard.jsx` line 73 | Replace `rounded-2xl` → `rounded-glass` |
+| 3 | Bottom-sheet top radius: `JobDrawer` uses `rounded-t-3xl` (24px); Order Tracking uses `rounded-t-[28px]` (28px) | `JobDrawer.jsx`, `OrderTracking.jsx` | Standardize to `rounded-t-[28px]`; update `JobDrawer` |
+| 4 | `StatusTimeline` uses hardcoded neutral classes | `StatusTimeline.jsx` — `text-neutral-900`, `text-neutral-300` | Replace with `text-ink` / `text-edge` for dark compatibility |
 | 5 | `Toast` has no dark mode | `Toast.jsx` — `bg-white border-neutral-100` | Add `dark:bg-surface-elevated dark:border-edge dark:text-ink` |
-| 6 | PillRow/GridPill touch targets too small | `Settings.jsx` — `py-2.5` (~38px) | Change to `py-3` and add `min-height: 44px` |
-| 7 | `JobDetail.jsx` uses `.card` (white bg) on washer route | `JobDetail.jsx` | Replace `.card` with `GlassCard` or inline glass pattern |
-| 8 | Section gap inconsistent (5 vs 6) | Various pages | Standardize: `gap-5` for page sections, `gap-4` for form fields, `gap-6` only in auth form cards |
+| 6 | `PillRow`/`GridPill` touch targets too small | `Settings.jsx` — `py-2.5` (~38px) | Change to `py-3`, add `min-height: 44px` |
+| 7 | `JobDetail.jsx` uses `.card` (white bg) on washer route | `JobDetail.jsx` | Replace `.card` with `GlassCard` or inline glass |
+| 8 | `bg-surface-glass` legacy alias exists in dark CSS vars with old opacity (0.72) | `src/index.css` `.dark {}` block, `tailwind.config.js` | Remove `--color-surface-glass` from dark vars and `surface.glass` from Tailwind config; any remaining usages should migrate to `bg-glass` |
 
 ---
 
