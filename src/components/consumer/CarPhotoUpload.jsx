@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { Camera, X, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Capacitor } from '@capacitor/core'
+import { Camera as NativeCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { supabase } from '../../lib/supabase.js'
 
 const MAX_BYTES   = 5 * 1024 * 1024 // 5 MB
@@ -34,19 +36,19 @@ async function resizeToBlob(file) {
 }
 
 function PhotoSlot({ index, orderId, userId, photo, onUploaded, onRemoved }) {
-  const { t }       = useTranslation()
-  const inputRef    = useRef(null)
+  const { t }             = useTranslation()
+  const inputRef          = useRef(null)
   const [busy, setBusy]   = useState(false)
   const [err, setErr]     = useState('')
 
-  async function handleFile(file) {
+  async function uploadBlob(blob) {
     setErr('')
-    if (file.size > MAX_BYTES) { setErr(t('consumer.home.photos.tooLarge')); return }
+    if (blob.size > MAX_BYTES) { setErr(t('consumer.home.photos.tooLarge')); return }
     setBusy(true)
 
-    let blob
+    let resized
     try {
-      blob = await resizeToBlob(file)
+      resized = await resizeToBlob(blob)
     } catch {
       setErr(t('consumer.home.photos.uploadFailed'))
       setBusy(false)
@@ -56,12 +58,40 @@ function PhotoSlot({ index, orderId, userId, photo, onUploaded, onRemoved }) {
     const path = `${userId}/${orderId}/${index}.jpg`
     const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
-      .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+      .upload(path, resized, { upsert: true, contentType: 'image/jpeg' })
 
     setBusy(false)
     if (uploadErr) { setErr(t('consumer.home.photos.uploadFailed')); return }
+    onUploaded(index, path, URL.createObjectURL(resized))
+  }
 
-    onUploaded(index, path, URL.createObjectURL(blob))
+  async function handleOpen() {
+    if (Capacitor.isNativePlatform()) {
+      // Native: hard-lock to camera — no gallery option shown to the user
+      try {
+        const photo = await NativeCamera.getPhoto({
+          quality:           85,
+          allowEditing:      false,
+          resultType:        CameraResultType.DataUrl,
+          source:            CameraSource.Camera,
+          width:             MAX_EDGE_PX,
+          height:            MAX_EDGE_PX,
+          correctOrientation: true,
+        })
+        if (photo.dataUrl) {
+          const blob = await fetch(photo.dataUrl).then(r => r.blob())
+          await uploadBlob(blob)
+        }
+      } catch (e) {
+        // User cancelled — silently ignore; any other error shows the upload failed message
+        if (!e?.message?.toLowerCase().includes('cancel')) {
+          setErr(t('consumer.home.photos.uploadFailed'))
+        }
+      }
+    } else {
+      // Web / dev browser: file input with capture hint (best-effort camera on mobile browsers)
+      inputRef.current?.click()
+    }
   }
 
   async function handleRemove() {
@@ -91,7 +121,7 @@ function PhotoSlot({ index, orderId, userId, photo, onUploaded, onRemoved }) {
       <button
         type="button"
         disabled={busy}
-        onClick={() => inputRef.current?.click()}
+        onClick={handleOpen}
         className="aspect-square rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 flex flex-col items-center justify-center gap-2 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-60"
       >
         {busy
@@ -103,13 +133,14 @@ function PhotoSlot({ index, orderId, userId, photo, onUploaded, onRemoved }) {
         </span>
       </button>
       {err && <p className="text-xs text-danger-500">{err}</p>}
+      {/* File input used only in web/browser; native path goes through NativeCamera above */}
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         capture="environment"
         className="hidden"
-        onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = '' }}
+        onChange={e => { if (e.target.files[0]) uploadBlob(e.target.files[0]); e.target.value = '' }}
       />
     </div>
   )
