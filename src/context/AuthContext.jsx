@@ -36,16 +36,21 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // Per spec: getSession for initial hydration
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    })
+    // Per spec: getSession for initial hydration.
+    // Race against a 12s timeout so a silently dropped network request
+    // never leaves the app stuck on the loading spinner.
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
+    Promise.race([supabase.auth.getSession(), timeout])
+      .then(({ data: { session } }) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          fetchProfile(session.user.id).finally(() => setLoading(false))
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // INITIAL_SESSION is already handled by getSession above
