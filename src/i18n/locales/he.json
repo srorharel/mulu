@@ -159,12 +159,50 @@
     "tracking": {
       "title": "סטטוס הזמנה",
       "back": "חזרה",
+      "live": "חי",
       "cancelled": "ההזמנה בוטלה",
       "completed": "הרכב שלך מבריק!",
       "cancelOrder": "בטל הזמנה",
       "cancelling": "מבטל...",
       "total": "סה\"כ",
-      "orderNotFound": "ההזמנה לא נמצאה"
+      "orderNotFound": "ההזמנה לא נמצאה",
+      "step": {
+        "requested": "הוגש",
+        "assigned": "שויך",
+        "enRoute": "בדרך",
+        "washing": "שוטף",
+        "complete": "הושלם"
+      },
+      "heading": {
+        "pending": "מחפש שוטף",
+        "accepted": "השוטף בדרך",
+        "en_route": "השוטף בדרך אליך",
+        "arrived": "השוטף הגיע",
+        "in_progress": "שטיפה מתבצעת",
+        "pending_approval": "כמעט סיימנו!",
+        "completed": "הושלם!",
+        "cancelled": "ההזמנה בוטלה"
+      },
+      "subtitle": {
+        "pending": "ממתין, מחפש בסביבה",
+        "accepted": "בדרך לרכב שלך",
+        "en_route": "{{name}} בדרך לרכב שלך",
+        "arrived": "{{name}} ליד הרכב",
+        "in_progress": "{{name}} שוטף את הרכב",
+        "pending_approval": "{{name}} שלח לבדיקה",
+        "completed": "הרכב שלך נקי ומבריק!",
+        "cancelled": "ההזמנה בוטלה"
+      },
+      "eta": {
+        "arrivingIn": "מגיע בעוד",
+        "placeholder": "~15 דק׳"
+      },
+      "washer": {
+        "unknown": "השוטף שלך",
+        "washes": "שטיפות",
+        "message": "הודעה",
+        "call": "שיחה"
+      }
     },
     "history": {
       "title": "ההזמנות שלי",

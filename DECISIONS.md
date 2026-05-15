@@ -175,6 +175,20 @@
 **Decision:** Render the widget with a placeholder dash (`₪—`) in Phase 4. No new DB query. A follow-up task will add a `get_washer_today_earnings` RPC.
 **Consequence:** Widget chrome and placement are live; number is deferred.
 
+## ADR-016: ETA on Order Tracking is a static placeholder
+**Date:** 2026-05-15
+**Status:** Accepted
+**Context:** The mockup shows "4 min · 1.2 km" ETA on the Order Tracking screen. Computing this requires the washer's real-time GPS position and a routing call (e.g. OSRM) from washer to order location. Subscribing to washer location from the consumer side would be a new realtime channel.
+**Decision:** Show "~15 min" as a static placeholder. No new subscription or routing call. Follow-up: add a consumer-side channel subscription to `profiles` for the assigned washer's `current_location`, then route via OSRM to produce a live ETA.
+**Consequence:** Consumer sees decorative ETA rather than a real one.
+
+## ADR-017: Washer star rating on Order Tracking is a static placeholder
+**Date:** 2026-05-15
+**Status:** Accepted
+**Context:** The mockup shows washer name, star rating, and wash count on the consumer's Order Tracking screen. The `profiles` table has `full_name` but no `rating` or `completed_jobs_count` column. Building a review system is out of redesign scope.
+**Decision:** Show the washer's real name (fetched from `profiles` via `order.washer_id`) but display "4.8" and "— washes" as static placeholders. A follow-up will add `rating numeric` and `completed_jobs_count int` to `profiles`, maintained by a trigger on `orders.status → completed`.
+**Consequence:** Washer name is real; star count and wash count are decorative.
+
 ## 2026-05-13 — Support push notifications deferred (in-app only for v1)
 
 **Context.** The spec explicitly deferred push notifications for support to a later phase; v1 is in-app only.  

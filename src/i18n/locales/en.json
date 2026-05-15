@@ -159,12 +159,50 @@
     "tracking": {
       "title": "Order status",
       "back": "Back",
+      "live": "LIVE",
       "cancelled": "Order cancelled",
       "completed": "Your car is sparkling clean!",
       "cancelOrder": "Cancel order",
       "cancelling": "Cancelling…",
       "total": "total",
-      "orderNotFound": "Order not found"
+      "orderNotFound": "Order not found",
+      "step": {
+        "requested": "Requested",
+        "assigned": "Assigned",
+        "enRoute": "En route",
+        "washing": "Washing",
+        "complete": "Complete"
+      },
+      "heading": {
+        "pending": "Finding your washer",
+        "accepted": "Your washer is coming",
+        "en_route": "Your washer is on the way",
+        "arrived": "Washer has arrived",
+        "in_progress": "Washing in progress",
+        "pending_approval": "Almost done!",
+        "completed": "All done!",
+        "cancelled": "Order cancelled"
+      },
+      "subtitle": {
+        "pending": "Hang tight, searching nearby",
+        "accepted": "Heading to your car",
+        "en_route": "{{name}} is heading to your car",
+        "arrived": "{{name}} is at your car",
+        "in_progress": "{{name}} is washing your car",
+        "pending_approval": "{{name}} submitted for review",
+        "completed": "Your car is sparkling clean!",
+        "cancelled": "This order was cancelled"
+      },
+      "eta": {
+        "arrivingIn": "Arriving in",
+        "placeholder": "~15 min"
+      },
+      "washer": {
+        "unknown": "Your washer",
+        "washes": "washes",
+        "message": "Message",
+        "call": "Call"
+      }
     },
     "history": {
       "title": "My Orders",
