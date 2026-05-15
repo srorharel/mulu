@@ -154,6 +154,27 @@
 **Alternatives considered.** Supabase scheduled functions (pg_cron): cleanest approach, but requires enabling `pg_cron` extension and testing the schedule. Edge function on a cron trigger: works but adds Supabase Edge Function infra.  
 **Implications.** Old resolved conversations accumulate in the queue as `resolved` status indefinitely. Build when support volume makes queue noise a real problem. Trigger: when agents start complaining about stale items in "All" queue tab.
 
+## ADR-013: Live map on Order Tracking deferred — visual placeholder only
+**Date:** 2026-05-15
+**Status:** Accepted
+**Context:** The mockup shows a full-screen Leaflet map on the consumer Order Tracking screen with an animated washer pin. Implementing this requires a new realtime subscription to the washer's GPS position and a second Leaflet instance on the consumer side.
+**Decision:** Use the static `MapBG` SVG component (ported from `brand.jsx`) as a visual placeholder with a single non-animated marker at the order's stored lat/lng. No live GPS feed, no new subscription. Follow-up feature after the redesign is visually complete.
+**Consequence:** Consumer cannot see the washer moving in real time during Phase 3. The placeholder communicates the intended layout without adding scope.
+
+## ADR-014: History yearly summary card uses placeholder content
+**Date:** 2026-05-15
+**Status:** Accepted
+**Context:** The mockup History screen shows a green summary card with total wash count, total spend, and estimated time saved for the current year. Rendering this accurately requires a new aggregate query.
+**Decision:** Render the card with static placeholder dashes (`—`) until a proper stats query is scoped. The card's visual chrome (green gradient, Sparkles icon, layout) is implemented; only the numbers are deferred.
+**Consequence:** The summary card looks correct in the redesign but shows no real data.
+
+## ADR-015: Washer Dashboard today's earnings widget uses placeholder content
+**Date:** 2026-05-15
+**Status:** Accepted
+**Context:** The mockup Washer Dashboard shows a "TODAY ₪420" widget in the top-right of the map. This requires querying the sum of `base_price` on today's completed orders for the washer.
+**Decision:** Render the widget with a placeholder dash (`₪—`) in Phase 4. No new DB query. A follow-up task will add a `get_washer_today_earnings` RPC.
+**Consequence:** Widget chrome and placement are live; number is deferred.
+
 ## 2026-05-13 — Support push notifications deferred (in-app only for v1)
 
 **Context.** The spec explicitly deferred push notifications for support to a later phase; v1 is in-app only.  

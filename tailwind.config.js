@@ -72,6 +72,14 @@ export default {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
       },
+      borderRadius: {
+        'glass':    '22px',
+        'glass-sm': '18px',
+      },
+      boxShadow: {
+        'glass':      '0 6px 20px rgba(15,40,30,0.06), 0 2px 6px rgba(15,40,30,0.04)',
+        'glass-dark': '0 4px 16px rgba(0,0,0,0.35)',
+      },
     },
   },
   plugins: [],

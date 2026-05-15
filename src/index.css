@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ── Semantic design tokens ─────────────────────────────────────────────────
    Light defaults: used by consumer routes and all public pages.
@@ -17,7 +17,7 @@
   --color-accent-muted:     rgba(125, 217, 162, 0.12);
   /* Phase C — glass surface & border */
   --color-glass-surface:    rgba(255, 255, 255, 0.60);
-  --color-glass-border:     rgba(255, 255, 255, 0.50);
+  --color-glass-border:     rgba(255, 255, 255, 0.55);
   /* ── Skeleton placeholder (1.64–1.71:1 on light card/surface) ── */
   --color-surface-skeleton: #bcc7d2;
   /* ── Layout heights ─────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@
   --color-accent:           #7DD9A2;
   --color-accent-muted:     rgba(125, 217, 162, 0.18);
   /* Phase C — glass surface & border (dark) */
-  --color-glass-surface:    rgba(26, 29, 39, 0.50);
+  --color-glass-surface:    rgba(26, 29, 39, 0.50);   /* matches mockup W.glassDark */
   --color-glass-border:     rgba(255, 255, 255, 0.08);
   /* ── Skeleton placeholder (1.48:1 on dark card, blue-shifted from border) ── */
   --color-surface-skeleton: #2e3657;
@@ -70,15 +70,22 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  /* Gradient mesh: three soft teal radials + one warm amber radial.
-     Opacity 10–18% — atmosphere only, glass surfaces sit in front. */
+  /* Gradient mesh — consumer light screens.
+     Positions and opacities match MeshBG in brand.jsx. */
   .bg-mesh {
     background-color: var(--color-surface);
     background-image:
-      radial-gradient(ellipse 70% 60% at  5% 15%, rgba(125, 217, 162, 0.18) 0%, transparent 65%),
-      radial-gradient(ellipse 55% 50% at 90% 10%, rgba(125, 217, 162, 0.14) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 55% at 55% 90%, rgba(125, 217, 162, 0.10) 0%, transparent 65%),
-      radial-gradient(ellipse 45% 40% at 80% 70%, rgba(251, 146, 60,  0.12) 0%, transparent 60%);
+      radial-gradient(at 18%  6%,  rgba(125, 217, 162, 0.42), transparent 42%),
+      radial-gradient(at 88%  0%,  rgba(125, 217, 162, 0.22), transparent 38%),
+      radial-gradient(at 100% 78%, rgba(245, 158,  11, 0.16), transparent 45%),
+      radial-gradient(at 0%   100%,rgba(125, 217, 162, 0.30), transparent 45%);
+  }
+  /* Gradient mesh — washer dark screens (matches MeshDark in brand.jsx). */
+  .bg-mesh-dark {
+    background-color: var(--color-surface);
+    background-image:
+      radial-gradient(at 20%  0%,   rgba(125, 217, 162, 0.14), transparent 50%),
+      radial-gradient(at 100% 100%, rgba(47,  209, 127, 0.10), transparent 45%);
   }
 }
 
