@@ -190,3 +190,29 @@ Mockup artboard: `WasherActiveJob` in `screens-washer.jsx`.
 9. **`IsraeliPlate` scope**: should this be built in Phase 2 (shared primitives) or during Phase 3 (first screen that uses it)? It appears in 3 screens so Phase 2 is cleaner.
 
 10. **`LicensePlatePicker` styling**: the mockup only shows the "confirmed" state in Consumer Home (inside the Vehicle `GlassCard`). The real picker has idle/looking_up/found/not_found/error states. The plan is to keep all behaviour intact and only restyle — confirm?
+
+---
+
+## Answers (2026-05-15)
+
+Default rule: match the mockup as closely as possible. Exceptions are noted per-question.
+
+**Q1 — glassBorder opacity:** → **Yes, bump to 0.55.** `--color-glass-border` will be updated to `rgba(255, 255, 255, 0.55)` in Phase 1.
+
+**Q2 — Dark glass opacity:** → **Match mockup (0.50).** Dark-mode glass cards will be more transparent. `--color-glass-surface` (dark) updated to `rgba(26, 29, 39, 0.50)` in Phase 1.
+
+**Q3 — Consumer Home header greeting:** → **Match mockup.** Phase 3 (Consumer Home) will add a `WashMark` wordmark + user-initial avatar chip + greeting text using the authenticated user's name. No new data needed — name is already in `AuthContext`.
+
+**Q4 — Order Tracking map (EXCEPTION):** → **Do NOT implement a live map.** Use the static `MapBG` SVG placeholder from `brand.jsx` with a single map-pin marker at the customer's stored lat/lng. See DECISIONS.md entry: `ADR-009`.
+
+**Q5 — History filter button:** → **Add as visual placeholder.** The filter icon button will render in the History header but will not open any panel. No filter logic, no new data. The button is purely decorative until a filter feature is scoped separately.
+
+**Q6 — History yearly summary card (data required):** → **Use static/placeholder content.** The green summary card will be rendered with hardcoded placeholder text ("— washes", "₪—") rather than live aggregate queries. See DECISIONS.md entry: `ADR-010`.
+
+**Q7 — Washer Dashboard earnings widget (data required):** → **Use static/placeholder content.** The "TODAY ₪—" widget will render in the top-right of the washer map but will show a placeholder dash until a real earnings query is scoped separately. See DECISIONS.md entry: `ADR-011`.
+
+**Q8 — Online toggle placement:** → **Match mockup.** Phase 4 (Washer Dashboard) will restructure the top-chrome: the online indicator moves from inside `JobDrawer` header to a standalone dark-glass pill in the top-left of the map. `JobDrawer` will lose its own toggle header — `online` / `onToggle` / `toggling` props still flow from Dashboard but are consumed differently.
+
+**Q9 — `IsraeliPlate` scope:** → **Build in Phase 2** (shared primitives). Used in Consumer Home, Washer Dashboard job card, and Washer Active Job — building it once in Phase 2 avoids duplication across three later screen phases.
+
+**Q10 — `LicensePlatePicker` styling:** → **Confirmed — keep all behaviour, restyle only.** All five states (idle / looking_up / found / confirmed / not_found / error) remain intact. Phase 3 will restyle the component to match the mockup's glass-card confirmed state, updating border colours and icon sizes to match the design system without changing any logic.
