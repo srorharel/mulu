@@ -116,7 +116,8 @@ function PhotoSlot({ index, orderId, photo, onUploaded, onRemoved }) {
 
 // onChange(photos, bothUploaded)
 // photos: [{ path, previewUrl } | null, { path, previewUrl } | null]
-export default function CarPhotoUpload({ orderId, onChange }) {
+// showLabel: pass false when the parent card already provides a header.
+export default function CarPhotoUpload({ orderId, onChange, showLabel = true }) {
   const { t }    = useTranslation()
   const [photos, setPhotos] = useState([null, null])
 
@@ -140,7 +141,7 @@ export default function CarPhotoUpload({ orderId, onChange }) {
 
   return (
     <div>
-      <p className="label mb-2">{t('consumer.home.photos.title')}</p>
+      {showLabel && <p className="label mb-2">{t('consumer.home.photos.title')}</p>}
       <div className="grid grid-cols-2 gap-3">
         {photos.map((photo, i) => (
           <PhotoSlot

@@ -68,6 +68,16 @@
   "consumer": {
     "home": {
       "title": "הזמן שטיפה",
+      "subtitle": "איפה החניתם את הרכב?",
+      "greeting": {
+        "morning": "בוקר טוב, {{name}}",
+        "afternoon": "צהריים טובים, {{name}}",
+        "evening": "ערב טוב, {{name}}"
+      },
+      "pickupLocation": "מיקום איסוף",
+      "vehicle": "רכב",
+      "available": "זמין",
+      "notOnSite": "לא במיקום",
       "yourLocation": "המיקום שלך",
       "tapToSetLocation": "הקש להגדרת מיקום",
       "locationError": "לא ניתן לקבל את מיקומך — הקש למעלה להגדרה ידנית",
@@ -76,10 +86,10 @@
       "carType": "סוג רכב",
       "optional": "(אופציונלי)",
       "siteResources": "מה זמין במיקום?",
-      "waterAccessible": "ברז מים נגיש",
-      "powerAccessible": "שקע חשמל נגיש",
+      "waterAccessible": "ברז מים",
+      "powerAccessible": "שקע חשמל",
       "siteResourcesHint": "זה עוזר לשוטף לדעת מה להביא.",
-      "bookNow": "הזמן עכשיו",
+      "bookNow": "הזמן שטיפה",
       "booking": "מזמין...",
       "locationRequired": "אנא אפשר מיקום או הקש \"בחר מיקום\" כדי לקבוע סיכה",
       "bookingSuccess": "השטיפה הוזמנה! מחפש שוטף...",
@@ -101,6 +111,8 @@
       },
       "price": {
         "total": "סה\"כ",
+        "totalVat": "סה״כ · כולל מע״מ",
+        "vatBreakdown": "+ ₪{{amount}} מע״מ",
         "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})"
       },
       "submit": {
@@ -121,6 +133,8 @@
       },
       "photos": {
         "title": "תמונות הרכב (חובה)",
+        "label": "צילומים",
+        "requiredHint": "נדרשים 2",
         "optional": "תמונות הרכב (אופציונלי)",
         "addPhoto": "הוסף תמונה",
         "tooLarge": "התמונה חייבת להיות עד 5MB",

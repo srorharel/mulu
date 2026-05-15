@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Loader2, CheckCircle, AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react'
+import { Loader2, AlertTriangle, AlertCircle, RefreshCw, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
 import { lookupPlate, clearPlateFailure } from '../../lib/vehicleLookup.js'
+import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: CURRENT_YEAR - 1990 + 1 }, (_, i) => CURRENT_YEAR - i)
@@ -128,22 +129,25 @@ export default function LicensePlatePicker({ onChange }) {
     <div className="flex flex-col gap-3">
 
       {status === 'confirmed' && result ? (
-        /* ── Confirmed summary (input hidden) ─────────────────────────────── */
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-primary-400 bg-primary-50 p-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <CheckCircle className="h-4 w-4 text-primary-500 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-mono font-bold text-neutral-900 tracking-wider">
-                {formatPlate(result.plate)}
-              </p>
-              <p className="text-xs text-neutral-500 truncate">
-                {[result.color, result.make, result.model, result.year].filter(Boolean).join(' · ')}
-              </p>
+        /* ── Confirmed summary — IsraeliPlate + car details + checkmark ── */
+        <div className="flex items-center gap-3">
+          <IsraeliPlate number={formatPlate(result.plate)} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-bold text-ink leading-snug truncate">
+              {[result.make, result.model, result.year].filter(Boolean).join(' · ')}
+            </p>
+            <p className="text-[12px] text-ink-muted flex items-center gap-1.5">
+              {[result.color, result.category ? t(`carLabels.${result.category}`) : null].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button type="button" onClick={editPlate} className="text-[11px] font-semibold text-primary-700 hover:underline">
+              {t('consumer.home.plate.editPlate')}
+            </button>
+            <div className="w-[26px] h-[26px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)]">
+              <Check className="h-[14px] w-[14px] text-white" strokeWidth={3} />
             </div>
           </div>
-          <button type="button" onClick={editPlate} className="text-xs text-primary-600 shrink-0 hover:underline">
-            {t('consumer.home.plate.editPlate')}
-          </button>
         </div>
       ) : (
         /* ── Plate input — PERSISTENT across idle/looking_up/found/not_found/error ── */

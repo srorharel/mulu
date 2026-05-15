@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, CheckCircle, MapPin, Droplets, Zap } from 'lucide-react'
+import { ChevronRight, Loader2, MapPin, Droplets, Zap, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
@@ -11,38 +11,64 @@ import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import MotionButton from '../../components/ui/MotionButton.jsx'
+import WashMark from '../../components/ui/WashMark.jsx'
 import LocationSheet from '../../components/consumer/LocationSheet.jsx'
 import LicensePlatePicker from '../../components/consumer/LicensePlatePicker.jsx'
 import CarPhotoUpload from '../../components/consumer/CarPhotoUpload.jsx'
 
-function ToggleCard({ icon: Icon, label, desc, checked, onToggle }) {
+// Derive up to 2 initials from profile.full_name, falling back to the email prefix.
+function getInitials(profile, user) {
+  const name = profile?.full_name || ''
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  const emailPrefix = user?.email?.split('@')[0] || ''
+  return emailPrefix.slice(0, 2).toUpperCase() || null
+}
+
+// Return a time-of-day greeting key: morning / afternoon / evening.
+function greetingKey() {
+  const h = new Date().getHours()
+  if (h < 12) return 'morning'
+  if (h < 17) return 'afternoon'
+  return 'evening'
+}
+
+// Small site-resource toggle card (water tap / power outlet).
+function SiteResourceCard({ icon: Icon, label, available, onToggle, t }) {
   return (
     <MotionButton
       type="button"
       onClick={onToggle}
-      className={`flex items-center gap-3 rounded-xl border p-3 text-start w-full transition-colors ${
-        checked ? 'border-primary-500 bg-primary-50' : 'border-neutral-200 bg-white/70'
+      className={`flex items-center gap-2.5 p-3 rounded-glass-sm border backdrop-blur-xl transition-colors text-start w-full ${
+        available
+          ? 'border-primary-300 bg-primary-50/80'
+          : 'border-glass-border bg-glass'
       }`}
-      style={{ minHeight: 44 }}
     >
-      <Icon className={`h-5 w-5 shrink-0 ${checked ? 'text-primary-600' : 'text-neutral-400'}`} />
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${checked ? 'text-primary-700' : 'text-neutral-800'}`}>{label}</p>
-        {desc && <p className="text-xs text-neutral-500">{desc}</p>}
+      <div className={`w-[34px] h-[34px] rounded-[11px] flex items-center justify-center shrink-0 ${
+        available ? 'bg-primary-500 text-white' : 'bg-black/[0.06] text-ink-muted'
+      }`}>
+        <Icon className="h-[18px] w-[18px]" />
       </div>
-      {checked && <CheckCircle className="h-4 w-4 text-primary-500 shrink-0" />}
+      <div className="min-w-0">
+        <p className="text-[13px] font-bold text-ink leading-tight">{label}</p>
+        <p className={`text-[11px] ${available ? 'text-primary-800' : 'text-ink-muted'}`}>
+          {available ? t('consumer.home.available') : t('consumer.home.notOnSite')}
+        </p>
+      </div>
     </MotionButton>
   )
 }
 
 export default function ConsumerHome() {
   const navigate        = useNavigate()
-  const { user }        = useAuth()
+  const { user, profile } = useAuth()
   const { position: gpsPosition, error: geoError, permissionState, requestPermission } = useGeolocation()
   const showToast       = useToast()
   const { t }           = useTranslation()
 
-  // Stable UUID for this booking session — used as storage folder for optional photos.
+  // Stable UUID for this booking session — used as storage folder for photos.
   const orderId = useMemo(() => crypto.randomUUID(), [])
 
   const [pin, setPin]                   = useState(null)
@@ -54,7 +80,7 @@ export default function ConsumerHome() {
   const submittingRef                   = useRef(false)
   const [error, setError]               = useState('')
 
-  // License plate / vehicle identity — category comes from plate lookup or manual picker
+  // License plate / vehicle identity
   const [licenseData, setLicenseData] = useState({ make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false })
 
   const [photos, setPhotos] = useState([null, null])
@@ -62,16 +88,23 @@ export default function ConsumerHome() {
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
   const { total: consumerTotal, vat } = consumerBreakdown(licenseData.category || 'private')
-  const bothPhotosUploaded = photos[0] !== null && photos[1] !== null
-
+  const uploadedCount      = photos.filter(Boolean).length
+  const bothPhotosUploaded = uploadedCount === 2
   const canSubmit = !!effectivePin && licenseData.isValid && bothPhotosUploaded
+
+  const initials = getInitials(profile, user)
+  const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
+  const greeting  = t(`consumer.home.greeting.${greetingKey()}`, { name: firstName })
+
+  const displayAddress = effectivePin
+    ? (pin?.address_label ?? pinAddress ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`)
+    : null
 
   async function handleBook() {
     if (submittingRef.current) return
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
     if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
-
-    if (!photos[0] || !photos[1]) { setError(t('consumer.home.submit.needsPhotos')); return }
+    if (!bothPhotosUploaded) { setError(t('consumer.home.submit.needsPhotos')); return }
 
     setError('')
     submittingRef.current = true
@@ -125,111 +158,179 @@ export default function ConsumerHome() {
 
   return (
     <PageShell>
-      <div className="bg-mesh min-h-full px-4 pt-6 pb-4 flex flex-col gap-4">
-        <h1 className="text-xl font-bold text-neutral-900">{t('consumer.home.title')}</h1>
+      <div className="bg-mesh min-h-full flex flex-col">
 
-        {permissionState === 'idle' && (
-          <div className="bg-white/80 border border-primary-200 backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3 shadow">
-            <p className="text-sm font-bold text-neutral-800">{t('consumer.home.locationPrompt.title')}</p>
-            <p className="text-sm text-neutral-600">{t('consumer.home.locationPrompt.body')}</p>
-            <button onClick={requestPermission} className="btn-primary">
-              {t('consumer.home.locationPrompt.button')}
-            </button>
+        {/* ── Header ── */}
+        <div className="px-5 pt-4 pb-2 flex items-center justify-between shrink-0">
+          <WashMark />
+          {/* Avatar — initials if available, User icon fallback */}
+          <div
+            className="w-[38px] h-[38px] rounded-[14px] flex items-center justify-center text-white font-bold text-[14px] shadow-[0_2px_6px_rgba(38,181,95,0.3)]"
+            style={{ background: 'linear-gradient(135deg, #B9E5CB, #47D17F)' }}
+          >
+            {initials ?? <User className="h-5 w-5" />}
           </div>
-        )}
+        </div>
 
-        {permissionState === 'denied' && (
-          <div className="bg-warning-50 border border-warning-200 rounded-2xl p-5 flex flex-col gap-2">
-            <p className="text-sm font-bold text-warning-800">{t('consumer.home.locationDenied.title')}</p>
-            <p className="text-sm text-warning-700">{t('consumer.home.locationDenied.body')}</p>
-          </div>
-        )}
+        {/* ── Greeting + title ── */}
+        <div className="px-5 pt-1 pb-5 shrink-0">
+          <p className="text-[13px] font-medium text-ink-muted tracking-[0.2px]">{greeting}</p>
+          <h1 className="text-[26px] font-extrabold text-ink tracking-[-0.7px] mt-0.5 leading-tight">
+            {t('consumer.home.subtitle')}
+          </h1>
+        </div>
 
-        <GlassCard className="p-5 flex flex-col gap-5">
-          {/* Location */}
-          <div>
-            <p className="label mb-2">{t('consumer.home.yourLocation')}</p>
-            <MotionButton
-              type="button"
-              onClick={() => setSheetOpen(true)}
-              className="flex items-center gap-2 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-3 text-sm text-start transition-colors hover:border-primary-400"
-              style={{ minHeight: 44 }}
-            >
-              <MapPin className="h-4 w-4 text-primary-500 shrink-0" />
-              <span className={effectivePin ? 'text-neutral-700' : 'text-neutral-400'}>
-                {effectivePin
-                  ? (pin?.address_label ?? pinAddress ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`)
-                  : t('consumer.home.tapToSetLocation')
-                }
-              </span>
-            </MotionButton>
-            {geoError
-              ? <p className="text-xs text-warning-600 mt-1">{t('consumer.home.locationError')}</p>
-              : effectivePin
-                ? <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.tapToAdjust')}</p>
-                : <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.allowLocation')}</p>
-            }
-          </div>
+        {/* ── Scrollable cards ── */}
+        <div className="flex-1 px-4 flex flex-col gap-3 pb-4">
 
-          {/* License plate lookup — also detects vehicle category for pricing */}
-          <LicensePlatePicker onChange={setLicenseData} />
+          {/* Location permission banners */}
+          {permissionState === 'idle' && (
+            <GlassCard className="p-5 flex flex-col gap-3">
+              <p className="text-sm font-bold text-ink">{t('consumer.home.locationPrompt.title')}</p>
+              <p className="text-sm text-ink-muted">{t('consumer.home.locationPrompt.body')}</p>
+              <button onClick={requestPermission} className="btn-primary">
+                {t('consumer.home.locationPrompt.button')}
+              </button>
+            </GlassCard>
+          )}
 
-          {/* Vehicle photos */}
-          <div>
+          {permissionState === 'denied' && (
+            <div className="bg-warning-50 border border-warning-200 rounded-glass p-5 flex flex-col gap-2">
+              <p className="text-sm font-bold text-warning-800">{t('consumer.home.locationDenied.title')}</p>
+              <p className="text-sm text-warning-700">{t('consumer.home.locationDenied.body')}</p>
+            </div>
+          )}
+
+          {/* ── Location card ── */}
+          <MotionButton
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="flex items-stretch w-full text-start rounded-glass overflow-hidden bg-glass border border-glass-border backdrop-blur-xl shadow-glass"
+            style={{ minHeight: 78 }}
+          >
+            {/* Mini map thumbnail */}
+            <div className="w-[78px] shrink-0 bg-primary-50 flex items-center justify-center border-e border-glass-border">
+              <MapPin className="h-[22px] w-[22px] text-primary-700" />
+            </div>
+            {/* Address content */}
+            <div className="flex-1 px-4 py-3.5 flex flex-col justify-center min-w-0">
+              <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+                {t('consumer.home.pickupLocation')}
+              </p>
+              {displayAddress ? (
+                <>
+                  <p className="text-[15px] font-bold text-ink mt-0.5 truncate">{displayAddress}</p>
+                  {geoError
+                    ? <p className="text-[12px] text-warning-600 mt-0.5">{t('consumer.home.locationError')}</p>
+                    : <p className="text-[12px] text-ink-muted mt-0.5">{t('consumer.home.tapToAdjust')}</p>
+                  }
+                </>
+              ) : (
+                <p className="text-[15px] font-bold text-ink-muted mt-0.5">{t('consumer.home.tapToSetLocation')}</p>
+              )}
+            </div>
+            {/* Chevron */}
+            <div className="px-3 flex items-center text-ink-subtle shrink-0">
+              <ChevronRight className="h-5 w-5" />
+            </div>
+          </MotionButton>
+
+          {/* ── Vehicle card ── */}
+          <GlassCard className="p-4">
+            <div className="flex justify-between items-center mb-2.5">
+              <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+                {t('consumer.home.vehicle')}
+              </p>
+            </div>
+            <LicensePlatePicker onChange={setLicenseData} />
+          </GlassCard>
+
+          {/* ── Photos card ── */}
+          <GlassCard className="p-4">
+            <div className="flex justify-between items-center mb-2.5">
+              <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+                {t('consumer.home.photos.label')} · {t('consumer.home.photos.requiredHint')}
+              </p>
+              <p className="text-[11px] font-semibold text-primary-700">{uploadedCount}/2</p>
+            </div>
             <CarPhotoUpload
               orderId={orderId}
+              showLabel={false}
               onChange={(newPhotos) => setPhotos(newPhotos)}
             />
             {!bothPhotosUploaded && (
-              <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.submit.needsPhotos')}</p>
+              <p className="text-[12px] text-ink-muted mt-2">{t('consumer.home.submit.needsPhotos')}</p>
             )}
+          </GlassCard>
+
+          {/* ── Site resources ── */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <SiteResourceCard
+              icon={Droplets}
+              label={t('consumer.home.waterAccessible')}
+              available={siteHasWater}
+              onToggle={() => setSiteHasWater(v => !v)}
+              t={t}
+            />
+            <SiteResourceCard
+              icon={Zap}
+              label={t('consumer.home.powerAccessible')}
+              available={siteHasPower}
+              onToggle={() => setSiteHasPower(v => !v)}
+              t={t}
+            />
           </div>
 
-          {/* Access notes */}
-          <div>
+          {/* ── Access notes (functional, not in mockup — preserved) ── */}
+          <GlassCard className="p-4">
             <label className="label">
-              {t('consumer.home.fields.accessNotes')} <span className="font-normal text-neutral-400">{t('consumer.home.optional')}</span>
+              {t('consumer.home.fields.accessNotes')}{' '}
+              <span className="font-normal text-ink-muted">{t('consumer.home.optional')}</span>
             </label>
             <textarea
-              className="input min-h-[76px] resize-none"
+              className="input min-h-[76px] resize-none mt-1"
               maxLength={300}
               placeholder={t('consumer.home.fields.accessNotesPlaceholder')}
               value={accessNotes}
               onChange={e => setAccessNotes(e.target.value)}
             />
-          </div>
+          </GlassCard>
 
-          {/* Site resources */}
-          <div>
-            <p className="label mb-2">{t('consumer.home.siteResources')}</p>
-            <div className="flex flex-col gap-2">
-              <ToggleCard icon={Droplets} label={t('consumer.home.waterAccessible')}    checked={siteHasWater} onToggle={() => setSiteHasWater(v => !v)} />
-              <ToggleCard icon={Zap}      label={t('consumer.home.powerAccessible')} checked={siteHasPower} onToggle={() => setSiteHasPower(v => !v)} />
-            </div>
-            <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.siteResourcesHint')}</p>
-          </div>
-
-          {/* Price summary — hidden until category is known from plate lookup */}
-          {licenseData.category && (
-            <div className="rounded-xl border border-neutral-100 bg-white/60 p-4 flex flex-col gap-1">
-              <div className="flex justify-between font-bold items-center">
-                <span>{t('consumer.home.price.total')}</span>
-                <span className="text-primary-600">₪{consumerTotal}</span>
-              </div>
-              <p className="text-xs text-neutral-400">
-                {t('consumer.home.price.includesVat', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
-              </p>
-            </div>
+          {/* Error */}
+          {error && (
+            <p className="text-danger-500 text-sm bg-danger-50 border border-danger-200 rounded-glass p-3">{error}</p>
           )}
 
-          {error && <p className="text-danger-500 text-sm bg-danger-50 rounded-lg p-3">{error}</p>}
+          {/* ── Price + CTA ── */}
+          <GlassCard
+            className="p-3.5"
+            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.85), rgba(243,252,247,0.85))', borderColor: '#B9E5CB' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+                  {t('consumer.home.price.totalVat')}
+                </p>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-[26px] font-extrabold text-ink tracking-[-0.6px] leading-none">₪{consumerTotal}</span>
+                  <span className="text-[11px] text-ink-muted">
+                    {t('consumer.home.price.vatBreakdown', { amount: vat.toFixed(2) })}
+                  </span>
+                </div>
+              </div>
+              <MotionButton
+                onClick={handleBook}
+                disabled={submitting || !canSubmit}
+                className="h-[52px] px-[22px] rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)]"
+              >
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
+                {!submitting && <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.5} />}
+              </MotionButton>
+            </div>
+          </GlassCard>
 
-          <MotionButton onClick={handleBook} disabled={submitting || !canSubmit} className="btn-primary">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
-            {!submitting && <ChevronRight className="h-4 w-4 rtl:rotate-180" />}
-          </MotionButton>
-        </GlassCard>
+        </div>
       </div>
 
       <LocationSheet

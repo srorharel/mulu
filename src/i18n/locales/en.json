@@ -68,6 +68,16 @@
   "consumer": {
     "home": {
       "title": "Book a wash",
+      "subtitle": "Where's your car parked?",
+      "greeting": {
+        "morning": "Good morning, {{name}}",
+        "afternoon": "Good afternoon, {{name}}",
+        "evening": "Good evening, {{name}}"
+      },
+      "pickupLocation": "Pickup location",
+      "vehicle": "Vehicle",
+      "available": "Available",
+      "notOnSite": "Not on site",
       "yourLocation": "Your location",
       "tapToSetLocation": "Tap to set location",
       "locationError": "Couldn't get your location — tap above to set it manually",
@@ -76,10 +86,10 @@
       "carType": "Car type",
       "optional": "(optional)",
       "siteResources": "What's available at the location?",
-      "waterAccessible": "Water tap accessible",
-      "powerAccessible": "Power outlet accessible",
+      "waterAccessible": "Water tap",
+      "powerAccessible": "Power outlet",
       "siteResourcesHint": "This helps the washer know what to bring.",
-      "bookNow": "Book Now",
+      "bookNow": "Book wash",
       "booking": "Booking…",
       "locationRequired": "Please allow location or tap \"Choose location\" to set your pin",
       "bookingSuccess": "Your wash is booked! Looking for a washer…",
@@ -101,6 +111,8 @@
       },
       "price": {
         "total": "Total",
+        "totalVat": "Total · VAT included",
+        "vatBreakdown": "+ ₪{{amount}} VAT",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
       },
       "submit": {
@@ -121,6 +133,8 @@
       },
       "photos": {
         "title": "Vehicle photos (required)",
+        "label": "Photos",
+        "requiredHint": "2 required",
         "optional": "Vehicle photos (optional)",
         "addPhoto": "Add photo",
         "tooLarge": "Photo must be under 5MB",
