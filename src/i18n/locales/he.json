@@ -331,8 +331,24 @@
       "comingSoonDesc": "אנחנו בונים מערכת תמיכה. כרגע, אנא פנה אלינו במייל."
     },
     "drawer": {
-      "activeJob": "עבודה פעילה",
+      "activeJob": "שטיפה פעילה",
       "jobsNearby": "עבודות בסביבה",
+      "jobId": "עבודה #{{id}}",
+      "customer": "לקוח",
+      "orders": "הזמנות",
+      "badge": {
+        "enRoute": "בדרך",
+        "arrived": "הגעתי",
+        "washing": "שוטף",
+        "review": "בבדיקה"
+      },
+      "stage": {
+        "label": "התקדמות",
+        "arrived": "הגעתי",
+        "preRinse": "שטיפה ראשונית",
+        "wash": "שטיפה",
+        "complete": "הושלם"
+      },
       "lookingForJobs": "מחפש עבודות...",
       "goOnline": "התחבר כדי לראות עבודות בסביבה",
       "goOnlineHint": "הקש על גלולת הסטטוס למעלה כדי לעלות לאוויר.",

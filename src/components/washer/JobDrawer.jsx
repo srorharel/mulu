@@ -1,10 +1,12 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video, MessageCircle, Camera,
+  Phone, Droplets, Zap, Star, ArrowLeft, Check,
 } from 'lucide-react'
+import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 import { useTranslation } from 'react-i18next'
 import { JobCardSkeleton } from '../Skeleton.jsx'
 import JobCard from '../JobCard.jsx'
@@ -173,6 +175,94 @@ function formatPlate(digits) {
   return digits
 }
 
+// ── Status badge shown in the active-job drawer header ────────────────────────
+function StatusBadge({ status, t }) {
+  const MAP = {
+    accepted:         'washer.drawer.badge.enRoute',
+    en_route:         'washer.drawer.badge.enRoute',
+    arrived:          'washer.drawer.badge.arrived',
+    in_progress:      'washer.drawer.badge.washing',
+    pending_approval: 'washer.drawer.badge.review',
+  }
+  const key = MAP[status]
+  if (!key) return null
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-primary-700 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
+      <span className="text-[11px] font-bold text-white uppercase tracking-[0.3px]">{t(key)}</span>
+    </div>
+  )
+}
+
+// ── Single read-only site-resource pill ───────────────────────────────────────
+function SiteResourcePill({ icon: Icon, label, available, t }) {
+  return (
+    <div className={`flex-1 flex items-center gap-2 p-2.5 rounded-[14px] border ${
+      available ? 'bg-accent-muted border-accent/25' : 'bg-glass border-glass-border'
+    }`}>
+      <Icon className={`h-4 w-4 shrink-0 ${available ? 'text-accent' : 'text-ink-muted'}`} />
+      <div className="min-w-0">
+        <p className="text-[12px] font-bold text-ink leading-tight truncate">{label}</p>
+        <p className={`text-[10px] ${available ? 'text-accent' : 'text-ink-muted'}`}>
+          {available ? t('consumer.home.available') : t('consumer.home.notOnSite')}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Horizontal 4-step washer stage tracker ────────────────────────────────────
+// Maps order status → active stage index (0–3). Stages: Arrived / Pre-rinse / Wash / Complete.
+// accepted/en_route = -1 (driving, no stage active yet).
+// arrived = 1 (Arrived ✓ done, Pre-rinse active — washer is setting up).
+// in_progress = 2 (Arrived + Pre-rinse ✓, Wash active).
+// pending_approval/completed = 3 (all done, Complete active).
+const STATUS_TO_STAGE = {
+  accepted: -1, en_route: -1,
+  arrived: 1, in_progress: 2,
+  pending_approval: 3, completed: 3,
+}
+
+function WasherStageDots({ status, t }) {
+  const stages = [
+    t('washer.drawer.stage.arrived'),
+    t('washer.drawer.stage.preRinse'),
+    t('washer.drawer.stage.wash'),
+    t('washer.drawer.stage.complete'),
+  ]
+  const current = STATUS_TO_STAGE[status] ?? -1
+
+  return (
+    <div className="flex items-center gap-1.5 px-1">
+      {stages.map((label, i) => {
+        const done   = i < current
+        const active = i === current
+        return (
+          <Fragment key={label}>
+            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+              <div className={`w-[14px] h-[14px] rounded-full flex items-center justify-center shrink-0 ${
+                done   ? 'bg-primary-500' :
+                active ? 'bg-primary-500 ring-[3px] ring-primary-700' :
+                         'bg-white/12'
+              }`} style={active ? { boxShadow: '0 0 0 3px rgba(125,217,162,0.25)' } : {}}>
+                {done && <Check className="h-[8px] w-[8px] text-white" strokeWidth={4} />}
+              </div>
+              <p className={`text-[10px] leading-tight text-center ${
+                active ? 'font-bold text-ink' : 'font-medium text-ink-muted'
+              }`}>{label}</p>
+            </div>
+            {i < stages.length - 1 && (
+              <div className={`flex-[0.3] h-0.5 rounded-full mb-4 shrink-0 ${
+                done ? 'bg-primary-500' : 'bg-white/10'
+              }`} />
+            )}
+          </Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Vehicle section shown in the active-job panel ──────────────────────────────
 function VehicleSection({ order }) {
   const { t }   = useTranslation()
@@ -213,21 +303,20 @@ function VehicleSection({ order }) {
         <p className="text-sm text-ink-muted">{t('washer.drawer.vehicle.notProvided')}</p>
       ) : (
         <>
-          {/* Plate — primary identifier, shown largest */}
-          {order.car_plate && (
-            <div className="rounded-lg bg-accent-muted px-3 py-2 self-start">
-              <p className="text-base font-mono font-bold text-accent tracking-widest">
-                {formatPlate(order.car_plate)}
-              </p>
-            </div>
-          )}
-
-          {/* Color + make + model + year */}
-          {(order.car_make || order.car_color) && (
-            <p className="text-sm text-ink">
-              {[order.car_color, order.car_make, order.car_model, order.car_year].filter(Boolean).join(' · ')}
-            </p>
-          )}
+          {/* Plate + car info row */}
+          <div className="flex items-center gap-3">
+            {order.car_plate && <IsraeliPlate number={formatPlate(order.car_plate)} />}
+            {(order.car_make || order.car_color) && (
+              <div className="min-w-0">
+                <p className="text-[16px] font-bold text-ink leading-snug truncate">
+                  {[order.car_make, order.car_model].filter(Boolean).join(' ')}
+                </p>
+                <p className="text-[12px] text-ink-muted">
+                  {[order.car_year, order.car_color].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Photo thumbnails — 0, 1, or 2 */}
           {photoUrls.length > 0 && (
@@ -283,10 +372,19 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const [supportConvId, setSupportConvId] = useState(null)
   const [supportOpen, setSupportOpen]     = useState(false)
   const [openingSupport, setOpeningSupport] = useState(false)
+  const [consumerProfile, setConsumerProfile] = useState(null)
 
   // Geofence failed-attempt tracking: array of timestamps
   const failedAttemptsRef = useRef([])
   const [showContactSupport, setShowContactSupport] = useState(false)
+
+  // Fetch consumer profile for the customer card.
+  useEffect(() => {
+    if (!order?.consumer_id) return
+    supabase.from('profiles').select('id, full_name')
+      .eq('id', order.consumer_id).single()
+      .then(({ data }) => setConsumerProfile(data ?? null))
+  }, [order?.consumer_id])
 
   async function handleOpenSupport() {
     setOpeningSupport(true)
@@ -426,66 +524,100 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
 
   const isActionDisabled = advancing || anyUploading || (isCompleting && !canComplete) || (isArriving && isTooFar)
 
+  // Consumer info for the customer card.
+  const consumerName     = consumerProfile?.full_name || t('washer.drawer.customer')
+  const consumerInitials = consumerProfile?.full_name
+    ? consumerProfile.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+    : 'C'
+  const wazeUrl = (activeJob?.lat && activeJob?.lng)
+    ? `https://waze.com/ul?ll=${activeJob.lat},${activeJob.lng}&navigate=yes`
+    : null
+
   return (
     <div className="flex flex-col gap-3 px-4 pb-6">
 
-      {/* Job info */}
-      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-muted shrink-0">
-            <Car className="h-4 w-4 text-accent" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-ink">
-              {t(`carLabels.${order.car_type}`)}
-            </p>
-            <p className="text-sm font-medium text-accent">
-              {t('washer.drawer.earnings.label')}: ₪{order.base_price}
-            </p>
-            <p className="text-xs text-ink-muted">
-              {t('washer.drawer.earnings.includesVat', {
-                rate:   Math.round(VAT_RATE * 100),
-                amount: (order.base_price - order.base_price / (1 + VAT_RATE)).toFixed(2),
-              })}
-            </p>
+      {/* ── Vehicle card (IsraeliPlate + photos) ── */}
+      <VehicleSection order={order} />
+
+      {/* ── Customer card ── */}
+      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-3.5 flex flex-col gap-3">
+        {/* Customer row: avatar + name + rating + action buttons */}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-white font-bold text-[16px] shrink-0 border-2 border-white/10"
+            style={{ background: 'linear-gradient(135deg, #c08adb, #6e4f8a)' }}
+          >
+            {consumerInitials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-bold text-ink truncate">{consumerName}</p>
+            {/* ADR-017: rating is a static placeholder — no rating column on profiles */}
+            <div className="flex items-center gap-1.5 text-[12px] text-ink-muted">
+              <Star className="h-3 w-3 shrink-0" fill="#f59e0b" stroke="none" />
+              <span className="text-ink font-semibold">4.8</span>
+              <span>· {t('washer.drawer.orders')}</span>
+            </div>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
+            <button
+              onClick={handleOpenSupport}
+              disabled={openingSupport}
+              aria-label={t('support.needHelp')}
+              className="w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink"
+            >
+              <MessageCircle className="h-[16px] w-[16px]" />
+            </button>
+            {/* Phone: no phone stored — visual only per ADR-017 */}
+            <div className="w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink opacity-35">
+              <Phone className="h-[16px] w-[16px]" />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-start gap-2 text-xs text-ink-muted">
-          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <span className="leading-snug">{address}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-ink-muted">
-          <DollarSign className="h-3.5 w-3.5 shrink-0" />
-          <span>{t('washer.drawer.customerPays', { amount: order.total_price })}</span>
+        {/* Location + access notes + Waze */}
+        <div className="flex items-center gap-2.5 pt-2.5 border-t border-glass-border">
+          <div className="w-8 h-8 rounded-[10px] bg-accent-muted flex items-center justify-center text-accent shrink-0">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-ink leading-snug truncate">{address}</p>
+            {(order.access_notes || order.key_location) && (
+              <p className="text-[11px] text-ink-muted truncate">
+                {order.access_notes || order.key_location}
+              </p>
+            )}
+          </div>
+          {wazeUrl && (
+            <a
+              href={wazeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 rounded-[10px] bg-accent-muted text-accent text-[11px] font-bold shrink-0"
+            >
+              {t('washer.nav.openIn', { app: 'Waze' })}
+            </a>
+          )}
         </div>
       </div>
 
-      {/* Vehicle section */}
-      <VehicleSection order={order} />
+      {/* ── Site resources (read-only) ── */}
+      <div className="flex gap-2">
+        <SiteResourcePill icon={Droplets} label={t('consumer.home.waterAccessible')} available={order.site_has_water} t={t} />
+        <SiteResourcePill icon={Zap}      label={t('consumer.home.powerAccessible')} available={order.site_has_power}  t={t} />
+      </div>
 
-      {/* Access notes — new orders use access_notes; legacy orders fall back to key_location */}
-      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Key className="h-4 w-4 text-accent shrink-0" />
-          <p className="text-sm font-semibold text-accent">{t('washer.drawer.access.title')}</p>
-        </div>
-        <p className="text-sm text-ink">
-          {order.access_notes || order.key_location || t('washer.drawer.access.none')}
+      {/* ── Stage progress ── */}
+      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 flex flex-col gap-3">
+        <p className="text-[11px] font-bold text-accent uppercase tracking-[0.4px]">
+          {t('washer.drawer.stage.label')}
         </p>
+        <WasherStageDots status={order.status} t={t} />
       </div>
 
-      {/* Status timeline */}
-      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4">
-        <StatusTimeline status={order.status} />
-      </div>
-
-      {/* Evidence section — only when in_progress */}
+      {/* ── Evidence section — only when in_progress ── */}
       {order.status === 'in_progress' && (
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold text-ink px-1">{t('washer.drawer.uploadEvidence')}</p>
-
           <EvidenceCard
             label={t('washer.evidence.before')}
             path={order.evidence_before_path}
@@ -500,8 +632,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             error={uploadErrors.after}
             onRecord={file => uploadEvidence('after', file)}
           />
-
-          {/* Legacy addon evidence — still shown if old order has addons */}
           {order.addon_wiper_fluid && (
             <EvidenceCard
               label={t('washer.drawer.wiperFluidEvidence')}
@@ -523,41 +653,48 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
         </div>
       )}
 
-      {/* Submitted state — visible briefly while drawer waits to clear */}
+      {/* ── Terminal states ── */}
       {order.status === 'pending_approval' && (
-        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 text-center">
+        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 text-center">
           <p className="font-semibold text-accent">{t('washer.drawer.submitted')}</p>
           <p className="text-xs text-ink-muted mt-1">{t('washer.drawer.submittedDesc')}</p>
         </div>
       )}
-
-      {/* Completed card */}
       {order.status === 'completed' && (
-        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 text-center">
+        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 text-center">
           <p className="font-semibold text-accent">{t('washer.drawer.jobCompleted')}</p>
         </div>
       )}
 
-      {/* Primary action */}
+      {/* ── CTA: earnings strip + primary action button ── */}
       {trans && (
         <>
+          {/* Earnings strip */}
+          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-[14px] bg-accent-muted border border-accent/20">
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">
+              {t('washer.drawer.earnings.label')}
+            </p>
+            <div className="flex-1" />
+            <p className="text-[16px] font-extrabold text-accent tracking-[-0.3px]">₪{order.base_price}</p>
+          </div>
+
+          {/* Primary action */}
           <button
             onClick={isActionDisabled ? undefined : advance}
             disabled={isActionDisabled}
-            className="btn-primary w-full"
+            className="w-full h-[54px] rounded-2xl bg-gradient-to-b from-primary-500 to-primary-700 text-white font-extrabold text-[16px] flex items-center justify-center gap-2.5 disabled:opacity-50"
+            style={{ boxShadow: '0 8px 22px rgba(38,181,95,0.45), inset 0 1px 0 rgba(255,255,255,0.3)' }}
           >
             {advancing
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+              ? <Loader2 className="h-5 w-5 animate-spin" />
+              : <Check className="h-5 w-5" strokeWidth={3} />
             }
             {advancing ? t('washer.drawer.updating') : t(trans.key)}
           </button>
 
           {/* Geofence helpers */}
           {isArriving && noGps && (
-            <p className="text-xs text-center text-ink-muted px-2">
-              {t('washer.drawer.geofence.gpsRequired')}
-            </p>
+            <p className="text-xs text-center text-ink-muted px-2">{t('washer.drawer.geofence.gpsRequired')}</p>
           )}
           {isArriving && isTooFar && distanceM !== null && (
             <p className="text-xs text-center text-ink-muted px-2">
@@ -565,15 +702,10 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             </p>
           )}
           {isArriving && showContactSupport && (
-            <button
-              type="button"
-              onClick={() => navigate('/washer/support')}
-              className="btn-ghost w-full text-sm text-warning-600"
-            >
+            <button type="button" onClick={() => navigate('/washer/support')} className="btn-ghost w-full text-sm text-warning-600">
               {t('washer.drawer.geofence.contactSupport')}
             </button>
           )}
-
           {isCompleting && !canComplete && (
             <p className="text-xs text-center text-ink-muted px-2">
               {t('washer.drawer.uploadRequired', { items: missingEvidence.join(', ') })}
@@ -582,20 +714,7 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
         </>
       )}
 
-      <button
-        onClick={handleOpenSupport}
-        disabled={openingSupport}
-        className="btn-ghost w-full text-sm"
-      >
-        <MessageCircle className="h-4 w-4" />
-        {openingSupport ? t('common.loading') : t('support.needHelp')}
-      </button>
-
-      <SupportChatSheet
-        open={supportOpen}
-        convId={supportConvId}
-        onClose={() => setSupportOpen(false)}
-      />
+      <SupportChatSheet open={supportOpen} convId={supportConvId} onClose={() => setSupportOpen(false)} />
     </div>
   )
 }
@@ -707,20 +826,45 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
       </div>
 
       {/* Header */}
-      <div className="px-4 pb-3 shrink-0 flex items-center justify-between gap-3">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <p className="text-base font-bold text-ink leading-tight">{drawerTitle}</p>
-          {!isActive && online && !loading && jobs.length > 0 && (
-            <p className="text-xs text-ink-muted">
-              {t('washer.drawer.jobsNearbyCount', { count: jobs.length })}
+      {isActive ? (
+        /* Active-job header: job ID + title + status badge + cancel */
+        <div className="px-4 pt-1 pb-3 shrink-0 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.4px]">
+              {t('washer.drawer.jobId', { id: (order?.id ?? activeJob?.id ?? '').slice(0, 6).toUpperCase() })}
             </p>
-          )}
-          {!isActive && loading && (
-            <p className="text-xs text-ink-muted">{t('washer.drawer.lookingForJobs')}</p>
+            <p className="text-[17px] font-extrabold text-ink tracking-[-0.4px] leading-tight">
+              {t('washer.drawer.activeJob')}
+            </p>
+          </div>
+          <StatusBadge status={order?.status} t={t} />
+          {canCancel && (
+            <button
+              onClick={() => setCancelConfirmOpen(true)}
+              disabled={cancelling}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-danger-500 bg-danger-500/10 border border-danger-500/20 hover:bg-danger-500/20 transition-colors shrink-0"
+            >
+              {cancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+              {cancelling ? t('washer.drawer.cancelling') : t('washer.drawer.cancel.shortLabel')}
+            </button>
           )}
         </div>
-        {headerTrailing}
-      </div>
+      ) : (
+        /* Job-list header: title + count/loading */
+        <div className="px-4 pb-3 shrink-0 flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <p className="text-base font-bold text-ink leading-tight">{drawerTitle}</p>
+            {online && !loading && jobs.length > 0 && (
+              <p className="text-xs text-ink-muted">
+                {t('washer.drawer.jobsNearbyCount', { count: jobs.length })}
+              </p>
+            )}
+            {loading && (
+              <p className="text-xs text-ink-muted">{t('washer.drawer.lookingForJobs')}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       {isActive ? (

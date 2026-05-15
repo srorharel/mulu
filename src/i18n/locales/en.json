@@ -331,8 +331,24 @@
       "comingSoonDesc": "We're building a support system. For now, please reach out via email."
     },
     "drawer": {
-      "activeJob": "Active job",
+      "activeJob": "Active wash",
       "jobsNearby": "Jobs nearby",
+      "jobId": "Job #{{id}}",
+      "customer": "Customer",
+      "orders": "orders",
+      "badge": {
+        "enRoute": "En route",
+        "arrived": "Arrived",
+        "washing": "Washing",
+        "review": "Review"
+      },
+      "stage": {
+        "label": "Progress",
+        "arrived": "Arrived",
+        "preRinse": "Pre-rinse",
+        "wash": "Wash",
+        "complete": "Complete"
+      },
       "lookingForJobs": "Looking for jobs…",
       "goOnline": "Go online to see nearby jobs",
       "goOnlineHint": "Tap the status pill at the top to go online.",
