@@ -33,7 +33,7 @@ async function resizeToBlob(file) {
   })
 }
 
-function PhotoSlot({ index, orderId, photo, onUploaded, onRemoved }) {
+function PhotoSlot({ index, orderId, userId, photo, onUploaded, onRemoved }) {
   const { t }       = useTranslation()
   const inputRef    = useRef(null)
   const [busy, setBusy]   = useState(false)
@@ -53,7 +53,7 @@ function PhotoSlot({ index, orderId, photo, onUploaded, onRemoved }) {
       return
     }
 
-    const path = `${orderId}/${index}.jpg`
+    const path = `${userId}/${orderId}/${index}.jpg`
     const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
       .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
@@ -107,6 +107,7 @@ function PhotoSlot({ index, orderId, photo, onUploaded, onRemoved }) {
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        capture="environment"
         className="hidden"
         onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = '' }}
       />
@@ -117,7 +118,9 @@ function PhotoSlot({ index, orderId, photo, onUploaded, onRemoved }) {
 // onChange(photos, bothUploaded)
 // photos: [{ path, previewUrl } | null, { path, previewUrl } | null]
 // showLabel: pass false when the parent card already provides a header.
-export default function CarPhotoUpload({ orderId, onChange, showLabel = true }) {
+// userId: the authenticated consumer's user ID — used as the first path segment
+//         so RLS can verify ownership via (storage.foldername(name))[1] = auth.uid()::text
+export default function CarPhotoUpload({ orderId, userId, onChange, showLabel = true }) {
   const { t }    = useTranslation()
   const [photos, setPhotos] = useState([null, null])
 
@@ -148,6 +151,7 @@ export default function CarPhotoUpload({ orderId, onChange, showLabel = true }) 
             key={i}
             index={i}
             orderId={orderId}
+            userId={userId}
             photo={photo}
             onUploaded={handleUploaded}
             onRemoved={handleRemoved}

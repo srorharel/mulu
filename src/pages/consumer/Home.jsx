@@ -255,6 +255,7 @@ export default function ConsumerHome() {
             </div>
             <CarPhotoUpload
               orderId={orderId}
+              userId={user.id}
               showLabel={false}
               onChange={(newPhotos) => setPhotos(newPhotos)}
             />

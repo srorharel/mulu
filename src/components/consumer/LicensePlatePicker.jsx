@@ -129,14 +129,16 @@ export default function LicensePlatePicker({ onChange }) {
     <div className="flex flex-col gap-3">
 
       {status === 'confirmed' && result ? (
-        /* ── Confirmed summary — IsraeliPlate + car details + checkmark ── */
-        <div className="flex items-center gap-3">
+        /* ── Confirmed summary — IsraeliPlate + car details + checkmark ──
+           dir="ltr" on row: plate stays physically left in RTL layouts.
+           dir="auto" on text: Hebrew content (colors, car types) flows correctly. */
+        <div className="flex items-center gap-3" dir="ltr">
           <IsraeliPlate number={formatPlate(result.plate)} />
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold text-ink leading-snug truncate">
+            <p className="text-[15px] font-bold text-ink leading-snug truncate" dir="auto">
               {[result.make, result.model, result.year].filter(Boolean).join(' · ')}
             </p>
-            <p className="text-[12px] text-ink-muted flex items-center gap-1.5">
+            <p className="text-[12px] text-ink-muted flex items-center gap-1.5" dir="auto">
               {[result.color, result.category ? t(`carLabels.${result.category}`) : null].filter(Boolean).join(' · ')}
             </p>
           </div>

@@ -5,6 +5,7 @@ export default function IsraeliPlate({ number = '12-345-67' }) {
   return (
     <div
       className="inline-flex items-stretch h-[38px] rounded-[6px] bg-[#FFE74A] overflow-hidden font-mono shrink-0"
+      dir="ltr"
       style={{ border: '1.5px solid #2a2a2a', boxShadow: '0 1px 0 rgba(0,0,0,0.1)' }}
     >
       {/* Blue EU-style country strip */}
