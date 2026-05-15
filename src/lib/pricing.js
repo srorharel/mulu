@@ -1,9 +1,19 @@
 // VAT rate as of Jan 2025. Change here if rate changes.
 export const VAT_RATE = 0.18
 
-// Flat per-job pricing — both values include VAT.
-export const CONSUMER_PRICE_ILS = 100
-export const WORKER_PAYOUT_ILS  = 60
+// Per-category pricing (ILS, VAT-inclusive).
+// consumer = what the customer pays
+// worker   = what the washer earns
+// platform = platform margin (consumer - worker)
+export const PRICING = {
+  private: { consumer: 100, worker: 60, platform: 40 },
+  jeep:    { consumer: 120, worker: 80, platform: 40 },
+  pickup:  { consumer: 130, worker: 90, platform: 40 },
+}
+
+export function priceForCategory(category) {
+  return PRICING[category] || PRICING.private
+}
 
 export function priceBreakdown(totalIncludingVat) {
   const preVat = totalIncludingVat / (1 + VAT_RATE)
@@ -15,10 +25,10 @@ export function priceBreakdown(totalIncludingVat) {
   }
 }
 
-export function consumerBreakdown() {
-  return priceBreakdown(CONSUMER_PRICE_ILS)
+export function consumerBreakdown(category = 'private') {
+  return priceBreakdown(priceForCategory(category).consumer)
 }
 
-export function workerBreakdown() {
-  return priceBreakdown(WORKER_PAYOUT_ILS)
+export function workerBreakdown(category = 'private') {
+  return priceBreakdown(priceForCategory(category).worker)
 }

@@ -1,11 +1,10 @@
 import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Loader2, CheckCircle, MapPin, Droplets, Zap } from 'lucide-react'
-import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
-import { CONSUMER_PRICE_ILS, WORKER_PAYOUT_ILS, VAT_RATE, consumerBreakdown } from '../../lib/pricing.js'
+import { VAT_RATE, consumerBreakdown, priceForCategory } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
@@ -15,8 +14,6 @@ import MotionButton from '../../components/ui/MotionButton.jsx'
 import LocationSheet from '../../components/consumer/LocationSheet.jsx'
 import LicensePlatePicker from '../../components/consumer/LicensePlatePicker.jsx'
 import CarPhotoUpload from '../../components/consumer/CarPhotoUpload.jsx'
-
-const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
 function ToggleCard({ icon: Icon, label, desc, checked, onToggle }) {
   return (
@@ -50,7 +47,6 @@ export default function ConsumerHome() {
 
   const [pin, setPin]                   = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
-  const [carType, setCarType]           = useState('sedan')
   const [accessNotes, setAccessNotes]   = useState('')
   const [siteHasWater, setSiteHasWater] = useState(false)
   const [siteHasPower, setSiteHasPower] = useState(false)
@@ -58,29 +54,24 @@ export default function ConsumerHome() {
   const submittingRef                   = useRef(false)
   const [error, setError]               = useState('')
 
-  // License plate / vehicle identity
-  const [licenseData, setLicenseData] = useState({ make: null, model: null, year: null, plate: null, color: null, isValid: false })
+  // License plate / vehicle identity — category comes from plate lookup or manual picker
+  const [licenseData, setLicenseData] = useState({ make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false })
 
-  // Photos are optional — keep paths for insert but don't block submission
   const [photos, setPhotos] = useState([null, null])
-
-  const CAR_TYPES = [
-    { value: 'sedan',  label: t('carLabels.sedan')  },
-    { value: 'suv',    label: t('carLabels.suv')    },
-    { value: 'pickup', label: t('carLabels.pickup') },
-    { value: 'van',    label: t('carLabels.van')    },
-  ]
 
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
-  const { vat } = consumerBreakdown()
+  const { total: consumerTotal, vat } = consumerBreakdown(licenseData.category || 'private')
+  const bothPhotosUploaded = photos[0] !== null && photos[1] !== null
 
-  const canSubmit = !!effectivePin && licenseData.isValid
+  const canSubmit = !!effectivePin && licenseData.isValid && bothPhotosUploaded
 
   async function handleBook() {
     if (submittingRef.current) return
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
     if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
+
+    if (!photos[0] || !photos[1]) { setError(t('consumer.home.submit.needsPhotos')); return }
 
     setError('')
     submittingRef.current = true
@@ -90,21 +81,23 @@ export default function ConsumerHome() {
       ?? pinAddress
       ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`
 
+    const prices = priceForCategory(licenseData.category || 'private')
+
     const { data, error: dbError } = await supabase
       .from('orders')
       .insert({
         id:            orderId,
         consumer_id:   user.id,
-        car_type:      carType,
+        car_type:      licenseData.category || 'private',
         service_type:  'wash',
         location:      `POINT(${effectivePin.lng} ${effectivePin.lat})`,
         address_label,
         address_street: pin?.address_street ?? null,
         address_number: pin?.address_number ?? null,
         address_city:   pin?.address_city   ?? null,
-        base_price:    WORKER_PAYOUT_ILS,
-        platform_fee:  CONSUMER_PRICE_ILS - WORKER_PAYOUT_ILS,
-        total_price:   CONSUMER_PRICE_ILS,
+        base_price:    prices.worker,
+        platform_fee:  prices.platform,
+        total_price:   prices.consumer,
         status:        'pending',
         key_location:  null,
         access_notes:  accessNotes.trim() || null,
@@ -178,43 +171,19 @@ export default function ConsumerHome() {
             }
           </div>
 
-          {/* Car type — informational only, does not affect price */}
-          <div>
-            <p className="label mb-2">{t('consumer.home.carType')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {CAR_TYPES.map(c => (
-                <motion.button
-                  key={c.value}
-                  type="button"
-                  whileTap={{ scale: 0.97 }}
-                  transition={SPRING}
-                  onClick={() => setCarType(c.value)}
-                  className={`relative rounded-xl border p-3 text-sm font-medium text-start overflow-hidden ${
-                    carType === c.value ? 'border-primary-500 text-primary-700' : 'border-neutral-200 text-neutral-700'
-                  }`}
-                  style={{ minHeight: 44 }}
-                >
-                  {carType === c.value && (
-                    <motion.div
-                      layoutId="car-type-active"
-                      className="absolute inset-0 bg-primary-50"
-                      transition={SPRING}
-                    />
-                  )}
-                  <span className="relative z-10">{c.label}</span>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
-          {/* License plate lookup */}
+          {/* License plate lookup — also detects vehicle category for pricing */}
           <LicensePlatePicker onChange={setLicenseData} />
 
-          {/* Vehicle photos (optional) */}
-          <CarPhotoUpload
-            orderId={orderId}
-            onChange={(newPhotos) => setPhotos(newPhotos)}
-          />
+          {/* Vehicle photos */}
+          <div>
+            <CarPhotoUpload
+              orderId={orderId}
+              onChange={(newPhotos) => setPhotos(newPhotos)}
+            />
+            {!bothPhotosUploaded && (
+              <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.submit.needsPhotos')}</p>
+            )}
+          </div>
 
           {/* Access notes */}
           <div>
@@ -240,16 +209,18 @@ export default function ConsumerHome() {
             <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.siteResourcesHint')}</p>
           </div>
 
-          {/* Price summary — flat pricing, VAT included */}
-          <div className="rounded-xl border border-neutral-100 bg-white/60 p-4 flex flex-col gap-1">
-            <div className="flex justify-between font-bold items-center">
-              <span>{t('consumer.home.price.total')}</span>
-              <span className="text-primary-600">₪{CONSUMER_PRICE_ILS}</span>
+          {/* Price summary — hidden until category is known from plate lookup */}
+          {licenseData.category && (
+            <div className="rounded-xl border border-neutral-100 bg-white/60 p-4 flex flex-col gap-1">
+              <div className="flex justify-between font-bold items-center">
+                <span>{t('consumer.home.price.total')}</span>
+                <span className="text-primary-600">₪{consumerTotal}</span>
+              </div>
+              <p className="text-xs text-neutral-400">
+                {t('consumer.home.price.includesVat', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
+              </p>
             </div>
-            <p className="text-xs text-neutral-400">
-              {t('consumer.home.price.includesVat', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
-            </p>
-          </div>
+          )}
 
           {error && <p className="text-danger-500 text-sm bg-danger-50 rounded-lg p-3">{error}</p>}
 

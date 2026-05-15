@@ -103,6 +103,9 @@
         "total": "סה\"כ",
         "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})"
       },
+      "submit": {
+        "needsPhotos": "הוסף שתי תמונות של הרכב כדי להמשיך"
+      },
       "plate": {
         "lookingUp": "מחפש את הרכב...",
         "isThisYourCar": "האם זה הרכב שלך?",
@@ -117,7 +120,7 @@
         "modelLabel": "דגם"
       },
       "photos": {
-        "title": "תמונות הרכב (אופציונלי)",
+        "title": "תמונות הרכב (חובה)",
         "optional": "תמונות הרכב (אופציונלי)",
         "addPhoto": "הוסף תמונה",
         "tooLarge": "התמונה חייבת להיות עד 5MB",
@@ -278,7 +281,8 @@
         "startDrive": "התחל נסיעה",
         "markArrived": "סמן הגעה",
         "startWork": "התחל עבודה",
-        "completeJob": "השלם עבודה"
+        "completeJob": "השלם עבודה",
+        "submitForApproval": "שלח לאישור"
       },
       "customerPays": "הלקוח משלם ₪{{amount}}",
       "updating": "מעדכן...",
@@ -390,7 +394,9 @@
     "sedan": "סדאן",
     "suv": "ג'יפ",
     "pickup": "פיקאפ",
-    "van": "ואן"
+    "van": "ואן",
+    "private": "פרטי",
+    "jeep": "ג'יפ"
   },
   "landing": {
     "tagline": "שטיפת רכב ניידת לפי דרישה — אנחנו באים אליך.",
@@ -412,6 +418,11 @@
   },
   "app": {
     "setupRequired": "נדרשת הגדרה: העתק .env.example ל-.env והוסף את פרטי Supabase שלך."
+  },
+  "agent": {
+    "shell": {
+      "title": "תמיכה"
+    }
   },
   "support": {
     "title": "תמיכה",

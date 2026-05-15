@@ -103,6 +103,9 @@
         "total": "Total",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
       },
+      "submit": {
+        "needsPhotos": "Add both vehicle photos to continue"
+      },
       "plate": {
         "lookingUp": "Looking up your car...",
         "isThisYourCar": "Is this your car?",
@@ -117,7 +120,7 @@
         "modelLabel": "Model"
       },
       "photos": {
-        "title": "Vehicle photos (optional)",
+        "title": "Vehicle photos (required)",
         "optional": "Vehicle photos (optional)",
         "addPhoto": "Add photo",
         "tooLarge": "Photo must be under 5MB",
@@ -278,7 +281,8 @@
         "startDrive": "Start trip",
         "markArrived": "Mark arrived",
         "startWork": "Start work",
-        "completeJob": "Complete job"
+        "completeJob": "Complete job",
+        "submitForApproval": "Submit for approval"
       },
       "customerPays": "Customer pays ₪{{amount}}",
       "updating": "Updating…",
@@ -390,7 +394,9 @@
     "sedan": "Sedan",
     "suv": "SUV",
     "pickup": "Pickup",
-    "van": "Van"
+    "van": "Van",
+    "private": "Private car",
+    "jeep": "Jeep / SUV"
   },
   "landing": {
     "tagline": "On-demand mobile car wash — we come to you.",
@@ -412,6 +418,11 @@
   },
   "app": {
     "setupRequired": "Setup required: copy .env.example to .env and add your Supabase credentials."
+  },
+  "agent": {
+    "shell": {
+      "title": "Support"
+    }
   },
   "support": {
     "title": "Support",

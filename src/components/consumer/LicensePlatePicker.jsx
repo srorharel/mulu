@@ -14,7 +14,7 @@ function formatPlate(digits) {
   return digits
 }
 
-// onChange({ make, model, year, plate, color, isValid })
+// onChange({ make, model, year, plate, color, category, isValid })
 export default function LicensePlatePicker({ onChange }) {
   const { t } = useTranslation()
 
@@ -24,9 +24,10 @@ export default function LicensePlatePicker({ onChange }) {
   const [result, setResult] = useState(null)
 
   // Manual fallback — values survive state transitions so users don't re-type
-  const [manualMake,  setManualMake]  = useState('')
-  const [manualModel, setManualModel] = useState('')
-  const [manualYear,  setManualYear]  = useState('')
+  const [manualMake,     setManualMake]     = useState('')
+  const [manualModel,    setManualModel]    = useState('')
+  const [manualYear,     setManualYear]     = useState('')
+  const [manualCategory, setManualCategory] = useState('private')
 
   const lookupIdRef = useRef(0)
   const normalized  = plateInput.replace(/\D/g, '')
@@ -83,20 +84,21 @@ export default function LicensePlatePicker({ onChange }) {
     setManualMake('')
     setManualModel('')
     setManualYear('')
+    setManualCategory('private')
     ++lookupIdRef.current // discard any in-flight lookup
   }
 
   // Emit validity upward whenever relevant state changes
   useEffect(() => {
     if (status === 'confirmed' && result) {
-      onChange({ make: result.make, model: result.model, year: result.year, plate: result.plate, color: result.color, isValid: true })
+      onChange({ make: result.make, model: result.model, year: result.year, plate: result.plate, color: result.color, category: result.category, isValid: true })
     } else if (status === 'not_found') {
       const valid = manualMake.trim() && manualModel.trim() && !!manualYear
-      onChange({ make: manualMake.trim() || null, model: manualModel.trim() || null, year: manualYear ? parseInt(manualYear, 10) : null, plate: normalized || null, color: null, isValid: !!valid })
+      onChange({ make: manualMake.trim() || null, model: manualModel.trim() || null, year: manualYear ? parseInt(manualYear, 10) : null, plate: normalized || null, color: null, category: manualCategory, isValid: !!valid })
     } else {
-      onChange({ make: null, model: null, year: null, plate: null, color: null, isValid: false })
+      onChange({ make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false })
     }
-  }, [status, result, manualMake, manualModel, manualYear]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, result, manualMake, manualModel, manualYear, manualCategory]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived display values ───────────────────────────────────────────────────
 
@@ -237,6 +239,26 @@ export default function LicensePlatePicker({ onChange }) {
               <option value="">— {t('consumer.home.fields.carYear')} —</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
+          </div>
+
+          <div>
+            <label className="label">{t('consumer.home.carType')}</label>
+            <div className="flex gap-2 mt-1">
+              {['private', 'jeep', 'pickup'].map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setManualCategory(cat)}
+                  className={`flex-1 rounded-xl border py-2 text-sm font-medium transition-colors ${
+                    manualCategory === cat
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-neutral-200 bg-white/70 text-neutral-700'
+                  }`}
+                >
+                  {t(`carLabels.${cat}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}

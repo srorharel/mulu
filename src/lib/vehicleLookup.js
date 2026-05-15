@@ -3,6 +3,17 @@
 const ENDPOINT    = 'https://data.gov.il/api/3/action/datastore_search'
 const RESOURCE_ID = '053cea08-09bc-40ec-8f7a-156f0677aff3' // "כלי רכב פעילים" active vehicles
 
+// Maps the registry's sug_degem (vehicle-type) field to our three pricing tiers.
+// Anything not explicitly listed falls through to 'private'.
+const SUG_DEGEM_MAP = {
+  "ג'יפ": 'jeep',
+  'מ"מ':  'pickup',  // משא קל — light goods vehicle
+}
+
+function detectCategory(record) {
+  return SUG_DEGEM_MAP[(record.sug_degem ?? '').trim()] ?? 'private'
+}
+
 function normalizePlate(input) {
   return (input ?? '').replace(/\D/g, '')
 }
@@ -74,12 +85,13 @@ export async function lookupPlate(plate) {
     console.log('[lookupPlate] first record:', record)
 
     const result = {
-      status: 'found',
-      plate:  normalized,
-      make:   record.tozeret_nm?.trim()    ?? null,
-      model:  record.kinuy_mishari?.trim() ?? null,
-      year:   parseInt(record.shnat_yitzur, 10) || null,
-      color:  record.tzeva_rechev?.trim()  ?? null,
+      status:   'found',
+      plate:    normalized,
+      make:     record.tozeret_nm?.trim()    ?? null,
+      model:    record.kinuy_mishari?.trim() ?? null,
+      year:     parseInt(record.shnat_yitzur, 10) || null,
+      color:    record.tzeva_rechev?.trim()  ?? null,
+      category: detectCategory(record),
     }
 
     if (!result.make && !result.model) {
