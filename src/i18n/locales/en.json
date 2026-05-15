@@ -224,6 +224,8 @@
     "dashboard": {
       "gpsRequired": "Enable GPS and try again — location is required to go online",
       "openMenu": "Open menu",
+      "youre": "You're",
+      "today": "TODAY",
       "locationPrompt": {
         "title": "Enable location",
         "body": "We need your location to show nearby jobs and route you to customers.",
@@ -333,7 +335,7 @@
       "jobsNearby": "Jobs nearby",
       "lookingForJobs": "Looking for jobs…",
       "goOnline": "Go online to see nearby jobs",
-      "goOnlineHint": "Flip the switch above when you're ready to work.",
+      "goOnlineHint": "Tap the status pill at the top to go online.",
       "noJobs": "No jobs around you currently",
       "noJobsHint": "We'll notify you when one comes in.",
       "jobsNearbyCount_one": "{{count}} job nearby",

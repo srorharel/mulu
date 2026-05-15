@@ -687,7 +687,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
             {cancelling ? t('washer.drawer.cancelling') : t('washer.drawer.cancel.shortLabel')}
           </button>
         : null)
-    : <SlideToggle online={online} onToggle={handleToggle} toggling={toggling} />
+    : null  // toggle relocated to Dashboard top-chrome pill
 
   return (
     <motion.div
