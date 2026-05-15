@@ -41,6 +41,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/conversations/:conversationId"
+          element={
+            <RequireAgent>
+              <Dashboard />
+            </RequireAgent>
+          }
+        />
+        <Route
           path="/settings"
           element={
             <RequireAgent>

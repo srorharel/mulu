@@ -1,8 +1,18 @@
 import { useTranslation } from 'react-i18next'
 
-const STATUS_PILLS = {
-  pending_agent: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-  assigned:      'text-accent bg-accent-muted border-accent/20',
+const LABEL_STYLES = {
+  mine:        'text-accent bg-accent-muted border-accent/30',
+  inTreatment: 'text-ink-muted bg-surface border-edge',
+  waiting:     'text-amber-600 bg-amber-400/10 border-amber-400/20',
+  general:     'text-ink-muted bg-surface border-edge',
+}
+
+function getConversationLabel(conversation, agentId) {
+  if (conversation.assigned_agent_id === agentId) return 'mine'
+  if (conversation.status === 'assigned') return 'inTreatment'
+  if (conversation.status === 'pending_agent' || conversation.status === 'open') return 'waiting'
+  if (!conversation.order_id) return 'general'
+  return null
 }
 
 function formatRelative(iso) {
@@ -20,8 +30,6 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
   const { t } = useTranslation()
 
   const openerName = conversation.opener?.full_name || '—'
-  const agentName  = conversation.agent?.agent_display_name || conversation.agent?.full_name || null
-  const isAssignedToMe = conversation.assigned_agent_id === agentId
   const unread = conversation.last_message_at && (
     !conversation.agent_last_read_at ||
     new Date(conversation.last_message_at) > new Date(conversation.agent_last_read_at)
@@ -30,6 +38,8 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
   const title = conversation.order_id
     ? t('common.orderLinked', { id: conversation.order_id.slice(0, 8) })
     : (conversation.subject || t('common.general'))
+
+  const label = getConversationLabel(conversation, agentId)
 
   return (
     <button
@@ -45,28 +55,25 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
       </div>
 
       <div className="flex-1 min-w-0">
+        {/* Row 1: name · label pill · timestamp */}
         <div className="flex items-center justify-between gap-2">
-          <span className={`text-sm font-semibold truncate ${isSelected ? 'text-accent' : 'text-ink'}`}>
+          <span className={`text-sm font-semibold truncate min-w-0 ${isSelected ? 'text-accent' : 'text-ink'}`}>
             {openerName}
           </span>
-          <span className="text-[11px] text-ink-muted/50 shrink-0">
-            {formatRelative(conversation.last_message_at)}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {label && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${LABEL_STYLES[label]}`}>
+                {t(`queue.label.${label}`)}
+              </span>
+            )}
+            <span className="text-[11px] text-ink-muted/50">
+              {formatRelative(conversation.last_message_at)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          <span className="text-xs text-ink-muted truncate">{title}</span>
-          <span
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
-              STATUS_PILLS[conversation.status] || 'text-ink-muted bg-surface border-edge'
-            }`}
-          >
-            {t(`common.${conversation.status}`)}
-          </span>
-          {isAssignedToMe && (
-            <span className="text-[10px] text-accent font-semibold">{t('queue.mine').toLowerCase()}</span>
-          )}
-        </div>
+        {/* Row 2: message preview */}
+        <p className="text-xs text-ink-muted truncate mt-0.5">{title}</p>
       </div>
 
       {unread && (

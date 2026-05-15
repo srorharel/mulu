@@ -97,7 +97,7 @@ export default function OrderHistory() {
                     {/* Content — ps-2 shifts text past the band */}
                     <div className="ps-2 flex-1 min-w-0">
                       <p className="font-semibold text-sm text-neutral-900 truncate">
-                        {t(`carLabels.${order.car_type}`)} · {t(`serviceLabels.${order.service_type}`)}
+                        {t(`carLabels.${order.car_type}`)} · {t(`serviceLabels.${order.service_type || 'wash'}`)}
                       </p>
                       {order.address_label && (
                         <p className="text-xs text-neutral-500 truncate mt-0.5">

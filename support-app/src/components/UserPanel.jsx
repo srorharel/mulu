@@ -1,18 +1,71 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { User } from 'lucide-react'
 import { fetchUserProfile } from '../lib/support.js'
 import { supabase } from '../lib/supabase.js'
+import { useReverseGeocode } from '../lib/geocode.js'
+
+const MiniMap = lazy(() => import('./MiniMap.jsx'))
+
+function timeAgo(dateStr) {
+  if (!dateStr) return null
+  const seconds = Math.max(1, Math.round((Date.now() - new Date(dateStr)) / 1000))
+  try {
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+    if (seconds < 60)    return rtf.format(-seconds, 'second')
+    if (seconds < 3600)  return rtf.format(-Math.round(seconds / 60), 'minute')
+    if (seconds < 86400) return rtf.format(-Math.round(seconds / 3600), 'hour')
+    return rtf.format(-Math.round(seconds / 86400), 'day')
+  } catch { return `${Math.round(seconds / 60)}m ago` }
+}
+
+function WasherLocationCard({ washerLoc }) {
+  const { t } = useTranslation()
+  const address = useReverseGeocode(washerLoc?.lat, washerLoc?.lng)
+  const [, setTick] = useState(0)
+
+  // Re-render every minute so "last seen X ago" stays fresh
+  useEffect(() => {
+    const id = setInterval(() => setTick(n => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const hasLoc = washerLoc?.lat != null && washerLoc?.lng != null
+
+  return (
+    <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
+      <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+        {t('approvals.location.title')}
+      </p>
+      {hasLoc ? (
+        <>
+          <Suspense fallback={<div className="h-[150px] rounded-lg bg-surface-elevated animate-pulse" />}>
+            <MiniMap lat={washerLoc.lat} lng={washerLoc.lng} />
+          </Suspense>
+          {address && <p className="text-xs text-ink leading-snug">{address}</p>}
+          <p className="text-xs text-ink-muted">
+            {t('approvals.location.lastSeen', { time: timeAgo(washerLoc.at) })}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-ink-muted">{t('approvals.location.unavailable')}</p>
+      )}
+    </div>
+  )
+}
 
 export default function UserPanel({ openerId }) {
   const { t } = useTranslation()
   const [profile, setProfile] = useState(null)
   const [recentOrders, setRecentOrders] = useState([])
   const [loading, setLoading] = useState(false)
+  const [washerLoc, setWasherLoc] = useState(null)
 
   useEffect(() => {
     if (!openerId) return
     setLoading(true)
+    setProfile(null)
+    setWasherLoc(null)
     Promise.all([
       fetchUserProfile(openerId),
       supabase
@@ -25,8 +78,31 @@ export default function UserPanel({ openerId }) {
       setProfile(prof)
       setRecentOrders(orders ?? [])
       setLoading(false)
+      if (prof?.role === 'washer') {
+        setWasherLoc({
+          lat: prof.last_lat,
+          lng: prof.last_lng,
+          at:  prof.last_location_at,
+        })
+      }
     })
   }, [openerId])
+
+  // Realtime: track washer location updates while panel is open
+  useEffect(() => {
+    if (!openerId || profile?.role !== 'washer') return
+    const ch = supabase
+      .channel(`user-panel-loc:${openerId}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${openerId}` },
+        (payload) => {
+          const { last_lat, last_lng, last_location_at } = payload.new
+          setWasherLoc({ lat: last_lat, lng: last_lng, at: last_location_at })
+        }
+      )
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [openerId, profile?.role])
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -52,6 +128,10 @@ export default function UserPanel({ openerId }) {
           )}
         </div>
       </div>
+
+      {profile.role === 'washer' && (
+        <WasherLocationCard washerLoc={washerLoc} />
+      )}
 
       {recentOrders.length > 0 && (
         <div>

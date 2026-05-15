@@ -16,7 +16,7 @@ import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 
 const CAR_LABELS     = { sedan: 'carLabels.sedan', suv: 'carLabels.suv', pickup: 'carLabels.pickup', van: 'carLabels.van' }
-const SERVICE_LABELS = { exterior: 'serviceLabels.exterior', interior: 'serviceLabels.interior', full: 'serviceLabels.full' }
+const SERVICE_LABELS = { exterior: 'serviceLabels.exterior', interior: 'serviceLabels.interior', full: 'serviceLabels.full', wash: 'serviceLabels.wash' }
 const CANCELLABLE    = new Set(['pending', 'accepted'])
 
 const pageVariants = {
@@ -111,7 +111,7 @@ export default function OrderTracking() {
             <GlassCard className="flex justify-between text-sm p-4">
               <div>
                 <p className="font-semibold">{t(CAR_LABELS[order.car_type])}</p>
-                <p className="text-neutral-500">{t(SERVICE_LABELS[order.service_type])}</p>
+                <p className="text-neutral-500">{t(SERVICE_LABELS[order.service_type] ?? SERVICE_LABELS.wash)}</p>
               </div>
               <div className="text-end">
                 <p className="font-bold text-primary-600">₪{order.total_price}</p>

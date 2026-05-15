@@ -74,21 +74,11 @@
       "tapToAdjust": "Tap to adjust pin",
       "allowLocation": "Or allow location access for auto-detect",
       "carType": "Car type",
-      "service": "Service",
-      "keyLocation": "Key location",
       "optional": "(optional)",
-      "keyLocationPlaceholder": "e.g. At the front desk, in the electric cabinet, leave keys with doorman",
-      "keyLocationHint": "Only your washer will see this, after they accept the job.",
       "siteResources": "What's available at the location?",
       "waterAccessible": "Water tap accessible",
       "powerAccessible": "Power outlet accessible",
       "siteResourcesHint": "This helps the washer know what to bring.",
-      "addons": "Add-ons",
-      "wiperFluidRefill": "Wiper Fluid Refill",
-      "tirePressureCheck": "Tire Pressure Check",
-      "serviceLine": "Service",
-      "platformFee": "Platform fee (15%)",
-      "total": "Total",
       "bookNow": "Book Now",
       "booking": "Booking…",
       "locationRequired": "Please allow location or tap \"Choose location\" to set your pin",
@@ -101,6 +91,38 @@
       "locationDenied": {
         "title": "Location access denied",
         "body": "Enable location in Settings → Safari → Location Services for this site."
+      },
+      "fields": {
+        "carYear": "Vehicle year",
+        "plate": "License plate",
+        "platePlaceholder": "12-345-67",
+        "accessNotes": "Access notes",
+        "accessNotesPlaceholder": "How to reach your car (optional). E.g., 'Building 5, garage level -2, spot 23'"
+      },
+      "price": {
+        "total": "Total",
+        "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
+      },
+      "plate": {
+        "lookingUp": "Looking up your car...",
+        "isThisYourCar": "Is this your car?",
+        "yesItsMine": "Yes, that's mine",
+        "noEnterManually": "No, enter manually",
+        "notFound": "Couldn't find that plate. Please enter your car details.",
+        "lookupError": "Couldn't reach the vehicle registry. You can retry or enter details manually.",
+        "retry": "Retry",
+        "enterManually": "Enter manually",
+        "editPlate": "Change plate",
+        "makeLabel": "Make",
+        "modelLabel": "Model"
+      },
+      "photos": {
+        "title": "Vehicle photos (optional)",
+        "optional": "Vehicle photos (optional)",
+        "addPhoto": "Add photo",
+        "tooLarge": "Photo must be under 5MB",
+        "uploadFailed": "Upload failed. Try again.",
+        "removing": "Remove photo"
       }
     },
     "locationSheet": {
@@ -184,7 +206,20 @@
       "thisWeek": "This week",
       "noJobs": "No completed jobs yet",
       "noJobsDesc": "Complete your first wash to see your earnings here.",
-      "recent": "Recent"
+      "recent": "Recent",
+      "vatNote": "Amounts include 18% VAT",
+      "approved": {
+        "title": "Approved earnings"
+      },
+      "pending": {
+        "title": "Pending approval"
+      },
+      "transaction": {
+        "badge": {
+          "approved": "Approved",
+          "pending": "Pending"
+        }
+      }
     },
     "menu": {
       "profile": "Profile",
@@ -247,8 +282,14 @@
       },
       "customerPays": "Customer pays ₪{{amount}}",
       "updating": "Updating…",
-      "accessInstructions": "Access instructions",
-      "noAccessNotes": "No special access notes — meet the customer at the location.",
+      "access": {
+        "title": "Access notes",
+        "none": "No special access notes — meet the customer at the location."
+      },
+      "earnings": {
+        "label": "Earnings",
+        "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
+      },
       "uploadEvidence": "Upload evidence",
       "washVideo": "Wash video (required)",
       "wiperFluidEvidence": "💧 Wiper fluid refill",
@@ -272,12 +313,31 @@
       },
       "jobCompleted": "Job complete — great work!",
       "videoTooLarge": "Video must be under 50 MB",
+      "vehicle": {
+        "title": "Vehicle",
+        "notProvided": "Vehicle info not provided",
+        "plate": "Plate",
+        "color": "Color"
+      },
+      "geofence": {
+        "tooFar": "You need to be within 100m to arrive",
+        "distance": "{{distance}}m away",
+        "contactSupport": "Contact support",
+        "gpsRequired": "Enable location to continue"
+      },
       "toasts": {
         "enRoute": "Heading to the customer",
         "arrived": "Marked as arrived",
         "inProgress": "Wash started — do great work!",
-        "completed": "Job complete! Great work."
-      }
+        "completed": "Job complete! Great work.",
+        "submitted": "Submitted for approval"
+      },
+      "submitted": "Submitted!",
+      "submittedDesc": "Awaiting admin approval"
+    },
+    "evidence": {
+      "before": "Before video",
+      "after": "After video"
     },
     "toggle": {
       "online": "Online",
@@ -307,6 +367,7 @@
     "en_route": "Washer on the way",
     "arrived": "Washer arrived",
     "in_progress": "Washing in progress",
+    "pending_approval": "Under review",
     "completed": "Completed",
     "labels": {
       "pending": "pending",
@@ -314,6 +375,7 @@
       "en_route": "en route",
       "arrived": "arrived",
       "in_progress": "in progress",
+      "pending_approval": "under review",
       "completed": "completed",
       "cancelled": "cancelled"
     }
@@ -321,7 +383,8 @@
   "serviceLabels": {
     "exterior": "Exterior",
     "interior": "Interior",
-    "full": "Full Wash"
+    "full": "Full Wash",
+    "wash": "Car Wash"
   },
   "carLabels": {
     "sedan": "Sedan",

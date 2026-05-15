@@ -7,6 +7,7 @@ import { Waves, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
+import { supabase } from '../lib/supabase.js'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
@@ -53,8 +54,12 @@ export default function Login() {
     setServerError('')
     const { data: result, error } = await signIn(data.email, data.password)
     if (error) { setServerError(friendlyError(error.message)); return }
-    const role = result.user?.user_metadata?.role ?? 'consumer'
-    navigate(role === 'washer' ? '/washer' : '/home', { replace: true })
+    const { data: prof } = await supabase.from('profiles').select('role').eq('id', result.user.id).single()
+    const role = prof?.role ?? result.user?.user_metadata?.role ?? 'consumer'
+    if      (role === 'washer') navigate('/washer',  { replace: true })
+    else if (role === 'agent')  navigate('/support', { replace: true })
+    else if (role === 'admin')  navigate('/support', { replace: true }) // stale data fallback
+    else                        navigate('/home',    { replace: true })
   }
 
   return (

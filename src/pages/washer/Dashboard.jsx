@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu } from 'lucide-react'
@@ -24,6 +24,7 @@ export default function WasherDashboard() {
   const location                    = useLocation()
 
   const [online, setOnline]               = useState(profile?.is_online ?? false)
+  const lastPersistedAtRef = useRef(0)
   const [toggling, setToggling]           = useState(false)
   const [activeJob, setActiveJob]         = useState(null)
   const [selectedJobId, setSelectedJobId] = useState(null)
@@ -39,6 +40,39 @@ export default function WasherDashboard() {
       .update({ current_location: `POINT(${position.lng} ${position.lat})` })
       .eq('id', user.id)
   }, [position?.lat, position?.lng, online]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist last-known location for agent location card — throttled to every 10s.
+  useEffect(() => {
+    console.log('[location-persist] effect fired', { lat: position?.lat, lng: position?.lng, userId: user?.id })
+    if (!position || !user?.id) {
+      console.log('[location-persist] skipping — missing position or user')
+      return
+    }
+    const now     = Date.now()
+    const elapsed = now - lastPersistedAtRef.current
+    if (elapsed < 10_000) {
+      console.log('[location-persist] throttled —', elapsed, 'ms since last write')
+      return
+    }
+    console.log('[location-persist] writing to DB', { lat: position.lat, lng: position.lng })
+    lastPersistedAtRef.current = now
+    supabase
+      .from('profiles')
+      .update({ last_lat: position.lat, last_lng: position.lng, last_location_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .select('id')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[location-persist] write failed (error):', error)
+          lastPersistedAtRef.current = 0 // reset throttle so next position change retries
+        } else if (!data || data.length === 0) {
+          console.error('[location-persist] write matched 0 rows — RLS may be blocking. user.id:', user.id)
+          lastPersistedAtRef.current = 0 // reset throttle so next position change retries
+        } else {
+          console.log('[location-persist] write succeeded, row:', data[0]?.id)
+        }
+      })
+  }, [position?.lat, position?.lng, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fix 2: immediately apply accepted job passed via navigation state
   useEffect(() => {
@@ -178,6 +212,7 @@ export default function WasherDashboard() {
         toggling={toggling}
         activeJob={activeJob}
         onJobDone={handleJobDone}
+        position={position}
       />
     </div>
   )

@@ -3,15 +3,16 @@ import { CheckCircle, Circle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 const STEP_KEYS = [
-  { key: 'pending',      i18nKey: 'status.pending'      },
-  { key: 'accepted',     i18nKey: 'status.accepted'     },
-  { key: 'en_route',     i18nKey: 'status.en_route'     },
-  { key: 'arrived',      i18nKey: 'status.arrived'      },
-  { key: 'in_progress',  i18nKey: 'status.in_progress'  },
-  { key: 'completed',    i18nKey: 'status.completed'    },
+  { key: 'pending',          i18nKey: 'status.pending'          },
+  { key: 'accepted',         i18nKey: 'status.accepted'         },
+  { key: 'en_route',         i18nKey: 'status.en_route'         },
+  { key: 'arrived',          i18nKey: 'status.arrived'          },
+  { key: 'in_progress',      i18nKey: 'status.in_progress'      },
+  { key: 'pending_approval', i18nKey: 'status.pending_approval' },
+  { key: 'completed',        i18nKey: 'status.completed'        },
 ]
 
-const ORDER = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'completed']
+const ORDER = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval', 'completed']
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 

@@ -13,7 +13,7 @@ const MENU_ITEM_DEFS = [
   { to: '/profile',          icon: User,          key: 'washer.menu.profile'   },
   { to: '/washer/earnings',  icon: DollarSign,    key: 'washer.menu.earnings'  },
   { to: '/washer/shop',      icon: ShoppingBag,   key: 'washer.menu.shop'      },
-  { to: '/washer/support',   icon: MessageCircle, key: 'washer.menu.support'   },
+  { to: '/support',          icon: MessageCircle, key: 'washer.menu.support'   },
   { to: '/washer/settings',  icon: Settings,      key: 'washer.menu.settings'  },
 ]
 
@@ -126,7 +126,7 @@ export default function WasherMenu({ open, onClose, online }) {
                 >
                   <div className="relative shrink-0">
                     <Icon className="h-5 w-5 text-ink-muted" />
-                    {to === '/washer/support' && supportUnread > 0 && (
+                    {to === '/support' && supportUnread > 0 && (
                       <span className="absolute -top-1 -end-1 h-2 w-2 rounded-full bg-accent" />
                     )}
                   </div>

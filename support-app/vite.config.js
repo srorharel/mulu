@@ -10,6 +10,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('framer-motion')) return 'vendor-motion'
           if (id.includes('@supabase'))     return 'vendor-supabase'
+          if (id.includes('leaflet'))       return 'vendor-leaflet'
         },
       },
     },

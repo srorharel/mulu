@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, CheckCircle, MapPin, Droplets, Droplet, Zap, Gauge } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronRight, Loader2, CheckCircle, MapPin, Droplets, Zap } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
-import { calcPrice, BASE_PRICES, ADDON_PRICE } from '../../lib/pricing.js'
+import { CONSUMER_PRICE_ILS, WORKER_PAYOUT_ILS, VAT_RATE, consumerBreakdown } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
@@ -13,6 +13,8 @@ import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import MotionButton from '../../components/ui/MotionButton.jsx'
 import LocationSheet from '../../components/consumer/LocationSheet.jsx'
+import LicensePlatePicker from '../../components/consumer/LicensePlatePicker.jsx'
+import CarPhotoUpload from '../../components/consumer/CarPhotoUpload.jsx'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
@@ -43,18 +45,24 @@ export default function ConsumerHome() {
   const showToast       = useToast()
   const { t }           = useTranslation()
 
+  // Stable UUID for this booking session — used as storage folder for optional photos.
+  const orderId = useMemo(() => crypto.randomUUID(), [])
+
   const [pin, setPin]                   = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
   const [carType, setCarType]           = useState('sedan')
-  const [serviceType, setServiceType]   = useState('exterior')
-  const [keyLocation, setKeyLocation]   = useState('')
+  const [accessNotes, setAccessNotes]   = useState('')
   const [siteHasWater, setSiteHasWater] = useState(false)
   const [siteHasPower, setSiteHasPower] = useState(false)
-  const [addonWiper, setAddonWiper]     = useState(false)
-  const [addonTire, setAddonTire]       = useState(false)
   const [submitting, setSubmitting]     = useState(false)
   const submittingRef                   = useRef(false)
   const [error, setError]               = useState('')
+
+  // License plate / vehicle identity
+  const [licenseData, setLicenseData] = useState({ make: null, model: null, year: null, plate: null, color: null, isValid: false })
+
+  // Photos are optional — keep paths for insert but don't block submission
+  const [photos, setPhotos] = useState([null, null])
 
   const CAR_TYPES = [
     { value: 'sedan',  label: t('carLabels.sedan')  },
@@ -63,29 +71,21 @@ export default function ConsumerHome() {
     { value: 'van',    label: t('carLabels.van')    },
   ]
 
-  const SERVICE_TYPES = [
-    { value: 'exterior', label: t('serviceLabels.exterior'), desc: t('consumer.home.exteriorDesc') },
-    { value: 'interior', label: t('serviceLabels.interior'), desc: t('consumer.home.interiorDesc') },
-    { value: 'full',     label: t('serviceLabels.full'),     desc: t('consumer.home.fullDesc')     },
-  ]
-
   const effectivePin = pin ?? gpsPosition
-  const { basePrice, platformFee, totalPrice } = calcPrice(
-    carType, serviceType, { wiper_fluid: addonWiper, tire_pressure: addonTire }
-  )
-  const serviceBase = BASE_PRICES[carType][serviceType]
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
+  const { vat } = consumerBreakdown()
+
+  const canSubmit = !!effectivePin && licenseData.isValid
 
   async function handleBook() {
     if (submittingRef.current) return
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
+    if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
+
     setError('')
     submittingRef.current = true
     setSubmitting(true)
 
-    // address_label: prefer the user-confirmed label from LocationSheet,
-    // fall back to the geocode hook's result (already resolved for GPS-only flow),
-    // then to raw coords as last resort.
     const address_label = pin?.address_label
       ?? pinAddress
       ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`
@@ -93,23 +93,32 @@ export default function ConsumerHome() {
     const { data, error: dbError } = await supabase
       .from('orders')
       .insert({
+        id:            orderId,
         consumer_id:   user.id,
         car_type:      carType,
-        service_type:  serviceType,
+        service_type:  'wash',
         location:      `POINT(${effectivePin.lng} ${effectivePin.lat})`,
         address_label,
         address_street: pin?.address_street ?? null,
         address_number: pin?.address_number ?? null,
         address_city:   pin?.address_city   ?? null,
-        base_price:    basePrice,
-        platform_fee:  platformFee,
-        total_price:   totalPrice,
+        base_price:    WORKER_PAYOUT_ILS,
+        platform_fee:  CONSUMER_PRICE_ILS - WORKER_PAYOUT_ILS,
+        total_price:   CONSUMER_PRICE_ILS,
         status:        'pending',
-        key_location:  keyLocation.trim() || null,
+        key_location:  null,
+        access_notes:  accessNotes.trim() || null,
         site_has_water:      siteHasWater,
         site_has_power:      siteHasPower,
-        addon_wiper_fluid:   addonWiper,
-        addon_tire_pressure: addonTire,
+        addon_wiper_fluid:   false,
+        addon_tire_pressure: false,
+        car_make:        licenseData.make,
+        car_model:       licenseData.model,
+        car_year:        licenseData.year,
+        car_plate:       licenseData.plate ?? null,
+        car_color:       licenseData.color ?? null,
+        car_photo_1_path: photos[0]?.path ?? null,
+        car_photo_2_path: photos[1]?.path ?? null,
       })
       .select('id')
       .single()
@@ -169,7 +178,7 @@ export default function ConsumerHome() {
             }
           </div>
 
-          {/* Car type */}
+          {/* Car type — informational only, does not affect price */}
           <div>
             <p className="label mb-2">{t('consumer.home.carType')}</p>
             <div className="grid grid-cols-2 gap-2">
@@ -198,56 +207,27 @@ export default function ConsumerHome() {
             </div>
           </div>
 
-          {/* Service type */}
-          <div>
-            <p className="label mb-2">{t('consumer.home.service')}</p>
-            <div className="flex flex-col gap-2">
-              {SERVICE_TYPES.map(s => (
-                <motion.button
-                  key={s.value}
-                  type="button"
-                  whileTap={{ scale: 0.97 }}
-                  transition={SPRING}
-                  onClick={() => setServiceType(s.value)}
-                  className={`relative flex items-center justify-between rounded-xl border p-3 text-start overflow-hidden ${
-                    serviceType === s.value ? 'border-primary-500' : 'border-neutral-200'
-                  }`}
-                  style={{ minHeight: 44 }}
-                >
-                  {serviceType === s.value && (
-                    <motion.div
-                      layoutId="service-type-active"
-                      className="absolute inset-0 bg-primary-50"
-                      transition={SPRING}
-                    />
-                  )}
-                  <div className="relative z-10">
-                    <p className={`text-sm font-medium ${serviceType === s.value ? 'text-primary-700' : 'text-neutral-800'}`}>
-                      {s.label}
-                    </p>
-                    <p className="text-xs text-neutral-500">{s.desc}</p>
-                  </div>
-                  <span className={`relative z-10 text-sm font-bold shrink-0 ms-2 ${serviceType === s.value ? 'text-primary-600' : 'text-neutral-500'}`}>
-                    ₪{BASE_PRICES[carType][s.value]}
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-          </div>
+          {/* License plate lookup */}
+          <LicensePlatePicker onChange={setLicenseData} />
 
-          {/* Key location */}
+          {/* Vehicle photos (optional) */}
+          <CarPhotoUpload
+            orderId={orderId}
+            onChange={(newPhotos) => setPhotos(newPhotos)}
+          />
+
+          {/* Access notes */}
           <div>
             <label className="label">
-              {t('consumer.home.keyLocation')} <span className="font-normal text-neutral-400">{t('consumer.home.optional')}</span>
+              {t('consumer.home.fields.accessNotes')} <span className="font-normal text-neutral-400">{t('consumer.home.optional')}</span>
             </label>
             <textarea
               className="input min-h-[76px] resize-none"
-              maxLength={200}
-              placeholder={t('consumer.home.keyLocationPlaceholder')}
-              value={keyLocation}
-              onChange={e => setKeyLocation(e.target.value)}
+              maxLength={300}
+              placeholder={t('consumer.home.fields.accessNotesPlaceholder')}
+              value={accessNotes}
+              onChange={e => setAccessNotes(e.target.value)}
             />
-            <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.keyLocationHint')}</p>
           </div>
 
           {/* Site resources */}
@@ -260,57 +240,20 @@ export default function ConsumerHome() {
             <p className="text-xs text-neutral-400 mt-1">{t('consumer.home.siteResourcesHint')}</p>
           </div>
 
-          {/* Add-ons */}
-          <div>
-            <p className="label mb-2">{t('consumer.home.addons')} <span className="font-normal text-neutral-400">{t('consumer.home.optional')}</span></p>
-            <div className="flex flex-col gap-2">
-              <ToggleCard icon={Droplet} label={t('consumer.home.wiperFluidRefill')}  desc={`+₪${ADDON_PRICE}`} checked={addonWiper} onToggle={() => setAddonWiper(v => !v)} />
-              <ToggleCard icon={Gauge}   label={t('consumer.home.tirePressureCheck')} desc={`+₪${ADDON_PRICE}`} checked={addonTire}  onToggle={() => setAddonTire(v => !v)} />
+          {/* Price summary — flat pricing, VAT included */}
+          <div className="rounded-xl border border-neutral-100 bg-white/60 p-4 flex flex-col gap-1">
+            <div className="flex justify-between font-bold items-center">
+              <span>{t('consumer.home.price.total')}</span>
+              <span className="text-primary-600">₪{CONSUMER_PRICE_ILS}</span>
             </div>
-          </div>
-
-          {/* Price summary */}
-          <div className="rounded-xl border border-neutral-100 bg-white/60 p-4 flex flex-col gap-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-500">{t('consumer.home.serviceLine')}</span>
-              <span className="font-medium">₪{serviceBase}</span>
-            </div>
-            {addonWiper && (
-              <div className="flex justify-between text-sm">
-                <span className="text-neutral-500">{t('consumer.home.wiperFluidRefill')}</span>
-                <span className="font-medium">₪{ADDON_PRICE}</span>
-              </div>
-            )}
-            {addonTire && (
-              <div className="flex justify-between text-sm">
-                <span className="text-neutral-500">{t('consumer.home.tirePressureCheck')}</span>
-                <span className="font-medium">₪{ADDON_PRICE}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-500">{t('consumer.home.platformFee')}</span>
-              <span className="font-medium">₪{platformFee}</span>
-            </div>
-            <div className="border-t border-neutral-100 pt-2 flex justify-between font-bold items-center">
-              <span>{t('consumer.home.total')}</span>
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={totalPrice}
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.15 }}
-                  className="text-primary-600"
-                >
-                  ₪{totalPrice}
-                </motion.span>
-              </AnimatePresence>
-            </div>
+            <p className="text-xs text-neutral-400">
+              {t('consumer.home.price.includesVat', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
+            </p>
           </div>
 
           {error && <p className="text-danger-500 text-sm bg-danger-50 rounded-lg p-3">{error}</p>}
 
-          <MotionButton onClick={handleBook} disabled={submitting} className="btn-primary">
+          <MotionButton onClick={handleBook} disabled={submitting || !canSubmit} className="btn-primary">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
             {!submitting && <ChevronRight className="h-4 w-4 rtl:rotate-180" />}

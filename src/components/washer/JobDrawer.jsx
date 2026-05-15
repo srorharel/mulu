@@ -3,48 +3,53 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2,
-  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video, MessageCircle,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video, MessageCircle, Camera,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { JobCardSkeleton } from '../Skeleton.jsx'
 import JobCard from '../JobCard.jsx'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
+import { haversineKm } from '../../lib/geo.js'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import StatusTimeline from '../StatusTimeline.jsx'
 import SupportChatSheet from '../support/SupportChatSheet.jsx'
+import PhotoLightbox from '../ui/PhotoLightbox.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 import i18n from '../../i18n/index.js'
+import { VAT_RATE } from '../../lib/pricing.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
 
-// Statuses from which a washer is allowed to cancel.
 const CANCEL_STATUSES = ['accepted', 'en_route']
 
 const TRANSITION_KEYS = {
-  accepted:    { next: 'en_route',    key: 'washer.drawer.transitions.startDrive'  },
-  en_route:    { next: 'arrived',     key: 'washer.drawer.transitions.markArrived' },
-  arrived:     { next: 'in_progress', key: 'washer.drawer.transitions.startWork'   },
-  in_progress: { next: 'completed',   key: 'washer.drawer.transitions.completeJob' },
+  accepted:    { next: 'en_route',         key: 'washer.drawer.transitions.startDrive'        },
+  en_route:    { next: 'arrived',          key: 'washer.drawer.transitions.markArrived'       },
+  arrived:     { next: 'in_progress',      key: 'washer.drawer.transitions.startWork'         },
+  in_progress: { next: 'pending_approval', key: 'washer.drawer.transitions.submitForApproval' },
 }
 
 const ADVANCE_TOAST_KEYS = {
   en_route:    'washer.drawer.toasts.enRoute',
   arrived:     'washer.drawer.toasts.arrived',
   in_progress: 'washer.drawer.toasts.inProgress',
+  // pending_approval handled separately (triggers onJobDone with delay)
 }
 
 const FILE_NAMES = {
-  wash:          'wash.mp4',
+  before:        'before.mp4',
+  after:         'after.mp4',
   wiper_fluid:   'wiper_fluid.mp4',
   tire_pressure: 'tire_pressure.mp4',
 }
 
 const COLUMNS = {
-  wash:          'evidence_wash_path',
+  before:        'evidence_before_path',
+  after:         'evidence_after_path',
   wiper_fluid:   'evidence_wiper_fluid_path',
   tire_pressure: 'evidence_tire_pressure_path',
 }
@@ -160,18 +165,128 @@ function SlideToggle({ online, onToggle, toggling }) {
   )
 }
 
-// order and mutateOrder are passed down from JobDrawer (which owns useRealtimeOrder).
-function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
+// Israeli plate display: 7 digits → XX-XXX-XX, 8 digits → XXX-XX-XXX
+function formatPlate(digits) {
+  if (!digits) return ''
+  if (digits.length === 7) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
+  if (digits.length >= 8) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+  return digits
+}
+
+// ── Vehicle section shown in the active-job panel ──────────────────────────────
+function VehicleSection({ order }) {
+  const { t }   = useTranslation()
+  const [lightboxOpen, setLightboxOpen]   = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [photoUrls, setPhotoUrls]         = useState([])
+
+  const isHighlighted = order.status === 'arrived' || order.status === 'in_progress'
+
+  useEffect(() => {
+    if (!order) return
+    async function loadUrls() {
+      const paths = [order.car_photo_1_path, order.car_photo_2_path].filter(Boolean)
+      if (paths.length === 0) { setPhotoUrls([]); return }
+      const urls = await Promise.all(
+        paths.map(async p => {
+          const { data } = await supabase.storage.from('car-photos').createSignedUrl(p, 3600)
+          return data?.signedUrl ?? null
+        })
+      )
+      setPhotoUrls(urls.filter(Boolean))
+    }
+    loadUrls()
+  }, [order?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const hasInfo = order.car_plate || order.car_make || order.car_photo_1_path || order.car_photo_2_path
+
+  return (
+    <div className={`bg-glass border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3 ${
+      isHighlighted ? 'border-accent/40' : 'border-glass-border'
+    }`}>
+      <div className="flex items-center gap-2">
+        <Car className="h-4 w-4 text-accent shrink-0" />
+        <p className="text-sm font-semibold text-accent">{t('washer.drawer.vehicle.title')}</p>
+      </div>
+
+      {!hasInfo ? (
+        <p className="text-sm text-ink-muted">{t('washer.drawer.vehicle.notProvided')}</p>
+      ) : (
+        <>
+          {/* Plate — primary identifier, shown largest */}
+          {order.car_plate && (
+            <div className="rounded-lg bg-accent-muted px-3 py-2 self-start">
+              <p className="text-base font-mono font-bold text-accent tracking-widest">
+                {formatPlate(order.car_plate)}
+              </p>
+            </div>
+          )}
+
+          {/* Color + make + model + year */}
+          {(order.car_make || order.car_color) && (
+            <p className="text-sm text-ink">
+              {[order.car_color, order.car_make, order.car_model, order.car_year].filter(Boolean).join(' · ')}
+            </p>
+          )}
+
+          {/* Photo thumbnails — 0, 1, or 2 */}
+          {photoUrls.length > 0 && (
+            <div className={`grid gap-2 ${photoUrls.length === 1 ? 'grid-cols-1 max-w-[50%]' : 'grid-cols-2'}`}>
+              {photoUrls.map((url, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { setLightboxIndex(i); setLightboxOpen(true) }}
+                  className="aspect-square rounded-xl overflow-hidden border border-glass-border"
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Loading placeholder while signed URLs resolve */}
+          {(order.car_photo_1_path || order.car_photo_2_path) && photoUrls.length === 0 && (
+            <div className={`grid gap-2 ${order.car_photo_2_path ? 'grid-cols-2' : 'grid-cols-1 max-w-[50%]'}`}>
+              {[order.car_photo_1_path, order.car_photo_2_path].filter(Boolean).map((_, i) => (
+                <div key={i} className="aspect-square rounded-xl bg-neutral-100 flex items-center justify-center">
+                  <Camera className="h-5 w-5 text-neutral-300" />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {lightboxOpen && photoUrls.length > 0 && (
+        <PhotoLightbox
+          photos={photoUrls}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Active-job panel ───────────────────────────────────────────────────────────
+function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) {
+  const navigate  = useNavigate()
   const showToast = useToast()
   const { t }     = useTranslation()
   const { address } = useReverseGeocode(activeJob?.lat, activeJob?.lng)
-  const [advancing, setAdvancing]   = useState(false)
-  const advancingRef  = useRef(false)
-  const [uploading, setUploading]       = useState({})
+
+  const [advancing, setAdvancing]     = useState(false)
+  const advancingRef                  = useRef(false)
+  const [uploading, setUploading]     = useState({})
   const [uploadErrors, setUploadErrors] = useState({})
   const [supportConvId, setSupportConvId] = useState(null)
   const [supportOpen, setSupportOpen]     = useState(false)
   const [openingSupport, setOpeningSupport] = useState(false)
+
+  // Geofence failed-attempt tracking: array of timestamps
+  const failedAttemptsRef = useRef([])
+  const [showContactSupport, setShowContactSupport] = useState(false)
 
   async function handleOpenSupport() {
     setOpeningSupport(true)
@@ -183,10 +298,21 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
     setSupportOpen(true)
   }
 
-  // Realtime consumer-cancel detection
+  // Realtime consumer-cancel detection + pending_approval auto-clear
   useEffect(() => {
     if (order?.status === 'cancelled') onJobDone()
+    if (order?.status === 'pending_approval') {
+      const t = setTimeout(onJobDone, 1500)
+      return () => clearTimeout(t)
+    }
   }, [order?.status]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function recordGeofenceFailure() {
+    const now    = Date.now()
+    const cutoff = now - 5 * 60 * 1000
+    failedAttemptsRef.current = [...failedAttemptsRef.current.filter(t => t > cutoff), now]
+    if (failedAttemptsRef.current.length >= 3) setShowContactSupport(true)
+  }
 
   async function uploadEvidence(type, file) {
     if (file.size > 50 * 1024 * 1024) {
@@ -227,24 +353,38 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
     if (advancingRef.current || !order) return
     const trans = TRANSITION_KEYS[order.status]
     if (!trans) return
+
     advancingRef.current = true
     setAdvancing(true)
+
+    const isArriving = trans.next === 'arrived'
     const { error } = await supabase.rpc('transition_order_status', {
       order_id:   activeJob.id,
       new_status: trans.next,
+      washer_lat: isArriving ? (position?.lat ?? null) : null,
+      washer_lng: isArriving ? (position?.lng ?? null) : null,
     })
+
     advancingRef.current = false
     setAdvancing(false)
+
     if (error) {
+      const isGeofenceError =
+        error.message?.includes('Too far from location') ||
+        error.message?.includes('Worker location required')
+
+      if (isArriving && isGeofenceError) recordGeofenceFailure()
+
       if (!error.message?.match(/Invalid transition: (\S+) → \1/)) {
         showToast(error.message, 'error')
       }
       return
     }
+
     mutateOrder({ status: trans.next })
-    if (trans.next === 'completed') {
-      showToast(t('washer.drawer.toasts.completed'), 'success')
-      setTimeout(onJobDone, 2000)
+    if (trans.next === 'pending_approval') {
+      showToast(t('washer.drawer.toasts.submitted'), 'success')
+      setTimeout(onJobDone, 1500)
     } else {
       showToast(t(ADVANCE_TOAST_KEYS[trans.next] ?? 'washer.drawer.updating'), 'success')
     }
@@ -257,20 +397,34 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
   )
 
   const trans        = TRANSITION_KEYS[order.status]
-  const isCompleting = trans?.next === 'completed'
+  const isCompleting = trans?.next === 'pending_approval'
+  const isArriving   = trans?.next === 'arrived'
   const anyUploading = Object.values(uploading).some(Boolean)
 
+  // Client-side geofence
+  const distanceM = (isArriving && position && order.lat && order.lng)
+    ? Math.round(haversineKm(position.lat, position.lng, order.lat, order.lng) * 1000)
+    : null
+  const isTooFar   = isArriving && (distanceM === null || distanceM > 100)
+  const noGps      = isArriving && !position
+
+  // Both before + after required to submit for approval.
+  // Legacy addon evidence (wiper/tire) still gates completion for old orders.
   const canComplete = (
-    order.evidence_wash_path != null &&
+    order.evidence_before_path != null &&
+    order.evidence_after_path  != null &&
     (!order.addon_wiper_fluid   || order.evidence_wiper_fluid_path   != null) &&
     (!order.addon_tire_pressure || order.evidence_tire_pressure_path != null)
   )
 
   const missingEvidence = [
-    !order.evidence_wash_path                                         && t('washer.drawer.washVideo'),
-    order.addon_wiper_fluid   && !order.evidence_wiper_fluid_path    && t('washer.drawer.wiperFluidEvidence'),
-    order.addon_tire_pressure && !order.evidence_tire_pressure_path  && t('washer.drawer.tirePressureEvidence'),
+    !order.evidence_before_path                                        && t('washer.evidence.before'),
+    !order.evidence_after_path                                         && t('washer.evidence.after'),
+    order.addon_wiper_fluid   && !order.evidence_wiper_fluid_path     && t('washer.drawer.wiperFluidEvidence'),
+    order.addon_tire_pressure && !order.evidence_tire_pressure_path   && t('washer.drawer.tirePressureEvidence'),
   ].filter(Boolean)
+
+  const isActionDisabled = advancing || anyUploading || (isCompleting && !canComplete) || (isArriving && isTooFar)
 
   return (
     <div className="flex flex-col gap-3 px-4 pb-6">
@@ -283,9 +437,17 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
           </span>
           <div>
             <p className="text-sm font-semibold text-ink">
-              {t(`carLabels.${order.car_type}`)} — {t(`serviceLabels.${order.service_type}`)}
+              {t(`carLabels.${order.car_type}`)}
             </p>
-            <p className="text-xs text-ink-muted">{t('washer.jobDetail.payout', { amount: order.base_price })}</p>
+            <p className="text-sm font-medium text-accent">
+              {t('washer.drawer.earnings.label')}: ₪{order.base_price}
+            </p>
+            <p className="text-xs text-ink-muted">
+              {t('washer.drawer.earnings.includesVat', {
+                rate:   Math.round(VAT_RATE * 100),
+                amount: (order.base_price - order.base_price / (1 + VAT_RATE)).toFixed(2),
+              })}
+            </p>
           </div>
         </div>
 
@@ -300,14 +462,17 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
         </div>
       </div>
 
-      {/* Access instructions */}
+      {/* Vehicle section */}
+      <VehicleSection order={order} />
+
+      {/* Access notes — new orders use access_notes; legacy orders fall back to key_location */}
       <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-1">
           <Key className="h-4 w-4 text-accent shrink-0" />
-          <p className="text-sm font-semibold text-accent">{t('washer.drawer.accessInstructions')}</p>
+          <p className="text-sm font-semibold text-accent">{t('washer.drawer.access.title')}</p>
         </div>
         <p className="text-sm text-ink">
-          {order.key_location || t('washer.drawer.noAccessNotes')}
+          {order.access_notes || order.key_location || t('washer.drawer.access.none')}
         </p>
       </div>
 
@@ -322,13 +487,21 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
           <p className="text-sm font-semibold text-ink px-1">{t('washer.drawer.uploadEvidence')}</p>
 
           <EvidenceCard
-            label={t('washer.drawer.washVideo')}
-            path={order.evidence_wash_path}
-            uploading={!!uploading.wash}
-            error={uploadErrors.wash}
-            onRecord={file => uploadEvidence('wash', file)}
+            label={t('washer.evidence.before')}
+            path={order.evidence_before_path}
+            uploading={!!uploading.before}
+            error={uploadErrors.before}
+            onRecord={file => uploadEvidence('before', file)}
+          />
+          <EvidenceCard
+            label={t('washer.evidence.after')}
+            path={order.evidence_after_path}
+            uploading={!!uploading.after}
+            error={uploadErrors.after}
+            onRecord={file => uploadEvidence('after', file)}
           />
 
+          {/* Legacy addon evidence — still shown if old order has addons */}
           {order.addon_wiper_fluid && (
             <EvidenceCard
               label={t('washer.drawer.wiperFluidEvidence')}
@@ -338,7 +511,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
               onRecord={file => uploadEvidence('wiper_fluid', file)}
             />
           )}
-
           {order.addon_tire_pressure && (
             <EvidenceCard
               label={t('washer.drawer.tirePressureEvidence')}
@@ -348,6 +520,14 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
               onRecord={file => uploadEvidence('tire_pressure', file)}
             />
           )}
+        </div>
+      )}
+
+      {/* Submitted state — visible briefly while drawer waits to clear */}
+      {order.status === 'pending_approval' && (
+        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 text-center">
+          <p className="font-semibold text-accent">{t('washer.drawer.submitted')}</p>
+          <p className="text-xs text-ink-muted mt-1">{t('washer.drawer.submittedDesc')}</p>
         </div>
       )}
 
@@ -362,8 +542,8 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
       {trans && (
         <>
           <button
-            onClick={advance}
-            disabled={advancing || anyUploading || (isCompleting && !canComplete)}
+            onClick={isActionDisabled ? undefined : advance}
+            disabled={isActionDisabled}
             className="btn-primary w-full"
           >
             {advancing
@@ -372,6 +552,27 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
             }
             {advancing ? t('washer.drawer.updating') : t(trans.key)}
           </button>
+
+          {/* Geofence helpers */}
+          {isArriving && noGps && (
+            <p className="text-xs text-center text-ink-muted px-2">
+              {t('washer.drawer.geofence.gpsRequired')}
+            </p>
+          )}
+          {isArriving && isTooFar && distanceM !== null && (
+            <p className="text-xs text-center text-ink-muted px-2">
+              {t('washer.drawer.geofence.tooFar')} — {t('washer.drawer.geofence.distance', { distance: distanceM })}
+            </p>
+          )}
+          {isArriving && showContactSupport && (
+            <button
+              type="button"
+              onClick={() => navigate('/washer/support')}
+              className="btn-ghost w-full text-sm text-warning-600"
+            >
+              {t('washer.drawer.geofence.contactSupport')}
+            </button>
+          )}
 
           {isCompleting && !canComplete && (
             <p className="text-xs text-center text-ink-muted px-2">
@@ -399,7 +600,8 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone }) {
   )
 }
 
-export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone }) {
+// ── Main drawer component ──────────────────────────────────────────────────────
+export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone, position }) {
   const navigate  = useNavigate()
   const { t }     = useTranslation()
   const showToast = useToast()
@@ -430,8 +632,6 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
     onJobDone()
   }
 
-  // Safety net: block going offline while a job is active (shouldn't trigger
-  // in normal flow since the toggle is hidden during active jobs).
   function handleToggle() {
     if (activeJob) {
       showToast(t('washer.online.cantGoOfflineActive'), 'error')
@@ -473,10 +673,6 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   const { expandedH, collapsed } = snaps.current
   const drawerTitle = isActive ? t('washer.drawer.activeJob') : t('washer.drawer.jobsNearby')
 
-  // Header trailing slot:
-  //   active job + cancellable status → compact danger pill
-  //   active job + non-cancellable status (arrived+) → nothing
-  //   no active job → online toggle
   const headerTrailing = isActive
     ? (canCancel
         ? <button
@@ -537,6 +733,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
             order={order}
             mutateOrder={mutateOrder}
             onJobDone={onJobDone}
+            position={position}
           />
         </div>
       ) : (

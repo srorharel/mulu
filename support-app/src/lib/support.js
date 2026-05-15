@@ -85,7 +85,7 @@ export async function fetchOrderDetails(orderId) {
 export async function fetchUserProfile(userId) {
   return supabase
     .from('profiles')
-    .select('id, full_name, role, phone, created_at')
+    .select('id, full_name, role, phone, created_at, last_lat, last_lng, last_location_at')
     .eq('id', userId)
     .single()
 }

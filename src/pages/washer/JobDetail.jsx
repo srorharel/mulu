@@ -80,7 +80,7 @@ export default function JobDetail() {
             </span>
             <div>
               <p className="font-semibold">{t(`carLabels.${order.car_type}`)}</p>
-              <p className="text-sm text-ink-muted">{t(`serviceLabels.${order.service_type}`)}</p>
+              <p className="text-sm text-ink-muted">{t(`serviceLabels.${order.service_type || 'wash'}`)}</p>
             </div>
           </div>
 

@@ -20,7 +20,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
   const distKm   = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
   const ariaLabel = t('washer.jobCard.ariaLabel', {
     car:      t(`carLabels.${job.car_type}`),
-    service:  t(`serviceLabels.${job.service_type}`),
+    service:  t(`serviceLabels.${job.service_type || 'wash'}`),
     distance: distKm,
     price:    job.base_price,
   })
@@ -79,7 +79,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
             <Car className="h-4 w-4 text-accent" />
           </span>
           <Badge variant="pill" className="bg-surface-elevated border border-edge text-ink-muted">
-            {t(`serviceLabels.${job.service_type}`)}
+            {t(`serviceLabels.${job.service_type || 'wash'}`)}
           </Badge>
         </div>
         <GripHorizontal className="h-4 w-4 text-ink-muted/40 shrink-0" />

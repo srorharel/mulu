@@ -9,6 +9,7 @@ import Landing      from './pages/Landing.jsx'
 import SignUp       from './pages/SignUp.jsx'
 import Login        from './pages/Login.jsx'
 import Profile      from './pages/Profile.jsx'
+import Support      from './pages/Support.jsx'
 
 import ConsumerHome   from './pages/consumer/Home.jsx'
 import OrderTracking  from './pages/consumer/OrderTracking.jsx'
@@ -18,16 +19,15 @@ import WasherDashboard from './pages/washer/Dashboard.jsx'
 import JobDetail       from './pages/washer/JobDetail.jsx'
 import Earnings        from './pages/washer/Earnings.jsx'
 import Shop            from './pages/washer/Shop.jsx'
-import Support         from './pages/washer/Support.jsx'
 import Settings        from './pages/washer/Settings.jsx'
-import ConsumerSupport from './pages/consumer/Support.jsx'
 
 // Redirects authenticated users away from public pages
 function AuthRedirect({ children }) {
   const { user, profile, loading } = useAuth()
   if (loading) return null
   if (!user) return children
-  if (profile?.role === 'agent') return children // agents use support-app, not this app
+  if (profile?.role === 'agent') return <Navigate to="/support" replace />
+  if (profile?.role === 'admin') return <Navigate to="/support" replace /> // stale data fallback
   return <Navigate to={profile?.role === 'washer' ? '/washer' : '/home'} replace />
 }
 
@@ -65,24 +65,29 @@ export function AppRouter() {
           <Route path="/home"       element={<ConsumerHome />} />
           <Route path="/order/:id"  element={<OrderTracking />} />
           <Route path="/history"    element={<OrderHistory />} />
-          <Route path="/support"    element={<ConsumerSupport />} />
         </Route>
 
-        {/* Washer-only — two layout shells:
-            WasherMapShell: full-bleed map (Dashboard only, no BottomNav)
-            WasherShell:    standard layout (remaining washer pages via PageShell) */}
+        {/* Washer-only */}
         <Route element={<RoleGuard allowedRoles={['washer']} />}>
           <Route element={<WasherMapShell />}>
             <Route path="/washer" element={<WasherDashboard />} />
           </Route>
           <Route element={<WasherShell />}>
-            <Route path="/washer/job/:id"    element={<JobDetail />} />
-            <Route path="/washer/earnings"   element={<Earnings />} />
-            <Route path="/washer/shop"       element={<Shop />} />
-            <Route path="/washer/support"    element={<Support />} />
-            <Route path="/washer/settings"   element={<Settings />} />
+            <Route path="/washer/job/:id"   element={<JobDetail />} />
+            <Route path="/washer/earnings"  element={<Earnings />} />
+            <Route path="/washer/shop"      element={<Shop />} />
+            <Route path="/washer/settings"  element={<Settings />} />
           </Route>
         </Route>
+
+        {/* Unified Support — consumer, washer, and agent all reach /support */}
+        <Route element={<RoleGuard allowedRoles={['consumer', 'washer', 'agent']} />}>
+          <Route path="/support" element={<Support />} />
+        </Route>
+
+        {/* Legacy redirects — old paths point to /support */}
+        <Route path="/washer/support"  element={<Navigate to="/support" replace />} />
+        <Route path="/agent/approvals" element={<Navigate to="/support" replace />} />
 
         {/* Any authenticated user */}
         <Route element={<RoleGuard />}>

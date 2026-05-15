@@ -74,21 +74,11 @@
       "tapToAdjust": "הקש לכוונון הסיכה",
       "allowLocation": "או אפשר גישה למיקום לזיהוי אוטומטי",
       "carType": "סוג רכב",
-      "service": "שירות",
-      "keyLocation": "מיקום המפתח",
       "optional": "(אופציונלי)",
-      "keyLocationPlaceholder": "לדוג׳ בקבלה, בארון חשמל, השאר מפתחות עם השוער",
-      "keyLocationHint": "רק השוטף שלך יראה זאת, לאחר שיקבל את העבודה.",
       "siteResources": "מה זמין במיקום?",
       "waterAccessible": "ברז מים נגיש",
       "powerAccessible": "שקע חשמל נגיש",
       "siteResourcesHint": "זה עוזר לשוטף לדעת מה להביא.",
-      "addons": "תוספות",
-      "wiperFluidRefill": "מילוי נוזל מגבים",
-      "tirePressureCheck": "בדיקת לחץ צמיגים",
-      "serviceLine": "שירות",
-      "platformFee": "עמלת פלטפורמה (15%)",
-      "total": "סה\"כ",
       "bookNow": "הזמן עכשיו",
       "booking": "מזמין...",
       "locationRequired": "אנא אפשר מיקום או הקש \"בחר מיקום\" כדי לקבוע סיכה",
@@ -101,6 +91,38 @@
       "locationDenied": {
         "title": "הגישה למיקום נדחתה",
         "body": "אפשר מיקום בהגדרות ← Safari ← שירותי מיקום עבור אתר זה."
+      },
+      "fields": {
+        "carYear": "שנת רכב",
+        "plate": "מספר רכב",
+        "platePlaceholder": "12-345-67",
+        "accessNotes": "הוראות גישה",
+        "accessNotesPlaceholder": "איך להגיע לרכב שלך (אופציונלי). לדוגמה: 'בניין 5, חניון קומה -2, מקום 23'"
+      },
+      "price": {
+        "total": "סה\"כ",
+        "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})"
+      },
+      "plate": {
+        "lookingUp": "מחפש את הרכב...",
+        "isThisYourCar": "האם זה הרכב שלך?",
+        "yesItsMine": "כן, זה שלי",
+        "noEnterManually": "לא, להזין ידנית",
+        "notFound": "לא נמצא רכב במספר זה. אנא הזן את פרטי הרכב.",
+        "lookupError": "לא ניתן ליצור קשר עם רשם הרכב. נסה שוב או הזן ידנית.",
+        "retry": "נסה שוב",
+        "enterManually": "הזן ידנית",
+        "editPlate": "החלף מספר רכב",
+        "makeLabel": "יצרן",
+        "modelLabel": "דגם"
+      },
+      "photos": {
+        "title": "תמונות הרכב (אופציונלי)",
+        "optional": "תמונות הרכב (אופציונלי)",
+        "addPhoto": "הוסף תמונה",
+        "tooLarge": "התמונה חייבת להיות עד 5MB",
+        "uploadFailed": "ההעלאה נכשלה. נסה שוב.",
+        "removing": "הסר תמונה"
       }
     },
     "locationSheet": {
@@ -184,7 +206,20 @@
       "thisWeek": "השבוע",
       "noJobs": "אין עבודות שהושלמו עדיין",
       "noJobsDesc": "השלם את השטיפה הראשונה שלך כדי לראות את ההכנסות כאן.",
-      "recent": "אחרונות"
+      "recent": "אחרונות",
+      "vatNote": "הסכומים כוללים מע\"מ 18%",
+      "approved": {
+        "title": "הכנסות מאושרות"
+      },
+      "pending": {
+        "title": "ממתין לאישור"
+      },
+      "transaction": {
+        "badge": {
+          "approved": "מאושר",
+          "pending": "ממתין"
+        }
+      }
     },
     "menu": {
       "profile": "פרופיל",
@@ -247,8 +282,14 @@
       },
       "customerPays": "הלקוח משלם ₪{{amount}}",
       "updating": "מעדכן...",
-      "accessInstructions": "הוראות גישה",
-      "noAccessNotes": "אין הערות גישה מיוחדות — פגוש את הלקוח במיקום.",
+      "access": {
+        "title": "הוראות גישה",
+        "none": "אין הוראות גישה מיוחדות — פגוש את הלקוח במיקום."
+      },
+      "earnings": {
+        "label": "הכנסה",
+        "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})"
+      },
       "uploadEvidence": "העלה הוכחה",
       "washVideo": "וידאו שטיפה (חובה)",
       "wiperFluidEvidence": "💧 מילוי נוזל מגבים",
@@ -272,12 +313,31 @@
       },
       "jobCompleted": "עבודה הושלמה — כל הכבוד!",
       "videoTooLarge": "הוידאו חייב להיות מתחת ל-50 MB",
+      "vehicle": {
+        "title": "רכב",
+        "notProvided": "פרטי הרכב לא סופקו",
+        "plate": "מספר רכב",
+        "color": "צבע"
+      },
+      "geofence": {
+        "tooFar": "עליך להיות במרחק של 100 מטר כדי לסמן הגעה",
+        "distance": "{{distance}} מטר",
+        "contactSupport": "פנה לתמיכה",
+        "gpsRequired": "אפשר מיקום להמשך"
+      },
       "toasts": {
         "enRoute": "בדרך ללקוח",
         "arrived": "סומן כהגיע",
         "inProgress": "שטיפה התחילה — עשה עבודה מצוינת!",
-        "completed": "עבודה הושלמה! כל הכבוד."
-      }
+        "completed": "עבודה הושלמה! כל הכבוד.",
+        "submitted": "נשלח לאישור"
+      },
+      "submitted": "נשלח!",
+      "submittedDesc": "ממתין לאישור מנהל"
+    },
+    "evidence": {
+      "before": "סרטון לפני",
+      "after": "סרטון אחרי"
     },
     "toggle": {
       "online": "מחובר",
@@ -307,6 +367,7 @@
     "en_route": "שוטף בדרך",
     "arrived": "שוטף הגיע",
     "in_progress": "שטיפה מתבצעת",
+    "pending_approval": "בבדיקה",
     "completed": "הושלם",
     "labels": {
       "pending": "ממתין",
@@ -314,6 +375,7 @@
       "en_route": "בדרך",
       "arrived": "הגיע",
       "in_progress": "בביצוע",
+      "pending_approval": "בבדיקה",
       "completed": "הושלם",
       "cancelled": "בוטל"
     }
@@ -321,7 +383,8 @@
   "serviceLabels": {
     "exterior": "חיצוני",
     "interior": "פנימי",
-    "full": "שטיפה מלאה"
+    "full": "שטיפה מלאה",
+    "wash": "שטיפת רכב"
   },
   "carLabels": {
     "sedan": "סדאן",

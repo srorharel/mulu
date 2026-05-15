@@ -21,14 +21,12 @@ export default function RoleGuard({ allowedRoles }) {
   // Authenticated but profile not yet fetched (brief gap after sign-in)
   if (!profile) return <Spinner />
 
-  // Agents belong in the support-app, not here — send to landing
-  if (profile.role === 'agent') {
-    return <Navigate to="/" replace />
-  }
-
-  // Wrong role — send to the user's correct home
+  // Wrong role — send each role to its correct home
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    return <Navigate to={profile.role === 'washer' ? '/washer' : '/home'} replace />
+    if (profile.role === 'agent')  return <Navigate to="/support" replace />
+    if (profile.role === 'admin')  return <Navigate to="/support" replace /> // stale data fallback
+    if (profile.role === 'washer') return <Navigate to="/washer" replace />
+    return <Navigate to="/home" replace />
   }
 
   return <Outlet />
