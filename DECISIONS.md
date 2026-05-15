@@ -202,3 +202,48 @@
 **Decision.** No invite URL, no email flow, no admin UI. Creating an agent requires: (1) create auth user in the Supabase dashboard, (2) run a manual SQL INSERT into `profiles` with `role = 'agent'`. Documented in `support-app/README.md`. `AuthContext` in the agent app enforces role — a non-agent who logs in is signed out immediately.  
 **Alternatives considered.** Magic-link invite via Supabase Auth: clean UX but requires an edge function to send the invite and set the role atomically. Admin-panel route in the agent app: scope creep for v1.  
 **Implications.** Provisioning a new agent requires direct DB access. Acceptable while the support team is small (1–3 people). Build the invite flow when onboarding becomes a recurring task.
+
+---
+
+## Open follow-ups from the redesign arc
+
+These are pending items, not decided ones. No ADR assigned yet. Promote to a full ADR when a decision is made on scope/approach.
+
+### Deferred from the visual redesign (ADR-013 – ADR-017)
+
+**ADR-013 · Live map on Order Tracking** — Priority: **high**  
+Consumer Order Tracking shows a static `MapBG` SVG placeholder. Real-time washer location requires a consumer-side Supabase Realtime subscription to `profiles.current_location` for the assigned washer, plus a second Leaflet instance (or a lightweight canvas overlay) to render the moving pin. Routing line via OSRM is optional but paired with ADR-016.
+
+**ADR-014 · History yearly stats server-side aggregate** — Priority: **low**  
+The year-stat card (count + spend) currently computes client-side from the already-loaded orders array — correct for typical users but silently undercounts if a consumer has more than Supabase's default 1,000-row page limit. A `get_consumer_year_stats(year int)` RPC returning `{count, total_spent}` would fix this permanently with one round-trip.
+
+**ADR-015 · Washer today's earnings widget** — Priority: **med**  
+The top-right widget on the Washer Dashboard shows `₪—`. Needs a `get_washer_today_earnings()` security-definer RPC returning the sum of `base_price` on completed orders where `approved_at::date = current_date`. Trigger or live subscription on new completions optional (a per-mount fetch is probably sufficient).
+
+**ADR-016 · Live ETA on Order Tracking** — Priority: **high**  
+Paired with ADR-013. Once the washer's `current_location` is subscribed on the consumer side, compute ETA by sending a single OSRM `/route` request from washer lat/lng to `order.lat/lng`. Cache result; refresh every position update. Display as `X min · Y km` in the existing ETA pill. Fallback: keep `~15 min` if location or routing is unavailable.
+
+**ADR-017 · Washer and consumer star ratings** — Priority: **med**  
+Both the washer card on Order Tracking and the customer card in Active Job show a hardcoded `4.8`. Needs: `rating numeric(3,2)` and `completed_jobs_count int` columns on `profiles`; a trigger on `orders` that updates the washer's stats when `status → completed`; a consumer-facing review submission screen or modal after job completion. The consumer side of ADR-017 (customer card in Active Job) also needs `consumer_orders_count int` for the "— orders" line.
+
+---
+
+### Code-level TODOs accumulated during the redesign
+
+**Phone numbers on profiles** — Priority: **med**  
+The washer card (Order Tracking) and customer card (Active Job) both have a dimmed phone button that does nothing. Needs a `phone text` column on `profiles`, capture at signup, and a `tel:` href wired to the button. Washer phone is the more urgent half — the consumer needs to reach the washer quickly on arrival.
+
+**History filter** — Priority: **med**  
+The filter icon button in the History header is a non-functional placeholder. Needs a bottom-sheet filter panel with status multi-select and date-range picker, plus a filtered Supabase query (indexed `status` and `created_at` columns already exist). Grouping by time bucket should remain after filtering.
+
+**`rounded-2xl` → `rounded-glass` in unchanged washer components** — Priority: **low**  
+`EvidenceCard` (JobDrawer line 80), `VehicleSection` wrapper (line 294), and `JobCard` (line 73) still use `rounded-2xl` (16px). Updating these three to `rounded-glass` (22px) brings them in line with everything else redesigned in Phase 2–6. One-line change each, no logic impact. See DESIGN.md §16 items 1–2.
+
+**Bottom-sheet top-radius standardisation** — Priority: **low**  
+`JobDrawer` uses `rounded-t-3xl` (24px); the Order Tracking bottom sheet uses `rounded-t-[28px]` (28px). Standardise `JobDrawer` to 28px to match. See DESIGN.md §16 item 3.
+
+**`bg-surface-glass` legacy alias cleanup** — Priority: **low**  
+`--color-surface-glass` in `src/index.css` `.dark {}` still holds the old `rgba(26,29,39,0.72)` opacity. The `tailwind.config.js` `surface.glass` key points to it. Neither is referenced by any current component (all glass uses `bg-glass` → `--color-glass-surface` at 0.50). Remove the CSS var from the dark block and the `surface.glass` Tailwind key to avoid confusion. See DESIGN.md §16 item 8.
+
+**WasherMenu online status indicator** — Priority: **low**  
+`WasherMenu` shows a passive online/offline dot in its header. The toggle has moved to the top `OnlinePill` — so the menu's status display is now read-only decoration. Either remove it (cleaner) or make it a secondary toggle target (consistent). Current state is not broken, just slightly redundant.
