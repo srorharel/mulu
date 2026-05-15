@@ -119,6 +119,9 @@ where id = '44444444-0000-0000-0000-000000000004';
 -- The validate_order_prices BEFORE INSERT trigger overwrites base_price /
 -- platform_fee / total_price with server-computed values, so the zeros below
 -- are just placeholders.
+--
+-- car_type uses the current pricing categories ('private', 'pickup', 'jeep')
+-- and service_type is always 'wash' — matching what the app creates today.
 
 insert into public.orders (
   id,
@@ -134,7 +137,7 @@ values
     'aa000000-0000-0000-0000-000000000001',
     '11111111-0000-0000-0000-000000000001',
     null,
-    'sedan', 'exterior',
+    'private', 'wash',
     ST_SetSRID(ST_MakePoint(35.2137, 31.7683), 4326)::geography,
     'Jaffa Gate, Jerusalem',
     0, 0, 0,
@@ -146,7 +149,7 @@ values
     'aa000000-0000-0000-0000-000000000002',
     '22222222-0000-0000-0000-000000000002',
     '33333333-0000-0000-0000-000000000003',
-    'suv', 'full',
+    'private', 'wash',
     ST_SetSRID(ST_MakePoint(35.2200, 31.7700), 4326)::geography,
     'Mahane Yehuda Market, Jerusalem',
     0, 0, 0,
@@ -160,7 +163,7 @@ values
     'aa000000-0000-0000-0000-000000000003',
     '11111111-0000-0000-0000-000000000001',
     '44444444-0000-0000-0000-000000000004',
-    'pickup', 'interior',
+    'pickup', 'wash',
     ST_SetSRID(ST_MakePoint(35.2300, 31.7800), 4326)::geography,
     'Hebrew University Mount Scopus, Jerusalem',
     0, 0, 0,
