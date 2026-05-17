@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LogOut, User, MessageCircle } from 'lucide-react'
+import { LogOut, User, MessageCircle, Car } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase.js'
@@ -98,13 +98,22 @@ export default function Profile() {
           </form>
 
           {profile?.role === 'consumer' && (
-            <button
-              onClick={() => navigate('/support')}
-              className="btn-ghost w-full mt-4"
-            >
-              <MessageCircle className="h-4 w-4" />
-              {t('support.title')}
-            </button>
+            <>
+              <button
+                onClick={() => navigate('/profile/vehicles')}
+                className="btn-ghost w-full mt-4"
+              >
+                <Car className="h-4 w-4" />
+                {t('profile.vehicles')}
+              </button>
+              <button
+                onClick={() => navigate('/support')}
+                className="btn-ghost w-full mt-2"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t('support.title')}
+              </button>
+            </>
           )}
 
           <button onClick={signOut} className="btn-ghost w-full mt-2 text-danger-500 hover:bg-danger-50">

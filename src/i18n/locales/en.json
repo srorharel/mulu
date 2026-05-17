@@ -63,7 +63,8 @@
     "saving": "Saving…",
     "saveChanges": "Save changes",
     "signOut": "Sign out",
-    "updated": "Profile updated"
+    "updated": "Profile updated",
+    "vehicles": "My vehicles"
   },
   "consumer": {
     "home": {
@@ -207,6 +208,33 @@
         "call": "Call",
         "callWasher": "Call washer",
         "chatWasher": "Chat with washer"
+      }
+    },
+    "vehicles": {
+      "title": "My vehicles",
+      "addVehicle": "Add vehicle",
+      "noVehicles": "No saved vehicles yet",
+      "noVehiclesHint": "Save a vehicle to pre-fill your next booking",
+      "defaultBadge": "Default",
+      "setDefault": "Set as default",
+      "editNickname": "Edit name",
+      "deleteVehicle": "Delete vehicle",
+      "nicknameSaved": "Name updated",
+      "deleted": "Vehicle removed",
+      "defaultSet": "Default updated",
+      "saved": "Vehicle saved",
+      "deleteConfirm": {
+        "title": "Remove this vehicle?",
+        "message": "This won't affect your past orders.",
+        "confirm": "Remove",
+        "cancel": "Keep"
+      },
+      "add": {
+        "title": "Add vehicle",
+        "nicknameLabel": "Name",
+        "nicknamePlaceholder": "e.g. My Corolla",
+        "nicknameHint": "A short name to tell your vehicles apart",
+        "save": "Save vehicle"
       }
     },
     "history": {

@@ -63,7 +63,8 @@
     "saving": "שומר...",
     "saveChanges": "שמור שינויים",
     "signOut": "התנתקות",
-    "updated": "הפרופיל עודכן"
+    "updated": "הפרופיל עודכן",
+    "vehicles": "הרכבים שלי"
   },
   "consumer": {
     "home": {
@@ -207,6 +208,33 @@
         "call": "שיחה",
         "callWasher": "התקשר לשוטף",
         "chatWasher": "שוחח עם השוטף"
+      }
+    },
+    "vehicles": {
+      "title": "הרכבים שלי",
+      "addVehicle": "הוסף רכב",
+      "noVehicles": "אין רכבים שמורים",
+      "noVehiclesHint": "שמור רכב כדי למלא אוטומטית הזמנות עתידיות",
+      "defaultBadge": "ברירת מחדל",
+      "setDefault": "הגדר כברירת מחדל",
+      "editNickname": "ערוך שם",
+      "deleteVehicle": "מחק רכב",
+      "nicknameSaved": "השם עודכן",
+      "deleted": "הרכב הוסר",
+      "defaultSet": "ברירת המחדל עודכנה",
+      "saved": "הרכב נשמר",
+      "deleteConfirm": {
+        "title": "להסיר את הרכב?",
+        "message": "זה לא ישפיע על ההזמנות הקודמות שלך.",
+        "confirm": "הסר",
+        "cancel": "שמור"
+      },
+      "add": {
+        "title": "הוסף רכב",
+        "nicknameLabel": "שם",
+        "nicknamePlaceholder": "לדוג׳ הקורולה שלי",
+        "nicknameHint": "שם קצר כדי להבדיל בין הרכבים",
+        "save": "שמור רכב"
       }
     },
     "history": {

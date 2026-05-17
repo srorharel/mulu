@@ -271,6 +271,13 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 **Decision:** BEFORE INSERT trigger (`vehicles_auto_default_trg`). The invariant "a consumer with one vehicle always has a default" is a DB-level constraint, not a UI concern — enforcing it in the trigger means it holds regardless of which client path created the vehicle (the post-booking save dialog, the management page, a future API call, or a seed script).
 **Consequence:** The application layer can always INSERT with `is_default = false`; the trigger promotes it if needed. No app-level logic required. A consumer who deletes their default vehicle is left with no default (the trigger only fires on INSERT, not on DELETE) — the app must handle the "no default" state gracefully, which it does by falling back to the full plate-lookup flow.
 
+## ADR-022: Edit nickname is inline, not a modal
+**Date:** 2026-05-18
+**Status:** Accepted
+**Context:** The vehicle management list lets consumers rename a saved vehicle. The edit could be done inline (text becomes an input in place, with Save / Cancel buttons) or via a modal (tap edit → modal with input → save).
+**Decision:** Inline. Nickname is a single short field; a modal adds ceremony (backdrop, dismiss affordance, header) that is disproportionate to the action. Inline editing keeps the user's eye on the vehicle row they are modifying, matches established patterns for single-field list-item renames (Notion tasks, iOS shortcuts), and is consistent with the app's density target (Wolt-level, §13). State is minimal: one `editingId` + `editingValue` per page. The ConfirmDialog component is reserved for destructive confirmations (delete) where friction is intentional.
+**Consequence:** The vehicle row expands slightly when in edit mode to accommodate the input and Save/Cancel buttons. Only one row can be in edit mode at a time; starting a new edit implicitly cancels the previous one.
+
 ## ADR-021: orders INSERT RLS updated to validate vehicle_id ownership
 **Date:** 2026-05-18
 **Status:** Accepted

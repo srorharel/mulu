@@ -14,6 +14,7 @@ import Support      from './pages/Support.jsx'
 import ConsumerHome   from './pages/consumer/Home.jsx'
 import OrderTracking  from './pages/consumer/OrderTracking.jsx'
 import OrderHistory   from './pages/consumer/OrderHistory.jsx'
+import Vehicles       from './pages/consumer/Vehicles.jsx'
 import ConsumerLayout from './components/consumer/ConsumerLayout.jsx'
 
 import WasherDashboard from './pages/washer/Dashboard.jsx'
@@ -64,9 +65,10 @@ export function AppRouter() {
         {/* Consumer-only */}
         <Route element={<RoleGuard allowedRoles={['consumer']} />}>
           <Route element={<ConsumerLayout />}>
-            <Route path="/home"       element={<ConsumerHome />} />
-            <Route path="/order/:id"  element={<OrderTracking />} />
-            <Route path="/history"    element={<OrderHistory />} />
+            <Route path="/home"              element={<ConsumerHome />} />
+            <Route path="/order/:id"         element={<OrderTracking />} />
+            <Route path="/history"           element={<OrderHistory />} />
+            <Route path="/profile/vehicles"  element={<Vehicles />} />
           </Route>
         </Route>
 
