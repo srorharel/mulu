@@ -155,6 +155,45 @@ export default function ConsumerHome() {
       })
   }, [user.id])
 
+  // Keep a ref in sync so the focus handler can read the current vehicleId
+  // without needing to be in its dependency array (avoids re-registering on
+  // every selection change).
+  const vehicleIdRef = useRef(null)
+  useEffect(() => { vehicleIdRef.current = vehicleId }, [vehicleId])
+
+  // On window focus: refresh the vehicle list and invalidate any selection that
+  // was deleted in another tab while this page was open.
+  useEffect(() => {
+    async function handleFocus() {
+      const currentId = vehicleIdRef.current
+      const { data } = await supabase
+        .from('vehicles')
+        .select('*')
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true })
+      const vehicles = data ?? []
+      setSavedVehicles(vehicles)
+
+      // Only reconcile when a saved vehicle is selected; free-text mode (currentId === null)
+      // just gets a refreshed list for the picker sheet.
+      if (currentId !== null && !vehicles.find(v => v.id === currentId)) {
+        const defaultV = vehicles.find(v => v.is_default)
+        if (defaultV) {
+          setLicenseData({ make: defaultV.make, model: defaultV.model, year: defaultV.year, plate: defaultV.plate, color: defaultV.color, category: defaultV.category ?? 'private', isValid: true })
+          setVehicleId(defaultV.id)
+          setShowPicker(false)
+        } else {
+          setLicenseData(EMPTY_LICENSE)
+          setVehicleId(null)
+          setShowPicker(true)
+        }
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, []) // stable — vehicleId accessed via ref
+
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
   const { total: consumerTotal, vat } = consumerBreakdown(licenseData.category || 'private')
