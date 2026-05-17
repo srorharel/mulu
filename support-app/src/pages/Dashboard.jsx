@@ -20,9 +20,16 @@ function ApprovalsView() {
   const { t } = useTranslation()
   const [orders,  setOrders]  = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
 
   const load = useCallback(async () => {
-    const { data } = await fetchPendingApprovals()
+    const { data, error } = await fetchPendingApprovals()
+    if (error) {
+      console.error('fetchPendingApprovals failed:', error)
+      setLoadError(error.message)
+    } else {
+      setLoadError(null)
+    }
     setOrders(data ?? [])
     setLoading(false)
   }, [])
@@ -46,6 +53,14 @@ function ApprovalsView() {
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+    </div>
+  )
+
+  if (loadError) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+      <p className="font-semibold text-danger-500">{t('approvals.error.title')}</p>
+      <p className="text-xs text-ink-muted font-mono">{loadError}</p>
+      <button onClick={load} className="btn-ghost text-sm">{t('approvals.error.retry')}</button>
     </div>
   )
 

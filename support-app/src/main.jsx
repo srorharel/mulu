@@ -29,7 +29,8 @@ i18n
             row: { customer: 'לקוח', worker: 'עובד', submitted: 'הוגש {{time}}', vehicle: 'רכב', videoBefore: 'לפני', videoAfter: 'אחרי' },
             actions: { approve: 'אשר', confirmTitle: 'לאשר את העבודה?', confirmMessage: 'הכנסות העובד יזוכו והעבודה תסומן כהושלמה.', confirmYes: 'כן, לאשר', confirmNo: 'לא עכשיו' },
             toasts: { approved: 'אושר' },
-            location: { title: 'מיקום העובד', lastSeen: 'עודכן {{time}}', unavailable: 'אין מיקום זמין' },
+            location: { title: 'מיקום הגשה', notRecorded: 'מיקום לא נרשם', submittedAt: 'הוגש {{time}}', distance: 'מרחק {{distance}}מ׳ מכתובת העבודה' },
+            error: { title: 'שגיאה בטעינת אישורים', retry: 'נסה שוב' },
           },
           orderActions: {
             cancel: { button: 'בטל הזמנה', confirmTitle: 'לבטל את ההזמנה?', confirmBody: 'ההזמנה תבוטל. העובד, אם הוקצה, יקבל הודעה.', confirmYes: 'כן, לבטל', confirmNo: 'אל תבטל' },
@@ -57,7 +58,8 @@ i18n
             row: { customer: 'Customer', worker: 'Worker', submitted: 'Submitted {{time}}', vehicle: 'Vehicle', videoBefore: 'Before', videoAfter: 'After' },
             actions: { approve: 'Approve', confirmTitle: 'Approve this job?', confirmMessage: "The worker's earnings will be credited and the order will be marked complete.", confirmYes: 'Yes, approve', confirmNo: 'Not yet' },
             toasts: { approved: 'Approved' },
-            location: { title: 'Washer location', lastSeen: 'Last seen {{time}}', unavailable: 'No location available yet' },
+            location: { title: 'Submission location', notRecorded: 'Location not recorded', submittedAt: 'Submitted {{time}}', distance: '{{distance}}m from job address' },
+            error: { title: 'Failed to load approvals', retry: 'Retry' },
           },
           orderActions: {
             cancel: { button: 'Cancel order', confirmTitle: 'Cancel this order?', confirmBody: 'The order will be cancelled. The worker, if assigned, will be notified.', confirmYes: 'Yes, cancel', confirmNo: "Don't cancel" },

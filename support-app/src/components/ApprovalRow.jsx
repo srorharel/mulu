@@ -66,26 +66,77 @@ function VideoThumb({ label, url }) {
   )
 }
 
-function LocationCard({ washer }) {
+// UI-only warning threshold — no enforcement. Flag orders where the washer
+// submitted from more than this distance from the job address. May need tuning.
+const SUBMISSION_DISTANCE_WARN_M = 500
+
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R  = 6371000
+  const φ1 = lat1 * Math.PI / 180
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lng2 - lng1) * Math.PI / 180
+  const a  = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+}
+
+function LocationCard({ order }) {
   const { t } = useTranslation()
-  const address = useReverseGeocode(washer?.last_lat, washer?.last_lng)
-  const hasLoc  = washer?.last_lat != null && washer?.last_lng != null
+  const hasSubmitted = order.submitted_lat != null && order.submitted_lng != null
+  const hasOrderLoc  = order.lat != null && order.lng != null
+
+  const submittedAddress = useReverseGeocode(
+    hasSubmitted ? order.submitted_lat : null,
+    hasSubmitted ? order.submitted_lng : null,
+  )
+
+  const dist = (hasSubmitted && hasOrderLoc)
+    ? haversineM(order.submitted_lat, order.submitted_lng, order.lat, order.lng)
+    : null
 
   return (
     <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
-      <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{t('approvals.location.title')}</p>
-      {hasLoc ? (
+      <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+        {t('approvals.location.title')}
+      </p>
+
+      {!hasSubmitted ? (
+        <p className="text-sm text-ink-muted">{t('approvals.location.notRecorded')}</p>
+      ) : (
         <>
           <Suspense fallback={<div className="h-[150px] rounded-lg bg-surface-elevated animate-pulse" />}>
-            <MiniMap lat={washer.last_lat} lng={washer.last_lng} />
+            <MiniMap
+              lat={order.submitted_lat}
+              lng={order.submitted_lng}
+              secondLat={hasOrderLoc ? order.lat : undefined}
+              secondLng={hasOrderLoc ? order.lng : undefined}
+            />
           </Suspense>
-          {address && <p className="text-xs text-ink leading-snug">{address}</p>}
+
+          {/* Legend */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
+              <p className="text-xs text-ink leading-snug">{submittedAddress ?? '—'}</p>
+            </div>
+            {order.address_label && (
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 shrink-0" />
+                <p className="text-xs text-ink-muted leading-snug">{order.address_label}</p>
+              </div>
+            )}
+          </div>
+
+          {dist !== null && (
+            <p className={`text-xs font-semibold ${dist > SUBMISSION_DISTANCE_WARN_M ? 'text-danger-500' : 'text-accent'}`}>
+              {t('approvals.location.distance', { distance: dist })}
+            </p>
+          )}
+
           <p className="text-xs text-ink-muted">
-            {t('approvals.location.lastSeen', { time: timeAgo(washer.last_location_at) })}
+            {t('approvals.location.submittedAt', { time: timeAgo(order.submitted_location_at) })}
           </p>
         </>
-      ) : (
-        <p className="text-sm text-ink-muted">{t('approvals.location.unavailable')}</p>
       )}
     </div>
   )
@@ -138,7 +189,7 @@ export default function ApprovalRow({ order, onApproved }) {
 
           <div className="flex items-center gap-1 text-xs text-ink-muted">
             <Clock className="h-3 w-3" />
-            <span>{t('approvals.row.submitted', { time: timeAgo(order.updated_at ?? order.created_at) })}</span>
+            <span>{t('approvals.row.submitted', { time: timeAgo(order.accepted_at ?? order.created_at) })}</span>
           </div>
         </div>
 
@@ -187,7 +238,7 @@ export default function ApprovalRow({ order, onApproved }) {
       </div>
 
       {/* Location card */}
-      <LocationCard washer={order.washer_profile} />
+      <LocationCard order={order} />
     </div>
   )
 }

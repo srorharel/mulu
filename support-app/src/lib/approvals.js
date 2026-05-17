@@ -6,12 +6,14 @@ export async function fetchPendingApprovals() {
     .select(`
       id, status, car_type, car_make, car_model, car_year, car_color, car_plate,
       evidence_before_path, evidence_after_path,
-      created_at, updated_at,
+      created_at, accepted_at,
+      submitted_lat, submitted_lng, submitted_location_at,
+      lat, lng, address_label,
       consumer_profile:profiles!consumer_id(full_name),
-      washer_profile:profiles!washer_id(id, full_name, last_lat, last_lng, last_location_at)
+      washer_profile:profiles!washer_id(id, full_name)
     `)
     .eq('status', 'pending_approval')
-    .order('updated_at', { ascending: false, nullsFirst: false })
+    .order('accepted_at', { ascending: false, nullsFirst: false })
 }
 
 export async function approveOrder(orderId) {

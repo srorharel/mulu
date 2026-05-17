@@ -408,6 +408,9 @@
         "contactSupport": "פנה לתמיכה",
         "gpsRequired": "אפשר מיקום להמשך"
       },
+      "submit": {
+        "gpsRequired": "אפשר מיקום כדי להגיש לאישור"
+      },
       "toasts": {
         "enRoute": "בדרך ללקוח",
         "arrived": "סומן כהגיע",

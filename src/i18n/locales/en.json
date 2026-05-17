@@ -408,6 +408,9 @@
         "contactSupport": "Contact support",
         "gpsRequired": "Enable location to continue"
       },
+      "submit": {
+        "gpsRequired": "Enable location to submit for approval"
+      },
       "toasts": {
         "enRoute": "Heading to the customer",
         "arrived": "Marked as arrived",

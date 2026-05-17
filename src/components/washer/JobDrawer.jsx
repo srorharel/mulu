@@ -455,12 +455,14 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     advancingRef.current = true
     setAdvancing(true)
 
-    const isArriving = trans.next === 'arrived'
+    const isArriving   = trans.next === 'arrived'
+    const isSubmitting = trans.next === 'pending_approval'
+    const needsGps     = isArriving || isSubmitting
     const { error } = await supabase.rpc('transition_order_status', {
       order_id:   activeJob.id,
       new_status: trans.next,
-      washer_lat: isArriving ? (position?.lat ?? null) : null,
-      washer_lng: isArriving ? (position?.lng ?? null) : null,
+      washer_lat: needsGps ? (position?.lat ?? null) : null,
+      washer_lng: needsGps ? (position?.lng ?? null) : null,
     })
 
     advancingRef.current = false
@@ -522,7 +524,8 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     order.addon_tire_pressure && !order.evidence_tire_pressure_path   && t('washer.drawer.tirePressureEvidence'),
   ].filter(Boolean)
 
-  const isActionDisabled = advancing || anyUploading || (isCompleting && !canComplete) || (isArriving && isTooFar)
+  const noGpsSubmit      = isCompleting && !position
+  const isActionDisabled = advancing || anyUploading || (isCompleting && !canComplete) || (isArriving && isTooFar) || noGpsSubmit
 
   // Consumer info for the customer card.
   const consumerName     = consumerProfile?.full_name || t('washer.drawer.customer')
@@ -705,6 +708,11 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             <button type="button" onClick={() => navigate('/washer/support')} className="btn-ghost w-full text-sm text-warning-600">
               {t('washer.drawer.geofence.contactSupport')}
             </button>
+          )}
+          {isCompleting && noGpsSubmit && (
+            <p className="text-xs text-center text-ink-muted px-2">
+              {t('washer.drawer.submit.gpsRequired')}
+            </p>
           )}
           {isCompleting && !canComplete && (
             <p className="text-xs text-center text-ink-muted px-2">
