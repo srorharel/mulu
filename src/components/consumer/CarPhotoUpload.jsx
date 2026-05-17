@@ -147,8 +147,8 @@ export default function CarPhotoUpload({ orderId, userId, onChange, showLabel = 
     <div>
       {showLabel && (
         <div className="mb-2">
-          <p className="label">{t('consumer.home.booking.carPhotos.title')}</p>
-          <p className="text-xs text-ink-muted mt-0.5">{t('consumer.home.booking.carPhotos.subtitle')}</p>
+          <p className="label">{t('consumer.home.carPhotos.title')}</p>
+          <p className="text-xs text-ink-muted mt-0.5">{t('consumer.home.carPhotos.subtitle')}</p>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">

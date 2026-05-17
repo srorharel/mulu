@@ -252,10 +252,10 @@ export default function ConsumerHome() {
             <div className="flex justify-between items-start mb-2.5">
               <div>
                 <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
-                  {t('consumer.home.booking.carPhotos.title')}
+                  {t('consumer.home.carPhotos.title')}
                 </p>
                 <p className="text-[11px] text-ink-muted mt-0.5">
-                  {t('consumer.home.booking.carPhotos.subtitle')}
+                  {t('consumer.home.carPhotos.subtitle')}
                 </p>
               </div>
               <p className="text-[11px] font-semibold text-primary-700 shrink-0 mt-0.5">{uploadedCount}/4</p>

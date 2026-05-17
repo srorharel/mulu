@@ -118,11 +118,9 @@
       "submit": {
         "needsPhotos": "Add all 4 vehicle photos to continue"
       },
-      "booking": {
-        "carPhotos": {
-          "title": "Photos of your car",
-          "subtitle": "4 photos required, one from each side"
-        }
+      "carPhotos": {
+        "title": "Photos of your car",
+        "subtitle": "4 photos required, one from each side"
       },
       "plate": {
         "lookingUp": "Looking up your car...",
