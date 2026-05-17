@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Menu } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useNearbyJobs } from '../../hooks/useNearbyJobs.js'
+import { payoutForTier } from '../../lib/payout.js'
 import JobDrawer from '../../components/washer/JobDrawer.jsx'
 import WasherMenu from '../../components/washer/WasherMenu.jsx'
 import NavLauncher from '../../components/washer/NavLauncher.jsx'
@@ -79,6 +80,71 @@ function OnlinePill({ online, toggling, profile, user, onToggle, onMenuOpen, t }
         className="px-3 py-2 flex items-center justify-center"
       >
         <Menu className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.55)' }} />
+      </button>
+    </div>
+  )
+}
+
+// ── Tier change banner ────────────────────────────────────────────────────────
+// Shows when profile.tier_changed_at is within last 24h and user hasn't dismissed it.
+// Direction (up vs down) is inferred from localStorage-cached previous tier.
+function TierBanner({ profile, t }) {
+  const changedAt = profile?.tier_changed_at
+  const tier      = profile?.current_tier
+
+  const [visible, setVisible] = useState(false)
+  const [wentUp,  setWentUp]  = useState(true)
+
+  useEffect(() => {
+    if (!changedAt || tier == null) return
+    const ageMs   = Date.now() - new Date(changedAt).getTime()
+    if (ageMs > 24 * 60 * 60 * 1000) return // older than 24h
+
+    const dismissKey = `tier_banner_dismissed_${changedAt}`
+    if (localStorage.getItem(dismissKey)) return
+
+    // Compare to previous tier stored on last dashboard load
+    const prevTierRaw = localStorage.getItem('washer_previous_tier')
+    const prevTier    = prevTierRaw != null ? Number(prevTierRaw) : null
+    setWentUp(prevTier == null || tier >= prevTier)
+    setVisible(true)
+  }, [changedAt, tier])
+
+  // Always update previous-tier cache on each load
+  useEffect(() => {
+    if (tier != null) localStorage.setItem('washer_previous_tier', String(tier))
+  }, [tier])
+
+  function dismiss() {
+    if (!changedAt) return
+    localStorage.setItem(`tier_banner_dismissed_${changedAt}`, '1')
+    setVisible(false)
+  }
+
+  if (!visible || tier == null) return null
+
+  const payout = payoutForTier(tier)
+  const text   = wentUp
+    ? t('washer.tier.banner.up',   { stars: tier, payout })
+    : t('washer.tier.banner.down', { stars: tier, payout })
+
+  return (
+    <div
+      className="fixed inset-x-4 z-50 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-lg"
+      style={{
+        top: 'max(5.5rem, calc(env(safe-area-inset-top, 0px) + 5.5rem))',
+        background: wentUp ? 'rgba(38,181,95,0.95)' : 'rgba(26,29,39,0.92)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.12)',
+      }}
+    >
+      <p className="flex-1 text-[13px] font-semibold text-white leading-snug">{text}</p>
+      <button
+        onClick={dismiss}
+        aria-label={t('washer.tier.banner.dismiss')}
+        className="shrink-0 text-white/70 hover:text-white"
+      >
+        <X className="h-4 w-4" />
       </button>
     </div>
   )
@@ -289,6 +355,9 @@ export default function WasherDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Tier change banner ── */}
+      <TierBanner profile={profile} t={t} />
 
       {/* ── Persistent components ── */}
       <WasherMenu open={menuOpen} onClose={() => setMenuOpen(false)} online={online} />

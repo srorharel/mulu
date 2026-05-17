@@ -40,6 +40,14 @@ i18n
             toasts: { cancelled: 'ההזמנה בוטלה', completed: 'ההזמנה הושלמה' },
             error: 'הפעולה נכשלה. נסה שוב.',
           },
+          support: {
+            tickets: {
+              title: 'פניות תמיכה',
+              empty: 'אין פניות פתוחות',
+              reason: { low_rating: 'דירוג נמוך (1★)' },
+              status: { open: 'פתוחה', in_progress: 'בטיפול', resolved: 'טופלה' },
+            },
+          },
         },
       },
       en: {
@@ -70,6 +78,14 @@ i18n
             complete: { button: 'Mark complete (override)', confirmTitle: 'Complete this order without video review?', confirmBody: 'This bypasses the normal approval flow. The worker will be paid 60₪. Use only for exceptions.', confirmYes: 'Yes, complete', confirmNo: "Don't complete" },
             toasts: { cancelled: 'Order cancelled', completed: 'Order completed' },
             error: 'Action failed. Try again.',
+          },
+          support: {
+            tickets: {
+              title: 'Support tickets',
+              empty: 'No open tickets',
+              reason: { low_rating: 'Low rating (1★)' },
+              status: { open: 'Open', in_progress: 'In progress', resolved: 'Resolved' },
+            },
           },
         },
       },

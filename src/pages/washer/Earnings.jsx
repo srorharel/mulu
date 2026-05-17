@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { priceBreakdown, VAT_RATE } from '../../lib/pricing.js'
+import { PAYOUT_BY_TIER, UNRATED_PAYOUT, RATING_GATE_JOBS, payoutForTier } from '../../lib/payout.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 
 const container = {
@@ -28,8 +29,85 @@ function BentoTile({ children, className = '' }) {
   )
 }
 
+// ── Tier ladder ───────────────────────────────────────────────────────────────
+const TIERS = [1, 2, 3, 4, 5]
+
+function TierLadder({ profile, t }) {
+  const tier        = profile?.current_tier ?? null
+  const rating      = profile?.current_rating ?? null
+  const ratedCount  = profile?.rated_job_count ?? 0
+  const isRated     = tier !== null
+  const currentPayout = payoutForTier(tier)
+
+  return (
+    <motion.div variants={tileVariant} className="col-span-2 bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
+      {/* Heading */}
+      <div>
+        <p className="text-sm font-bold text-ink">
+          {isRated
+            ? t('washer.tier.heading.rated', { stars: tier, average: rating?.toFixed(2) })
+            : t('washer.tier.heading.unrated')}
+        </p>
+        <p className="text-xs text-ink-muted mt-0.5">
+          {isRated
+            ? t('washer.tier.payout.current', { payout: currentPayout })
+            : t('washer.tier.unrated.gate', {
+                remaining: Math.max(0, RATING_GATE_JOBS - ratedCount),
+                payout: UNRATED_PAYOUT,
+              })}
+        </p>
+        {!isRated && (
+          <p className="text-xs text-ink-muted mt-0.5">
+            {ratedCount} / {RATING_GATE_JOBS}
+          </p>
+        )}
+      </div>
+
+      {/* Ladder */}
+      <div className="flex gap-1.5">
+        {TIERS.map(n => {
+          const isActive = n === tier
+          const payout   = PAYOUT_BY_TIER[n]
+          return (
+            <div
+              key={n}
+              className={`flex-1 rounded-xl p-2 flex flex-col items-center gap-0.5 border transition-colors ${
+                isActive
+                  ? 'bg-primary-100 border-primary-400'
+                  : 'bg-surface border-edge'
+              }`}
+            >
+              <div className="flex gap-0.5">
+                {Array.from({ length: n }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-2.5 w-2.5 ${isActive ? 'text-warning-500' : 'text-edge'}`}
+                    fill={isActive ? 'currentColor' : 'none'}
+                  />
+                ))}
+              </div>
+              <p className={`text-[11px] font-bold ${isActive ? 'text-primary-700' : 'text-ink-muted'}`}>
+                ₪{payout}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Footer */}
+      {isRated && (
+        <p className="text-[11px] text-ink-muted text-center">
+          {tier < 5
+            ? t('washer.tier.ladder.improve')
+            : t('washer.tier.ladder.top')}
+        </p>
+      )}
+    </motion.div>
+  )
+}
+
 export default function Earnings() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { t, i18n } = useTranslation()
   const [allOrders, setAllOrders] = useState([])
   const [loading, setLoading]     = useState(true)
@@ -47,22 +125,25 @@ export default function Earnings() {
   const approvedOrders = allOrders.filter(o => o.status === 'completed')
   const pendingOrders  = allOrders.filter(o => o.status === 'pending_approval')
 
-  const totalApproved = approvedOrders.reduce((sum, o) => sum + Number(o.base_price), 0)
-  const totalPending  = pendingOrders.reduce((sum, o) => sum + Number(o.base_price), 0)
+  // Use payout_amount when available; fall back to base_price for legacy orders
+  const effectivePayout = (o) => Number(o.payout_amount ?? o.base_price)
+
+  const totalApproved = approvedOrders.reduce((sum, o) => sum + effectivePayout(o), 0)
+  const totalPending  = pendingOrders.reduce((sum, o) => sum + effectivePayout(o), 0)
 
   const vatRate = Math.round(VAT_RATE * 100)
 
-  const approvedPreVatSum = approvedOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).preVat, 0)
-  const approvedVatSum    = approvedOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).vat, 0)
+  const approvedPreVatSum = approvedOrders.reduce((s, o) => s + priceBreakdown(effectivePayout(o)).preVat, 0)
+  const approvedVatSum    = approvedOrders.reduce((s, o) => s + priceBreakdown(effectivePayout(o)).vat, 0)
 
-  const pendingPreVatSum = pendingOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).preVat, 0)
-  const pendingVatSum    = pendingOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).vat, 0)
+  const pendingPreVatSum = pendingOrders.reduce((s, o) => s + priceBreakdown(effectivePayout(o)).preVat, 0)
+  const pendingVatSum    = pendingOrders.reduce((s, o) => s + priceBreakdown(effectivePayout(o)).vat, 0)
 
   const now = new Date()
   const thisMonth = approvedOrders
     .filter(o => new Date(o.completed_at).getMonth() === now.getMonth() &&
                  new Date(o.completed_at).getFullYear() === now.getFullYear())
-    .reduce((sum, o) => sum + Number(o.base_price), 0)
+    .reduce((sum, o) => sum + effectivePayout(o), 0)
 
   const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
   const todayCount = approvedOrders.filter(o => new Date(o.completed_at) >= todayStart).length
@@ -91,6 +172,9 @@ export default function Earnings() {
               animate="show"
               className="grid grid-cols-2 gap-3"
             >
+              {/* Tier ladder — always first */}
+              <TierLadder profile={profile} t={t} />
+
               {/* Approved earnings — hero tile, full width */}
               <BentoTile className="col-span-2">
                 <p className="text-xs text-ink-muted flex items-center gap-1">
@@ -170,7 +254,7 @@ export default function Earnings() {
               </BentoTile>
             </motion.div>
 
-            {/* Recent transactions — all orders (approved + pending) */}
+            {/* Recent transactions */}
             {allOrders.length === 0 ? (
               <div className="flex flex-col items-center gap-2 pt-8 text-center">
                 <div className="rounded-2xl bg-surface-elevated border border-edge p-5 mb-1">
@@ -186,7 +270,8 @@ export default function Earnings() {
                 <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">{t('washer.earnings.recent')}</p>
                 {allOrders.map(order => {
                   const isPending = order.status === 'pending_approval'
-                  const { preVat, vat } = priceBreakdown(Number(order.base_price))
+                  const payout    = effectivePayout(order)
+                  const { preVat, vat } = priceBreakdown(payout)
                   return (
                     <div key={order.id} className="flex items-start justify-between py-3 border-b border-edge last:border-0">
                       <div className="min-w-0">
@@ -214,7 +299,7 @@ export default function Earnings() {
                       </div>
                       <div className="flex flex-col items-end flex-shrink-0 ms-2">
                         <p className={`font-bold ${isPending ? 'text-ink-muted' : 'text-accent'}`}>
-                          ₪{order.base_price}
+                          ₪{payout}
                         </p>
                         <p className="text-[10px] text-ink-muted/60 mt-0.5">
                           {t('washer.earnings.transaction.vatBreakdown', {

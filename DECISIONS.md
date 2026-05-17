@@ -205,6 +205,13 @@
 
 ---
 
+## ADR-018: Washer star rating placeholder removed from Order Tracking
+**Date:** 2026-05-17
+**Status:** Accepted
+**Context:** ADR-017 added a static 4.8 star placeholder (with "— washes" wash count) to the WasherCard on OrderTracking. The rating system spec explicitly prohibits consumers from seeing washer ratings.
+**Decision:** Removed the star row from WasherCard entirely. The washer's name still displays (it is fetched from `profiles.full_name`). No star count, no wash count shown to consumer anywhere.
+**Consequence:** WasherCard shows name + message/call buttons only. The star placeholder is gone.
+
 ## Open follow-ups from the redesign arc
 
 These are pending items, not decided ones. No ADR assigned yet. Promote to a full ADR when a decision is made on scope/approach.

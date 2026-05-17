@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Clock, MessageCircle, Phone, Star, Check } from 'lucide-react'
+import { ArrowLeft, Clock, MessageCircle, Phone, Star, Check, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
@@ -12,14 +12,15 @@ import MapBG from '../../components/ui/MapBG.jsx'
 
 const CANCELLABLE = new Set(['pending', 'accepted'])
 
-// Maps order status → 0-based index into the 5-step progress track.
 const STATUS_TO_STEP = {
   pending: 0, accepted: 1, en_route: 2, arrived: 2,
   in_progress: 3, pending_approval: 3, completed: 4, cancelled: -1,
 }
 
-// Active (tracking) statuses — show the LIVE badge and ETA pill.
 const ACTIVE_STATUSES = new Set(['accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval'])
+
+// Rating window: 48 hours from completion
+const RATING_WINDOW_MS = 48 * 60 * 60 * 1000
 
 function getWasherInitials(profile) {
   const name = profile?.full_name || ''
@@ -69,31 +70,22 @@ function TrackingDots({ status, t }) {
   )
 }
 
-// ── Washer info card ──────────────────────────────────────────────────────────
+// ── Washer info card — ADR-018: rating placeholder removed ───────────────────
 function WasherCard({ profile, onMessage, openingMessage, t }) {
   const initials = getWasherInitials(profile)
   const name     = profile?.full_name || t('consumer.tracking.washer.unknown')
 
   return (
     <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-glass-sm">
-      {/* Avatar */}
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 border-2 border-white shadow-sm"
         style={{ background: 'linear-gradient(135deg, #9CDEB6, #26B55F)' }}
       >
         {initials}
       </div>
-      {/* Name + rating */}
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-ink truncate">{name}</p>
-        {/* ADR-017: static rating placeholder */}
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <Star className="h-3 w-3 text-warning-500 shrink-0" fill="currentColor" />
-          <span className="text-[12px] font-semibold text-ink">4.8</span>
-          <span className="text-[12px] text-ink-muted">· {t('consumer.tracking.washer.washes')}</span>
-        </div>
       </div>
-      {/* Action buttons */}
       <div className="flex gap-2 shrink-0">
         <button
           onClick={onMessage}
@@ -103,13 +95,189 @@ function WasherCard({ profile, onMessage, openingMessage, t }) {
         >
           <MessageCircle className="h-[18px] w-[18px]" />
         </button>
-        {/* ADR-017: phone button visual-only — no phone stored */}
         <button
           aria-label={t('consumer.tracking.washer.call')}
           className="w-10 h-10 rounded-[12px] bg-white flex items-center justify-center text-primary-800 shadow-sm opacity-40 cursor-default"
           tabIndex={-1}
         >
           <Phone className="h-[18px] w-[18px]" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Star rating widget ────────────────────────────────────────────────────────
+function StarPicker({ value, onChange, disabled }) {
+  const [hovered, setHovered] = useState(0)
+
+  return (
+    <div className="flex gap-1 justify-center" dir="ltr">
+      {[1, 2, 3, 4, 5].map(n => {
+        const filled = n <= (hovered || value)
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={disabled}
+            aria-label={`${n} stars`}
+            onClick={() => onChange(n)}
+            onMouseEnter={() => setHovered(n)}
+            onMouseLeave={() => setHovered(0)}
+            className="p-1 disabled:cursor-default"
+          >
+            <Star
+              className={`h-8 w-8 transition-colors ${filled ? 'text-warning-500' : 'text-edge'}`}
+              fill={filled ? 'currentColor' : 'none'}
+            />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Rating card — shown on completed orders within 48h, before rating/skip ────
+function RatingCard({ order, t }) {
+  const navigate = useNavigate()
+  const showToast = useToast()
+
+  const [stars,          setStars]          = useState(0)
+  const [feedback,       setFeedback]       = useState('')
+  const [submitting,     setSubmitting]     = useState(false)
+  const [submitted,      setSubmitted]      = useState(false)
+  const [skipping,       setSkipping]       = useState(false)
+  const [skipped,        setSkipped]        = useState(false)
+  const [elaborate,      setElaborate]      = useState('')
+  const [elaborateSent,  setElaborateSent]  = useState(false)
+  const [elaborating,    setElaborating]    = useState(false)
+
+  // Window check: 48h from completed_at
+  const completedAt  = order.completed_at ? new Date(order.completed_at) : null
+  const windowOpen   = completedAt && (Date.now() - completedAt.getTime() < RATING_WINDOW_MS)
+
+  // Don't render if already rated/skipped in DB, or window closed
+  if (order.rated_at || order.rating_skipped || !windowOpen) return null
+  // Don't render if already handled locally
+  if (skipped) return null
+
+  async function handleSubmit() {
+    if (!stars) return
+    setSubmitting(true)
+    const { data, error } = await supabase.rpc('submit_rating', {
+      p_order_id: order.id,
+      p_stars:    stars,
+      p_feedback: feedback,
+    })
+    setSubmitting(false)
+    if (error) { showToast(error.message, 'error'); return }
+    setSubmitted(true)
+  }
+
+  async function handleSkip() {
+    setSkipping(true)
+    await supabase.rpc('skip_rating', { p_order_id: order.id })
+    setSkipping(false)
+    setSkipped(true)
+  }
+
+  async function handleElaborate() {
+    if (!elaborate.trim()) return
+    setElaborating(true)
+    await supabase.rpc('update_rating_elaboration', {
+      p_order_id:       order.id,
+      p_extra_feedback: elaborate,
+    })
+    setElaborating(false)
+    setElaborateSent(true)
+  }
+
+  // ── Post-submit state ─────────────────────────────────────────────────────
+  if (submitted) {
+    const responseKey = `rating.response.${stars}`
+
+    return (
+      <div className="rounded-glass p-4 flex flex-col gap-3 bg-primary-50 border border-primary-200">
+        {/* Submitted summary */}
+        <p className="text-[13px] font-semibold text-ink-muted text-center">
+          {t('rating.already.submitted', { stars })}
+        </p>
+
+        {/* Response copy */}
+        <p className="text-[14px] text-ink text-center leading-snug">
+          {t(responseKey)}
+        </p>
+
+        {/* 1★: view support thread button */}
+        {stars === 1 && (
+          <button
+            onClick={() => navigate('/support')}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-primary-600 text-white text-[13px] font-semibold"
+          >
+            {t('rating.response.1viewTicket')}
+            <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
+          </button>
+        )}
+
+        {/* 2-4★: elaborate textarea */}
+        {stars >= 2 && stars <= 4 && !elaborateSent && (
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={elaborate}
+              onChange={e => setElaborate(e.target.value)}
+              placeholder={t('rating.response.elaborate.placeholder')}
+              rows={2}
+              className="w-full resize-none rounded-xl border border-edge bg-white px-3 py-2 text-[13px] text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-primary-400"
+            />
+            <button
+              onClick={handleElaborate}
+              disabled={elaborating || !elaborate.trim()}
+              className="self-end px-4 py-1.5 rounded-xl bg-primary-600 text-white text-[13px] font-semibold disabled:opacity-50"
+            >
+              {t('rating.response.elaborate.submit')}
+            </button>
+          </div>
+        )}
+        {stars >= 2 && stars <= 4 && elaborateSent && (
+          <p className="text-[12px] text-ink-muted text-center">{t('rating.already.submitted', { stars })}</p>
+        )}
+      </div>
+    )
+  }
+
+  // ── Default: rating prompt ────────────────────────────────────────────────
+  return (
+    <div className="rounded-glass p-4 flex flex-col gap-3 bg-surface border border-edge">
+      <div className="text-center">
+        <p className="text-[15px] font-bold text-ink">{t('rating.prompt.title')}</p>
+        <p className="text-[12px] text-ink-muted mt-0.5">{t('rating.prompt.subtitle')}</p>
+      </div>
+
+      <StarPicker value={stars} onChange={setStars} disabled={submitting} />
+
+      <textarea
+        value={feedback}
+        onChange={e => setFeedback(e.target.value)}
+        placeholder={t('rating.feedback.placeholder')}
+        maxLength={1000}
+        rows={2}
+        className="w-full resize-none rounded-xl border border-edge bg-white px-3 py-2 text-[13px] text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-primary-400"
+      />
+
+      <div className="flex gap-2">
+        <button
+          onClick={handleSkip}
+          disabled={skipping || submitting}
+          className="flex-1 py-2.5 rounded-xl border border-edge text-[13px] font-semibold text-ink-muted disabled:opacity-50"
+        >
+          {t('rating.skip')}
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={!stars || submitting}
+          className="flex-[2] py-2.5 rounded-xl bg-primary-600 text-white text-[13px] font-semibold disabled:opacity-50"
+        >
+          {submitting ? '…' : t('rating.submit')}
         </button>
       </div>
     </div>
@@ -130,7 +298,6 @@ export default function OrderTracking() {
   const [openingSupport, setOpeningSupport] = useState(false)
   const [washerProfile, setWasherProfile]   = useState(null)
 
-  // Fetch washer profile when washer_id is available.
   useEffect(() => {
     if (!order?.washer_id) { setWasherProfile(null); return }
     supabase
@@ -141,7 +308,6 @@ export default function OrderTracking() {
       .then(({ data }) => setWasherProfile(data ?? null))
   }, [order?.washer_id])
 
-  // Address display — preserve legacy coord-based address handling.
   const isLegacyAddress = looksLikeCoords(order?.address_label)
   const { address: geocodedAddress } = useReverseGeocode(
     isLegacyAddress ? order?.lat : null,
@@ -172,7 +338,6 @@ export default function OrderTracking() {
     navigate('/history')
   }
 
-  // ── Loading / error states ──────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center bg-surface">
@@ -204,17 +369,14 @@ export default function OrderTracking() {
 
       {/* ── Map area ─────────────────────────────────────────────────────── */}
       <div className="relative shrink-0 overflow-hidden h-[55vh] min-h-[200px]">
-        {/* Static map background */}
         <MapBG className="absolute inset-0 w-full h-full" />
 
-        {/* Decorative route + markers overlay */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
           viewBox="0 0 390 600"
           preserveAspectRatio="xMidYMid slice"
           aria-hidden="true"
         >
-          {/* Route line: washer placeholder → customer car */}
           <path
             d="M 75 355 Q 135 285 180 250 T 210 195"
             stroke="#26B55F" strokeWidth="4" strokeLinecap="round" fill="none"
@@ -224,13 +386,11 @@ export default function OrderTracking() {
             stroke="white" strokeWidth="1.5" strokeLinecap="round"
             fill="none" strokeDasharray="2 6"
           />
-          {/* Customer car position */}
           <g transform="translate(210,195)">
             <circle r="20" fill="rgba(125,217,162,0.22)" />
             <circle r="13" fill="white" stroke="#26B55F" strokeWidth="2" />
             <circle r="4" fill="#26B55F" />
           </g>
-          {/* Washer position — static placeholder (ADR-013) */}
           <g transform="translate(75,355)">
             <circle r="20" fill="#26B55F" stroke="white" strokeWidth="3" />
             <text
@@ -243,10 +403,8 @@ export default function OrderTracking() {
           </g>
         </svg>
 
-        {/* Fade to white at bottom of map */}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-white pointer-events-none" />
 
-        {/* ── Top chrome ── */}
         <div
           className="absolute start-4 end-4 flex items-center justify-between z-20"
           style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
@@ -267,7 +425,6 @@ export default function OrderTracking() {
           )}
         </div>
 
-        {/* ── ETA pill — ADR-016: static placeholder ── */}
         {isActive && (
           <div className="absolute left-1/2 -translate-x-1/2 z-20" style={{ top: 72 }}>
             <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white shadow-[0_6px_20px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]">
@@ -285,7 +442,6 @@ export default function OrderTracking() {
 
       {/* ── Bottom sheet ─────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-white rounded-t-[28px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] -mt-7 relative z-10">
-        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-edge" />
         </div>
@@ -306,7 +462,7 @@ export default function OrderTracking() {
           {/* Progress dots */}
           <TrackingDots status={order.status} t={t} />
 
-          {/* Washer info card — shown once a washer is assigned */}
+          {/* Washer info card */}
           {order.washer_id && (
             <WasherCard
               profile={washerProfile}
@@ -323,6 +479,11 @@ export default function OrderTracking() {
             </div>
           )}
 
+          {/* Rating card — only shown on completed orders within 48h window */}
+          {order.status === 'completed' && (
+            <RatingCard order={order} t={t} />
+          )}
+
           {/* Cancelled banner */}
           {order.status === 'cancelled' && (
             <div className="rounded-glass p-4 text-center bg-danger-50 border border-danger-200">
@@ -333,14 +494,12 @@ export default function OrderTracking() {
             </div>
           )}
 
-          {/* Address — subtle, below banners */}
           {displayAddress && (
             <p className="text-[12px] text-ink-muted text-center px-4 leading-snug">
               {displayAddress}
             </p>
           )}
 
-          {/* Bottom row: cancel link + total */}
           <div className="flex items-center justify-between pt-1 pb-2">
             {CANCELLABLE.has(order.status) ? (
               <button

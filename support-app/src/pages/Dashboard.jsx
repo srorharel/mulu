@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings, LogOut, CheckCircle, Sparkles } from 'lucide-react'
+import { Settings, LogOut, CheckCircle, Sparkles, TicketCheck } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useAgentQueue } from '../hooks/useAgentQueue.js'
@@ -81,6 +81,162 @@ function ApprovalsView() {
   )
 }
 
+// ── Tickets view ───────────────────────────────────────────────────────────────
+
+function TicketsView() {
+  const { t } = useTranslation()
+  const [tickets,  setTickets]  = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [selected, setSelected] = useState(null)
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select(`
+        *,
+        consumer:consumer_id ( id, full_name, email ),
+        washer:washer_id     ( id, full_name )
+      `)
+      .order('created_at', { ascending: false })
+    if (error) console.error('support_tickets fetch failed:', error)
+    setTickets(data ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+    const ch = supabase
+      .channel('tickets-view')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, load)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [load])
+
+  async function updateStatus(id, status) {
+    await supabase
+      .from('support_tickets')
+      .update({ status, resolved_at: status === 'resolved' ? new Date().toISOString() : null })
+      .eq('id', id)
+    load()
+  }
+
+  const STATUS_COLOR = {
+    open:        'bg-danger-50 text-danger-500',
+    in_progress: 'bg-warning-50 text-warning-600',
+    resolved:    'bg-success-50 text-success-600',
+  }
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+    </div>
+  )
+
+  if (tickets.length === 0) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+      <TicketCheck className="h-12 w-12 text-accent/40" />
+      <p className="font-semibold text-ink">{t('support.tickets.empty')}</p>
+    </div>
+  )
+
+  return (
+    <div className="flex flex-1 overflow-hidden">
+      {/* Ticket list */}
+      <div className="w-80 min-w-60 border-e border-edge overflow-y-auto flex flex-col divide-y divide-edge">
+        {tickets.map(ticket => (
+          <button
+            key={ticket.id}
+            onClick={() => setSelected(ticket)}
+            className={`text-start p-3 hover:bg-surface-elevated transition-colors ${
+              selected?.id === ticket.id ? 'bg-surface-elevated' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${STATUS_COLOR[ticket.status] ?? ''}`}>
+                {t(`support.tickets.status.${ticket.status}`)}
+              </span>
+              <span className="text-[10px] text-ink-muted">
+                {t(`support.tickets.reason.${ticket.reason}`)}
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-ink truncate">
+              {ticket.consumer?.full_name ?? ticket.consumer?.email ?? '—'}
+            </p>
+            {ticket.initial_feedback && (
+              <p className="text-[11px] text-ink-muted truncate mt-0.5">
+                {ticket.initial_feedback}
+              </p>
+            )}
+            <p className="text-[10px] text-ink-muted/60 mt-1">
+              {new Date(ticket.created_at).toLocaleDateString()}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      {/* Ticket detail panel */}
+      {selected ? (
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-ink">
+                {selected.consumer?.full_name ?? selected.consumer?.email ?? '—'}
+              </p>
+              <p className="text-xs text-ink-muted">
+                {t(`support.tickets.reason.${selected.reason}`)} · {new Date(selected.created_at).toLocaleString()}
+              </p>
+            </div>
+            <span className={`text-[10px] px-2 py-1 rounded-full font-semibold shrink-0 ${STATUS_COLOR[selected.status] ?? ''}`}>
+              {t(`support.tickets.status.${selected.status}`)}
+            </span>
+          </div>
+
+          {selected.washer && (
+            <div className="text-xs text-ink-muted">
+              Washer: <span className="font-semibold text-ink">{selected.washer.full_name}</span>
+            </div>
+          )}
+
+          {selected.initial_feedback && (
+            <div className="rounded-xl bg-surface border border-edge p-3">
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Feedback</p>
+              <p className="text-sm text-ink whitespace-pre-wrap">{selected.initial_feedback}</p>
+            </div>
+          )}
+
+          <div className="text-xs text-ink-muted">
+            Order ID: <span className="font-mono text-ink">{selected.order_id?.slice(0, 8)}…</span>
+          </div>
+
+          {/* Status actions */}
+          <div className="flex gap-2 flex-wrap">
+            {selected.status !== 'in_progress' && selected.status !== 'resolved' && (
+              <button
+                onClick={() => { updateStatus(selected.id, 'in_progress'); setSelected(s => ({ ...s, status: 'in_progress' })) }}
+                className="px-3 py-1.5 rounded-xl bg-warning-50 text-warning-600 text-xs font-semibold"
+              >
+                {t('support.tickets.status.in_progress')}
+              </button>
+            )}
+            {selected.status !== 'resolved' && (
+              <button
+                onClick={() => { updateStatus(selected.id, 'resolved'); setSelected(s => ({ ...s, status: 'resolved' })) }}
+                className="px-3 py-1.5 rounded-xl bg-success-50 text-success-600 text-xs font-semibold"
+              >
+                {t('support.tickets.status.resolved')}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-ink-muted text-sm">
+          Select a ticket
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -92,8 +248,9 @@ export default function Dashboard() {
 
   const { unassigned, mine, all, loading, reload } = useAgentQueue(profile?.id)
   const [selectedConv, setSelectedConv] = useState(null)
-  const [tab, setTab] = useState('conversations') // 'conversations' | 'approvals'
+  const [tab, setTab] = useState('conversations') // 'conversations' | 'approvals' | 'tickets'
   const [pendingCount, setPendingCount] = useState(0)
+  const [ticketCount,  setTicketCount]  = useState(0)
 
   // Count pending approvals for tab badge
   useEffect(() => {
@@ -107,6 +264,22 @@ export default function Dashboard() {
     countPending()
     const ch = supabase.channel('pending-badge')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, countPending)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [])
+
+  // Count open tickets for tab badge
+  useEffect(() => {
+    async function countTickets() {
+      const { count } = await supabase
+        .from('support_tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'open')
+      setTicketCount(count ?? 0)
+    }
+    countTickets()
+    const ch = supabase.channel('ticket-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, countTickets)
       .subscribe()
     return () => supabase.removeChannel(ch)
   }, [])
@@ -171,6 +344,20 @@ export default function Dashboard() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setTab('tickets')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              tab === 'tickets' ? 'bg-accent-muted text-accent' : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            <TicketCheck className="h-3.5 w-3.5" />
+            {t('support.tickets.title')}
+            {ticketCount > 0 && (
+              <span className="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-danger-500 text-white text-[10px] font-bold">
+                {ticketCount > 9 ? '9+' : ticketCount}
+              </span>
+            )}
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -186,10 +373,14 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Body — switches between conversation panes and approvals */}
+      {/* Body — switches between conversation panes, approvals, and tickets */}
       {tab === 'approvals' ? (
         <div className="flex flex-1 overflow-hidden">
           <ApprovalsView />
+        </div>
+      ) : tab === 'tickets' ? (
+        <div className="flex flex-1 overflow-hidden">
+          <TicketsView />
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">

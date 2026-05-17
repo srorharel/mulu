@@ -439,6 +439,27 @@
     },
     "nav": {
       "openIn": "Open in {{app}}"
+    },
+    "tier": {
+      "heading": {
+        "rated": "Your rating: {{stars}} ★ ({{average}})",
+        "unrated": "Your rating: Unrated"
+      },
+      "unrated": {
+        "gate": "Complete {{remaining}} more rated jobs to unlock your tier. You currently earn {{payout}} ₪ per wash."
+      },
+      "payout": {
+        "current": "You earn {{payout}} ₪ per wash."
+      },
+      "ladder": {
+        "improve": "Improve your rating to earn up to 60 ₪ per wash.",
+        "top": "You're at the top tier. Thank you for your great work!"
+      },
+      "banner": {
+        "up": "🎉 Your rating improved to {{stars}} ★. You now earn {{payout}} ₪ per wash.",
+        "down": "Your rating is now {{stars}} ★. You earn {{payout}} ₪ per wash. Keep up the great work to climb back up.",
+        "dismiss": "Got it"
+      }
     }
   },
   "nav": {
@@ -505,6 +526,36 @@
   "app": {
     "setupRequired": "Setup required: copy .env.example to .env and add your Supabase credentials."
   },
+  "rating": {
+    "prompt": {
+      "title": "Rate your wash",
+      "subtitle": "Your feedback helps us improve"
+    },
+    "stars": {
+      "label": "{{n}} stars"
+    },
+    "feedback": {
+      "placeholder": "Tell us more (optional)"
+    },
+    "submit": "Submit rating",
+    "skip": "Skip",
+    "locked": "Rating window has closed",
+    "already": {
+      "submitted": "You rated this {{stars}} ★"
+    },
+    "response": {
+      "1": "We're sorry your wash didn't meet your expectations. Our support team will reach out shortly.",
+      "1viewTicket": "View support thread",
+      "2": "Thank you. Where can we improve?",
+      "3": "Thank you. Where can we improve?",
+      "4": "We're glad you liked it! We'd love to hear how we could make it perfect.",
+      "5": "We're glad you liked it. Thank you for using Magic Wash!",
+      "elaborate": {
+        "placeholder": "What could be better?",
+        "submit": "Send"
+      }
+    }
+  },
   "agent": {
     "shell": {
       "title": "Support"
@@ -542,6 +593,18 @@
       "createFailed": "Couldn't start conversation",
       "sendFailed": "Couldn't send message",
       "uploadFailed": "Couldn't upload image"
+    },
+    "tickets": {
+      "title": "Support tickets",
+      "empty": "No open tickets",
+      "reason": {
+        "low_rating": "Low rating (1★)"
+      },
+      "status": {
+        "open": "Open",
+        "in_progress": "In progress",
+        "resolved": "Resolved"
+      }
     }
   }
 }

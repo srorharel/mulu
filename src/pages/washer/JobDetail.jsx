@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2, Droplets, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
+import { payoutForTier } from '../../lib/payout.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 
@@ -12,6 +14,7 @@ export default function JobDetail() {
   const navigate = useNavigate()
   const showToast = useToast()
   const { t } = useTranslation()
+  const { profile } = useAuth()
   const [order, setOrder]         = useState(null)
   const [loading, setLoading]     = useState(true)
   const [accepting, setAccepting] = useState(false)
@@ -101,13 +104,13 @@ export default function JobDetail() {
             </div>
           )}
 
-          {/* Payout */}
+          {/* Payout — based on washer's current tier, locked at acceptance */}
           <div className="flex items-center gap-3">
             <span className="rounded-lg bg-primary-50 dark:bg-accent-muted p-2">
               <DollarSign className="h-5 w-5 text-primary-500 dark:text-accent" />
             </span>
             <div>
-              <p className="font-semibold">{t('washer.jobDetail.payout', { amount: order.base_price })}</p>
+              <p className="font-semibold">{t('washer.jobDetail.payout', { amount: payoutForTier(profile?.current_tier) })}</p>
               <p className="text-xs text-ink-muted">{t('washer.jobDetail.customerPays', { amount: order.total_price })}</p>
             </div>
           </div>
