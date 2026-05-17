@@ -46,7 +46,7 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
           quality:            85,
           allowEditing:       false,
           resultType:         CameraResultType.DataUrl,
-          source:             CameraSource.Prompt,  // lets consumer choose camera or gallery
+          source:             CameraSource.Camera,
           width:              MAX_EDGE_PX,
           height:             MAX_EDGE_PX,
           correctOrientation: true,
@@ -108,11 +108,11 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
         </span>
       </button>
       {err && <p className="text-xs text-danger-500">{err}</p>}
-      {/* No capture="environment" — consumers may use gallery photos */}
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        capture="environment"
         className="hidden"
         onChange={e => { if (e.target.files[0]) uploadBlob(e.target.files[0]); e.target.value = '' }}
       />
@@ -147,8 +147,8 @@ export default function CarPhotoUpload({ orderId, userId, onChange, showLabel = 
     <div>
       {showLabel && (
         <div className="mb-2">
-          <p className="label">{t('consumer.booking.carPhotos.title')}</p>
-          <p className="text-xs text-ink-muted mt-0.5">{t('consumer.booking.carPhotos.subtitle')}</p>
+          <p className="label">{t('consumer.home.booking.carPhotos.title')}</p>
+          <p className="text-xs text-ink-muted mt-0.5">{t('consumer.home.booking.carPhotos.subtitle')}</p>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
