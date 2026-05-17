@@ -315,7 +315,7 @@ export default function ConsumerHome() {
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[26px] font-extrabold text-ink tracking-[-0.6px] leading-none">₪{consumerTotal}</span>
                   <span className="text-[11px] text-ink-muted">
-                    {t('consumer.home.price.vatBreakdown', { amount: vat.toFixed(2) })}
+                    {t('consumer.home.price.vatBreakdown', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
                   </span>
                 </div>
               </div>

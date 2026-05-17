@@ -112,7 +112,7 @@
       "price": {
         "total": "סה\"כ",
         "totalVat": "סה״כ · כולל מע״מ",
-        "vatBreakdown": "+ ₪{{amount}} מע״מ",
+        "vatBreakdown": "כולל מע\"מ {{rate}}% (₪{{amount}})",
         "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})"
       },
       "submit": {
@@ -273,18 +273,22 @@
       "noJobs": "אין עבודות שהושלמו עדיין",
       "noJobsDesc": "השלם את השטיפה הראשונה שלך כדי לראות את ההכנסות כאן.",
       "recent": "אחרונות",
-      "vatNote": "הסכומים כוללים מע\"מ 18%",
+      "vatNote": "הסכומים כוללים מע\"מ {{rate}}%",
       "approved": {
         "title": "הכנסות מאושרות"
       },
       "pending": {
         "title": "ממתין לאישור"
       },
+      "aggregate": {
+        "vatBreakdown": "{{preVat}} ₪ + מע\"מ {{vat}} ₪"
+      },
       "transaction": {
         "badge": {
           "approved": "מאושר",
           "pending": "ממתין"
-        }
+        },
+        "vatBreakdown": "{{preVat}} ₪ + מע\"מ {{rate}}% {{vat}} ₪"
       }
     },
     "menu": {

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { priceBreakdown, VAT_RATE } from '../../lib/pricing.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 
 const container = {
@@ -49,6 +50,14 @@ export default function Earnings() {
   const totalApproved = approvedOrders.reduce((sum, o) => sum + Number(o.base_price), 0)
   const totalPending  = pendingOrders.reduce((sum, o) => sum + Number(o.base_price), 0)
 
+  const vatRate = Math.round(VAT_RATE * 100)
+
+  const approvedPreVatSum = approvedOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).preVat, 0)
+  const approvedVatSum    = approvedOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).vat, 0)
+
+  const pendingPreVatSum = pendingOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).preVat, 0)
+  const pendingVatSum    = pendingOrders.reduce((s, o) => s + priceBreakdown(Number(o.base_price)).vat, 0)
+
   const now = new Date()
   const thisMonth = approvedOrders
     .filter(o => new Date(o.completed_at).getMonth() === now.getMonth() &&
@@ -93,9 +102,14 @@ export default function Earnings() {
                 <p className="text-xs text-ink-muted mt-1">
                   {t('washer.earnings.jobsCompleted', { count: approvedOrders.length })}
                 </p>
-                <p className="text-xs text-ink-muted/60">
-                  {t('washer.earnings.vatNote')}
-                </p>
+                {approvedOrders.length > 0 && (
+                  <p className="text-xs text-ink-muted/60">
+                    {t('washer.earnings.aggregate.vatBreakdown', {
+                      preVat: approvedPreVatSum.toFixed(2),
+                      vat:    approvedVatSum.toFixed(2),
+                    })}
+                  </p>
+                )}
               </BentoTile>
 
               {/* Pending approval tile */}
@@ -110,6 +124,14 @@ export default function Earnings() {
                   <p className="text-xs text-ink-muted">
                     {t('washer.earnings.jobCount', { count: pendingOrders.length })}
                   </p>
+                  {pendingOrders.length > 0 && (
+                    <p className="text-xs text-ink-muted/60">
+                      {t('washer.earnings.aggregate.vatBreakdown', {
+                        preVat: pendingPreVatSum.toFixed(2),
+                        vat:    pendingVatSum.toFixed(2),
+                      })}
+                    </p>
+                  )}
                 </BentoTile>
               )}
 
@@ -164,8 +186,9 @@ export default function Earnings() {
                 <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">{t('washer.earnings.recent')}</p>
                 {allOrders.map(order => {
                   const isPending = order.status === 'pending_approval'
+                  const { preVat, vat } = priceBreakdown(Number(order.base_price))
                   return (
-                    <div key={order.id} className="flex items-center justify-between py-3 border-b border-edge last:border-0">
+                    <div key={order.id} className="flex items-start justify-between py-3 border-b border-edge last:border-0">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-ink truncate">
@@ -189,9 +212,18 @@ export default function Earnings() {
                             : '—'}
                         </p>
                       </div>
-                      <p className={`font-bold flex-shrink-0 ms-2 ${isPending ? 'text-ink-muted' : 'text-accent'}`}>
-                        ₪{order.base_price}
-                      </p>
+                      <div className="flex flex-col items-end flex-shrink-0 ms-2">
+                        <p className={`font-bold ${isPending ? 'text-ink-muted' : 'text-accent'}`}>
+                          ₪{order.base_price}
+                        </p>
+                        <p className="text-[10px] text-ink-muted/60 mt-0.5">
+                          {t('washer.earnings.transaction.vatBreakdown', {
+                            preVat: preVat.toFixed(2),
+                            rate:   vatRate,
+                            vat:    vat.toFixed(2),
+                          })}
+                        </p>
+                      </div>
                     </div>
                   )
                 })}

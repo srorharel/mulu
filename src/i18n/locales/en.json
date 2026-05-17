@@ -112,7 +112,7 @@
       "price": {
         "total": "Total",
         "totalVat": "Total · VAT included",
-        "vatBreakdown": "+ ₪{{amount}} VAT",
+        "vatBreakdown": "Includes {{rate}}% VAT (₪{{amount}})",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
       },
       "submit": {
@@ -273,18 +273,22 @@
       "noJobs": "No completed jobs yet",
       "noJobsDesc": "Complete your first wash to see your earnings here.",
       "recent": "Recent",
-      "vatNote": "Amounts include 18% VAT",
+      "vatNote": "Amounts include {{rate}}% VAT",
       "approved": {
         "title": "Approved earnings"
       },
       "pending": {
         "title": "Pending approval"
       },
+      "aggregate": {
+        "vatBreakdown": "{{preVat}} ₪ + VAT {{vat}} ₪"
+      },
       "transaction": {
         "badge": {
           "approved": "Approved",
           "pending": "Pending"
-        }
+        },
+        "vatBreakdown": "{{preVat}} ₪ + {{rate}}% VAT {{vat}} ₪"
       }
     },
     "menu": {
