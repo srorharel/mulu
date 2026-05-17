@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2,
-  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageCircle, MessageSquare, Camera,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
   Phone, Droplets, Zap, Star, ArrowLeft, Check,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
@@ -17,11 +17,8 @@ import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import StatusTimeline from '../StatusTimeline.jsx'
-import SupportChatSheet from '../support/SupportChatSheet.jsx'
 import OrderChatSheet from '../chat/OrderChatSheet.jsx'
 import PhotoLightbox from '../ui/PhotoLightbox.jsx'
-import { getOrCreateOrderConversation } from '../../lib/support.js'
-import i18n from '../../i18n/index.js'
 import { VAT_RATE } from '../../lib/pricing.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
@@ -415,10 +412,7 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const [uploadingSlot, setUploadingSlot] = useState(null)
   const [uploadErrors, setUploadErrors]   = useState({})
   const [photoPreviews, setPhotoPreviews] = useState({})
-  const [supportConvId, setSupportConvId]     = useState(null)
-  const [supportOpen, setSupportOpen]         = useState(false)
-  const [openingSupport, setOpeningSupport]   = useState(false)
-  const [orderChatOpen, setOrderChatOpen]     = useState(false)
+  const [orderChatOpen, setOrderChatOpen] = useState(false)
   const [consumerProfile, setConsumerProfile] = useState(null)
 
   const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
@@ -435,16 +429,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
       .eq('id', order.consumer_id).single()
       .then(({ data }) => setConsumerProfile(data ?? null))
   }, [order?.consumer_id])
-
-  async function handleOpenSupport() {
-    setOpeningSupport(true)
-    const consumerId = order?.consumer_id || null
-    const { data, error } = await getOrCreateOrderConversation(activeJob.id, consumerId)
-    setOpeningSupport(false)
-    if (error || !data) { showToast(i18n.t('support.errors.createFailed'), 'error'); return }
-    setSupportConvId(data.id)
-    setSupportOpen(true)
-  }
 
   // Realtime consumer-cancel detection + pending_approval auto-clear
   useEffect(() => {
@@ -618,16 +602,17 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             </div>
           </div>
           <div className="flex gap-1.5 shrink-0">
-            {/* Support chat: washer → agent */}
-            <button
-              onClick={handleOpenSupport}
-              disabled={openingSupport}
-              aria-label={t('support.needHelp')}
-              className="w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink"
-            >
-              <MessageCircle className="h-[16px] w-[16px]" />
-            </button>
-            {/* Order chat: washer ↔ customer */}
+            {/* Call customer — hidden entirely when phone is unknown; always active regardless of order status */}
+            {consumerProfile?.phone && (
+              <a
+                href={`tel:${consumerProfile.phone}`}
+                aria-label={t('washer.drawer.callCustomer')}
+                className="w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink"
+              >
+                <Phone className="h-[16px] w-[16px]" />
+              </a>
+            )}
+            {/* Order chat: washer ↔ customer — greyed when order is past in_progress */}
             <button
               onClick={() => setOrderChatOpen(true)}
               disabled={chatDisabled}
@@ -639,16 +624,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
                 <span className="absolute top-0.5 end-0.5 w-2 h-2 rounded-full bg-danger-500 shrink-0" />
               )}
             </button>
-            {/* Call customer — only rendered when phone is known */}
-            {consumerProfile?.phone && (
-              <a
-                href={chatDisabled ? undefined : `tel:${consumerProfile.phone}`}
-                aria-label={t('washer.drawer.callCustomer')}
-                className={`w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink transition-opacity ${chatDisabled ? 'opacity-35 pointer-events-none' : ''}`}
-              >
-                <Phone className="h-[16px] w-[16px]" />
-              </a>
-            )}
           </div>
         </div>
 
@@ -799,7 +774,15 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
         </>
       )}
 
-      <SupportChatSheet open={supportOpen} convId={supportConvId} onClose={() => setSupportOpen(false)} />
+      {/* ── Need help affordance — secondary, separated from customer-contact area ── */}
+      <button
+        type="button"
+        onClick={() => navigate('/washer/support')}
+        className="text-xs text-center text-ink-muted hover:text-ink transition-colors w-full py-1"
+      >
+        {t('washer.drawer.needHelp')}
+      </button>
+
       <OrderChatSheet
         open={orderChatOpen}
         orderId={activeJob?.id}

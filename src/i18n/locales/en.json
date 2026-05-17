@@ -375,6 +375,7 @@
       },
       "callCustomer": "Call customer",
       "chatCustomer": "Chat with customer",
+      "needHelp": "Need help with this order?",
       "updating": "Updating…",
       "access": {
         "title": "Access notes",
