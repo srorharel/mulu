@@ -240,6 +240,14 @@ export default function ConsumerHome() {
     navigate(`/order/${id}`)
   }
 
+  function handleDialogSaved(newVehicle) {
+    setSavedVehicles(vs => [
+      ...(newVehicle.is_default ? vs.map(v => ({ ...v, is_default: false })) : vs),
+      newVehicle,
+    ])
+    navigateToOrder()
+  }
+
   // ── Booking ───────────────────────────────────────────────────────────────
 
   async function handleBook() {
@@ -533,7 +541,7 @@ export default function ConsumerHome() {
         open={!!saveDialogData}
         plateData={saveDialogData}
         consumerId={user.id}
-        onSaved={navigateToOrder}
+        onSaved={handleDialogSaved}
         onDismiss={navigateToOrder}
       />
     </PageShell>
