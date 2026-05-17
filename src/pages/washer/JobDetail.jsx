@@ -111,7 +111,6 @@ export default function JobDetail() {
             </span>
             <div>
               <p className="font-semibold">{t('washer.jobDetail.payout', { amount: payoutForTier(profile?.current_tier) })}</p>
-              <p className="text-xs text-ink-muted">{t('washer.jobDetail.customerPays', { amount: order.total_price })}</p>
             </div>
           </div>
 

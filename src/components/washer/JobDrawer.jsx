@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2,
-  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageCircle, Camera,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageCircle, MessageSquare, Camera,
   Phone, Droplets, Zap, Star, ArrowLeft, Check,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
@@ -18,10 +18,12 @@ import { useToast } from '../ui/Toast.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import StatusTimeline from '../StatusTimeline.jsx'
 import SupportChatSheet from '../support/SupportChatSheet.jsx'
+import OrderChatSheet from '../chat/OrderChatSheet.jsx'
 import PhotoLightbox from '../ui/PhotoLightbox.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 import i18n from '../../i18n/index.js'
 import { VAT_RATE } from '../../lib/pricing.js'
+import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
@@ -82,6 +84,7 @@ function EvidencePhotoSlot({ label, path, preview, isUploading, error, onSelect 
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={e => { if (e.target.files[0]) { onSelect(e.target.files[0]); e.target.value = '' } }}
       />
@@ -357,19 +360,23 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const [uploadingSlot, setUploadingSlot] = useState(null)
   const [uploadErrors, setUploadErrors]   = useState({})
   const [photoPreviews, setPhotoPreviews] = useState({})
-  const [supportConvId, setSupportConvId] = useState(null)
-  const [supportOpen, setSupportOpen]     = useState(false)
-  const [openingSupport, setOpeningSupport] = useState(false)
+  const [supportConvId, setSupportConvId]     = useState(null)
+  const [supportOpen, setSupportOpen]         = useState(false)
+  const [openingSupport, setOpeningSupport]   = useState(false)
+  const [orderChatOpen, setOrderChatOpen]     = useState(false)
   const [consumerProfile, setConsumerProfile] = useState(null)
+
+  const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
+  const unreadCount  = useOrderUnreadCount(activeJob?.id)
 
   // Geofence failed-attempt tracking: array of timestamps
   const failedAttemptsRef = useRef([])
   const [showContactSupport, setShowContactSupport] = useState(false)
 
-  // Fetch consumer profile for the customer card.
+  // Fetch consumer profile for the customer card (name + phone for call button).
   useEffect(() => {
     if (!order?.consumer_id) return
-    supabase.from('profiles').select('id, full_name')
+    supabase.from('profiles').select('id, full_name, phone')
       .eq('id', order.consumer_id).single()
       .then(({ data }) => setConsumerProfile(data ?? null))
   }, [order?.consumer_id])
@@ -556,6 +563,7 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             </div>
           </div>
           <div className="flex gap-1.5 shrink-0">
+            {/* Support chat: washer → agent */}
             <button
               onClick={handleOpenSupport}
               disabled={openingSupport}
@@ -564,10 +572,28 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             >
               <MessageCircle className="h-[16px] w-[16px]" />
             </button>
-            {/* Phone: no phone stored — visual only per ADR-017 */}
-            <div className="w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink opacity-35">
-              <Phone className="h-[16px] w-[16px]" />
-            </div>
+            {/* Order chat: washer ↔ customer */}
+            <button
+              onClick={() => setOrderChatOpen(true)}
+              disabled={chatDisabled}
+              aria-label={t('washer.drawer.chatCustomer')}
+              className={`relative w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink transition-opacity ${chatDisabled ? 'opacity-35' : ''}`}
+            >
+              <MessageSquare className="h-[16px] w-[16px]" />
+              {unreadCount > 0 && !chatDisabled && (
+                <span className="absolute top-0.5 end-0.5 w-2 h-2 rounded-full bg-danger-500 shrink-0" />
+              )}
+            </button>
+            {/* Call customer — only rendered when phone is known */}
+            {consumerProfile?.phone && (
+              <a
+                href={chatDisabled ? undefined : `tel:${consumerProfile.phone}`}
+                aria-label={t('washer.drawer.callCustomer')}
+                className={`w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink transition-opacity ${chatDisabled ? 'opacity-35 pointer-events-none' : ''}`}
+              >
+                <Phone className="h-[16px] w-[16px]" />
+              </a>
+            )}
           </div>
         </div>
 
@@ -719,6 +745,13 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
       )}
 
       <SupportChatSheet open={supportOpen} convId={supportConvId} onClose={() => setSupportOpen(false)} />
+      <OrderChatSheet
+        open={orderChatOpen}
+        orderId={activeJob?.id}
+        orderStatus={order?.status}
+        otherPartyName={consumerName}
+        onClose={() => setOrderChatOpen(false)}
+      />
     </div>
   )
 }

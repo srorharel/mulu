@@ -1,13 +1,15 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Clock, MessageCircle, Phone, Star, Check } from 'lucide-react'
+import { ArrowLeft, Clock, MessageCircle, MessageSquare, Phone, Star, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { useReverseGeocode, looksLikeCoords } from '../../lib/geocode.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
+import OrderChatSheet from '../../components/chat/OrderChatSheet.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
+import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import MapBG from '../../components/ui/MapBG.jsx'
 
 const CANCELLABLE = new Set(['pending', 'accepted'])
@@ -72,9 +74,10 @@ function TrackingDots({ status, t }) {
 }
 
 // ── Washer info card — ADR-018: no rating shown to consumer ──────────────────
-function WasherCard({ profile, onMessage, openingMessage, t }) {
-  const initials = getWasherInitials(profile)
-  const name     = profile?.full_name || t('consumer.tracking.washer.unknown')
+function WasherCard({ profile, onMessage, openingMessage, onOrderChat, chatDisabled, unreadCount, t }) {
+  const initials    = getWasherInitials(profile)
+  const name        = profile?.full_name || t('consumer.tracking.washer.unknown')
+  const washerPhone = profile?.phone || null
 
   return (
     <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-glass-sm">
@@ -88,6 +91,7 @@ function WasherCard({ profile, onMessage, openingMessage, t }) {
         <p className="text-[15px] font-bold text-ink truncate">{name}</p>
       </div>
       <div className="flex gap-2 shrink-0">
+        {/* Support chat: consumer → agent */}
         <button
           onClick={onMessage}
           disabled={openingMessage}
@@ -96,13 +100,28 @@ function WasherCard({ profile, onMessage, openingMessage, t }) {
         >
           <MessageCircle className="h-[18px] w-[18px]" />
         </button>
+        {/* Order chat: consumer ↔ washer */}
         <button
-          aria-label={t('consumer.tracking.washer.call')}
-          className="w-10 h-10 rounded-[12px] bg-white flex items-center justify-center text-primary-800 shadow-sm opacity-40 cursor-default"
-          tabIndex={-1}
+          onClick={onOrderChat}
+          disabled={chatDisabled}
+          aria-label={t('consumer.tracking.washer.chatWasher')}
+          className={`relative w-10 h-10 rounded-[12px] bg-white flex items-center justify-center text-primary-800 shadow-sm transition-opacity ${chatDisabled ? 'opacity-40' : ''}`}
         >
-          <Phone className="h-[18px] w-[18px]" />
+          <MessageSquare className="h-[18px] w-[18px]" />
+          {unreadCount > 0 && !chatDisabled && (
+            <span className="absolute top-0.5 end-0.5 w-2.5 h-2.5 rounded-full bg-danger-500 shrink-0" />
+          )}
         </button>
+        {/* Call washer — only rendered when phone is known */}
+        {washerPhone ? (
+          <a
+            href={chatDisabled ? undefined : `tel:${washerPhone}`}
+            aria-label={t('consumer.tracking.washer.callWasher')}
+            className={`w-10 h-10 rounded-[12px] bg-white flex items-center justify-center text-primary-800 shadow-sm transition-opacity ${chatDisabled ? 'opacity-40 pointer-events-none' : ''}`}
+          >
+            <Phone className="h-[18px] w-[18px]" />
+          </a>
+        ) : null}
       </div>
     </div>
   )
@@ -120,14 +139,18 @@ export default function OrderTracking() {
   const [supportConvId, setSupportConvId]   = useState(null)
   const [supportOpen, setSupportOpen]       = useState(false)
   const [openingSupport, setOpeningSupport] = useState(false)
+  const [orderChatOpen, setOrderChatOpen]   = useState(false)
   const [washerProfile, setWasherProfile]   = useState(null)
   const [prevStatus, setPrevStatus]         = useState(null)
+
+  const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
+  const unreadCount  = useOrderUnreadCount(order?.id)
 
   useEffect(() => {
     if (!order?.washer_id) { setWasherProfile(null); return }
     supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, phone')
       .eq('id', order.washer_id)
       .single()
       .then(({ data }) => setWasherProfile(data ?? null))
@@ -295,6 +318,9 @@ export default function OrderTracking() {
               profile={washerProfile}
               onMessage={handleOpenSupport}
               openingMessage={openingSupport}
+              onOrderChat={() => setOrderChatOpen(true)}
+              chatDisabled={!!chatDisabled}
+              unreadCount={unreadCount}
               t={t}
             />
           )}
@@ -362,6 +388,13 @@ export default function OrderTracking() {
         open={supportOpen}
         convId={supportConvId}
         onClose={() => setSupportOpen(false)}
+      />
+      <OrderChatSheet
+        open={orderChatOpen}
+        orderId={order?.id}
+        orderStatus={order?.status}
+        otherPartyName={washerProfile?.full_name || t('consumer.tracking.washer.unknown')}
+        onClose={() => setOrderChatOpen(false)}
       />
     </div>
   )
