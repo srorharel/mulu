@@ -527,6 +527,17 @@
     "setupRequired": "נדרשת הגדרה: העתק .env.example ל-.env והוסף את פרטי Supabase שלך."
   },
   "rating": {
+    "photos": {
+      "heading": "הרכב שלכם אחרי השטיפה",
+      "slot": {
+        "front":     "חזית",
+        "back":      "אחורי",
+        "driver":    "צד נהג",
+        "passenger": "צד נוסע"
+      },
+      "expand":    "הקישו להגדלה",
+      "loadError": "התמונה לא זמינה"
+    },
     "prompt": {
       "title": "דרגו את השטיפה",
       "subtitle": "המשוב שלכם עוזר לנו להשתפר"

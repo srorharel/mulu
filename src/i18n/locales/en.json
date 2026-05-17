@@ -527,6 +527,17 @@
     "setupRequired": "Setup required: copy .env.example to .env and add your Supabase credentials."
   },
   "rating": {
+    "photos": {
+      "heading": "Your car after the wash",
+      "slot": {
+        "front":     "Front",
+        "back":      "Back",
+        "driver":    "Driver side",
+        "passenger": "Passenger side"
+      },
+      "expand":    "Tap to expand",
+      "loadError": "Photo unavailable"
+    },
     "prompt": {
       "title": "Rate your wash",
       "subtitle": "Your feedback helps us improve"

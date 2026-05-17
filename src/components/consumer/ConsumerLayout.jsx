@@ -38,7 +38,11 @@ export default function ConsumerLayout() {
     if (!user?.id) return
     const { data } = await supabase
       .from('orders')
-      .select('id, status, rated_at, rating_skipped, completed_at, washer_id')
+      .select(`
+        id, status, rated_at, rating_skipped, completed_at, washer_id,
+        completion_photo_front, completion_photo_back,
+        completion_photo_driver, completion_photo_passenger
+      `)
       .eq('consumer_id', user.id)
       .in('status', ['pending_approval', 'completed'])
       .is('rated_at', null)
