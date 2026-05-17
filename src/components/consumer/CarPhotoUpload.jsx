@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { Camera as NativeCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { supabase } from '../../lib/supabase.js'
-import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
+import { resizeToBlob, MAX_BYTES, MAX_EDGE_PX } from '../../lib/imageResize.js'
 
 const BUCKET = 'car-photos'
 
