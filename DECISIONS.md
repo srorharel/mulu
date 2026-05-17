@@ -254,3 +254,26 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 
 **WasherMenu online status indicator** — Priority: **low**  
 `WasherMenu` shows a passive online/offline dot in its header. The toggle has moved to the top `OnlinePill` — so the menu's status display is now read-only decoration. Either remove it (cleaner) or make it a secondary toggle target (consistent). Current state is not broken, just slightly redundant.
+
+---
+
+## ADR-019: set_default_vehicle as SECURITY DEFINER RPC, not two client-side UPDATEs
+**Date:** 2026-05-18
+**Status:** Accepted
+**Context:** Switching a consumer's default vehicle requires clearing the old default and setting the new one. Two sequential client-side UPDATEs are a race condition: a second tap or slow network can produce two concurrent requests, and the partial unique index (`WHERE is_default = true`) would surface as a confusing Postgres error rather than a clean UX.
+**Decision:** Wrap both UPDATEs in a SECURITY DEFINER PL/pgSQL function (`set_default_vehicle(p_vehicle_id uuid)`). PostgreSQL executes the function body in a single implicit transaction, so the two UPDATEs are atomic. Ownership is validated explicitly inside the function (`consumer_id = auth.uid()`) before any UPDATE fires. SECURITY DEFINER is consistent with all other RPCs in the codebase (`transition_order_status`, `nearby_jobs`, etc.).
+**Consequence:** The RLS UPDATE policy on `vehicles` is bypassed by the function, but the explicit ownership check is strictly equivalent. One small RPC call replaces two round-trips from the client.
+
+## ADR-020: Auto-default for first saved vehicle implemented as a DB trigger, not app logic
+**Date:** 2026-05-18
+**Status:** Accepted
+**Context:** When a consumer saves their first vehicle, it should automatically become the default so the Home screen pre-selects it on the next visit. This can be enforced in application code (check before INSERT, set is_default accordingly) or in a BEFORE INSERT trigger.
+**Decision:** BEFORE INSERT trigger (`vehicles_auto_default_trg`). The invariant "a consumer with one vehicle always has a default" is a DB-level constraint, not a UI concern — enforcing it in the trigger means it holds regardless of which client path created the vehicle (the post-booking save dialog, the management page, a future API call, or a seed script).
+**Consequence:** The application layer can always INSERT with `is_default = false`; the trigger promotes it if needed. No app-level logic required. A consumer who deletes their default vehicle is left with no default (the trigger only fires on INSERT, not on DELETE) — the app must handle the "no default" state gracefully, which it does by falling back to the full plate-lookup flow.
+
+## ADR-021: orders INSERT RLS updated to validate vehicle_id ownership
+**Date:** 2026-05-18
+**Status:** Accepted
+**Context:** `orders.vehicle_id` is a nullable FK to `vehicles`. Without an explicit RLS check, a consumer could supply any UUID in the `vehicle_id` field of an INSERT, including one belonging to another consumer. The FK constraint only guarantees referential integrity, not ownership.
+**Decision:** The `orders: consumer insert` RLS policy was updated in migration 0041 to add: when `vehicle_id IS NOT NULL`, a subquery confirms `vehicles.consumer_id = auth.uid()`. This is the minimal, correct guard — it runs inside the policy `WITH CHECK`, so it fires on every INSERT regardless of the calling code path.
+**Consequence:** Replacing the old policy with DROP + CREATE causes a brief window during the migration where no INSERT policy exists; since migrations run as the service role (which bypasses RLS), there is no practical exposure. The new policy is strictly more restrictive than the old one for authenticated users.
