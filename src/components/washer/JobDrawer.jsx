@@ -258,27 +258,48 @@ function VehicleSection({ order }) {
   const { t }   = useTranslation()
   const [lightboxOpen, setLightboxOpen]   = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [photoUrls, setPhotoUrls]         = useState([])
+  // For new orders: [url|null, url|null, url|null, url|null] (front/back/driver/passenger)
+  // For legacy orders: [url, url] (filtered non-null)
+  const [photoUrls, setPhotoUrls] = useState([])
 
   const isHighlighted = order.status === 'arrived' || order.status === 'in_progress'
+  // New orders populate the angle columns; legacy orders use car_photo_1/2_path
+  const isNewShape = !!order.car_photo_front
 
   useEffect(() => {
     if (!order) return
+    setPhotoUrls([])
     async function loadUrls() {
-      const paths = [order.car_photo_1_path, order.car_photo_2_path].filter(Boolean)
-      if (paths.length === 0) { setPhotoUrls([]); return }
-      const urls = await Promise.all(
-        paths.map(async p => {
-          const { data } = await supabase.storage.from('car-photos').createSignedUrl(p, 3600)
-          return data?.signedUrl ?? null
-        })
-      )
-      setPhotoUrls(urls.filter(Boolean))
+      if (isNewShape) {
+        const results = await Promise.all(
+          PHOTO_SLOTS.map(async slot => {
+            const path = order[`car_photo_${slot}`]
+            if (!path) return null
+            const { data } = await supabase.storage.from('car-photos').createSignedUrl(path, 3600)
+            return data?.signedUrl ?? null
+          })
+        )
+        setPhotoUrls(results)
+      } else {
+        const paths = [order.car_photo_1_path, order.car_photo_2_path].filter(Boolean)
+        if (paths.length === 0) { setPhotoUrls([]); return }
+        const urls = await Promise.all(
+          paths.map(async p => {
+            const { data } = await supabase.storage.from('car-photos').createSignedUrl(p, 3600)
+            return data?.signedUrl ?? null
+          })
+        )
+        setPhotoUrls(urls.filter(Boolean))
+      }
     }
     loadUrls()
   }, [order?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hasInfo = order.car_plate || order.car_make || order.car_photo_1_path || order.car_photo_2_path
+  const hasInfo = order.car_plate || order.car_make ||
+    order.car_photo_front || order.car_photo_1_path || order.car_photo_2_path
+
+  // Only valid (non-null) URLs are passed to the lightbox
+  const lightboxUrls = photoUrls.filter(Boolean)
 
   return (
     <div className={`bg-glass border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3 ${
@@ -308,8 +329,42 @@ function VehicleSection({ order }) {
             )}
           </div>
 
-          {/* Photo thumbnails — 0, 1, or 2 */}
-          {photoUrls.length > 0 && (
+          {/* New shape: 4 labeled thumbnails in Front→Back→Driver→Passenger order */}
+          {isNewShape && (
+            <div className="grid grid-cols-2 gap-2">
+              {PHOTO_SLOTS.map((slot, i) => (
+                <div key={slot} className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold text-ink-muted text-center truncate">
+                    {t(`washer.drawer.photoSlots.${slot}`)}
+                  </span>
+                  {/* loading: URLs not yet fetched */}
+                  {photoUrls.length === 0 ? (
+                    <div className="aspect-square rounded-xl bg-neutral-100 flex items-center justify-center border border-glass-border">
+                      <Camera className="h-5 w-5 text-neutral-300" />
+                    </div>
+                  ) : photoUrls[i] ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLightboxIndex(Math.max(0, lightboxUrls.indexOf(photoUrls[i])))
+                        setLightboxOpen(true)
+                      }}
+                      className="aspect-square rounded-xl overflow-hidden border border-glass-border"
+                    >
+                      <img src={photoUrls[i]} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ) : (
+                    <div className="aspect-square rounded-xl bg-neutral-100 flex items-center justify-center border border-glass-border">
+                      <Camera className="h-5 w-5 text-neutral-300" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Legacy shape: 0, 1, or 2 unlabeled thumbnails */}
+          {!isNewShape && photoUrls.length > 0 && (
             <div className={`grid gap-2 ${photoUrls.length === 1 ? 'grid-cols-1 max-w-[50%]' : 'grid-cols-2'}`}>
               {photoUrls.map((url, i) => (
                 <button
@@ -324,8 +379,8 @@ function VehicleSection({ order }) {
             </div>
           )}
 
-          {/* Loading placeholder while signed URLs resolve */}
-          {(order.car_photo_1_path || order.car_photo_2_path) && photoUrls.length === 0 && (
+          {/* Legacy loading placeholder while signed URLs resolve */}
+          {!isNewShape && (order.car_photo_1_path || order.car_photo_2_path) && photoUrls.length === 0 && (
             <div className={`grid gap-2 ${order.car_photo_2_path ? 'grid-cols-2' : 'grid-cols-1 max-w-[50%]'}`}>
               {[order.car_photo_1_path, order.car_photo_2_path].filter(Boolean).map((_, i) => (
                 <div key={i} className="aspect-square rounded-xl bg-neutral-100 flex items-center justify-center">
@@ -337,9 +392,9 @@ function VehicleSection({ order }) {
         </>
       )}
 
-      {lightboxOpen && photoUrls.length > 0 && (
+      {lightboxOpen && lightboxUrls.length > 0 && (
         <PhotoLightbox
-          photos={photoUrls}
+          photos={lightboxUrls}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxOpen(false)}
         />

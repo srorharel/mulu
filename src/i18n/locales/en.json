@@ -116,7 +116,13 @@
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
       },
       "submit": {
-        "needsPhotos": "Add both vehicle photos to continue"
+        "needsPhotos": "Add all 4 vehicle photos to continue"
+      },
+      "booking": {
+        "carPhotos": {
+          "title": "Photos of your car",
+          "subtitle": "4 photos required, one from each side"
+        }
       },
       "plate": {
         "lookingUp": "Looking up your car...",
@@ -134,7 +140,6 @@
       "photos": {
         "title": "Vehicle photos (required)",
         "label": "Photos",
-        "requiredHint": "2 required",
         "optional": "Vehicle photos (optional)",
         "addPhoto": "Add photo",
         "tooLarge": "Photo must be under 5MB",

@@ -83,14 +83,14 @@ export default function ConsumerHome() {
   // License plate / vehicle identity
   const [licenseData, setLicenseData] = useState({ make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false })
 
-  const [photos, setPhotos] = useState([null, null])
+  const [photos, setPhotos] = useState({ front: null, back: null, driver: null, passenger: null })
 
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
   const { total: consumerTotal, vat } = consumerBreakdown(licenseData.category || 'private')
-  const uploadedCount      = photos.filter(Boolean).length
-  const bothPhotosUploaded = uploadedCount === 2
-  const canSubmit = !!effectivePin && licenseData.isValid && bothPhotosUploaded
+  const uploadedCount      = Object.values(photos).filter(Boolean).length
+  const allPhotosUploaded  = uploadedCount === 4
+  const canSubmit = !!effectivePin && licenseData.isValid && allPhotosUploaded
 
   const initials = getInitials(profile, user)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
@@ -104,7 +104,7 @@ export default function ConsumerHome() {
     if (submittingRef.current) return
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
     if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
-    if (!bothPhotosUploaded) { setError(t('consumer.home.submit.needsPhotos')); return }
+    if (!allPhotosUploaded) { setError(t('consumer.home.submit.needsPhotos')); return }
 
     setError('')
     submittingRef.current = true
@@ -143,8 +143,10 @@ export default function ConsumerHome() {
         car_year:        licenseData.year,
         car_plate:       licenseData.plate ?? null,
         car_color:       licenseData.color ?? null,
-        car_photo_1_path: photos[0]?.path ?? null,
-        car_photo_2_path: photos[1]?.path ?? null,
+        car_photo_front:     photos.front?.path     ?? null,
+        car_photo_back:      photos.back?.path      ?? null,
+        car_photo_driver:    photos.driver?.path    ?? null,
+        car_photo_passenger: photos.passenger?.path ?? null,
       })
       .select('id')
       .single()
@@ -247,11 +249,16 @@ export default function ConsumerHome() {
 
           {/* ── Photos card ── */}
           <GlassCard className="p-4">
-            <div className="flex justify-between items-center mb-2.5">
-              <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
-                {t('consumer.home.photos.label')} · {t('consumer.home.photos.requiredHint')}
-              </p>
-              <p className="text-[11px] font-semibold text-primary-700">{uploadedCount}/2</p>
+            <div className="flex justify-between items-start mb-2.5">
+              <div>
+                <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+                  {t('consumer.booking.carPhotos.title')}
+                </p>
+                <p className="text-[11px] text-ink-muted mt-0.5">
+                  {t('consumer.booking.carPhotos.subtitle')}
+                </p>
+              </div>
+              <p className="text-[11px] font-semibold text-primary-700 shrink-0 mt-0.5">{uploadedCount}/4</p>
             </div>
             <CarPhotoUpload
               orderId={orderId}
@@ -259,7 +266,7 @@ export default function ConsumerHome() {
               showLabel={false}
               onChange={(newPhotos) => setPhotos(newPhotos)}
             />
-            {!bothPhotosUploaded && (
+            {!allPhotosUploaded && (
               <p className="text-[12px] text-ink-muted mt-2">{t('consumer.home.submit.needsPhotos')}</p>
             )}
           </GlassCard>
