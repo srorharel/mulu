@@ -3,17 +3,11 @@ import { Loader2, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, Check } fr
 import { useTranslation } from 'react-i18next'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
 import { lookupPlate, clearPlateFailure } from '../../lib/vehicleLookup.js'
+import { formatPlate } from '../../lib/formatPlate.js'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: CURRENT_YEAR - 1990 + 1 }, (_, i) => CURRENT_YEAR - i)
-
-function formatPlate(digits) {
-  if (!digits) return ''
-  if (digits.length === 7) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
-  if (digits.length >= 8) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
-  return digits
-}
 
 // onChange({ make, model, year, plate, color, category, isValid })
 export default function LicensePlatePicker({ onChange }) {

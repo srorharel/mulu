@@ -1,6 +1,6 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, MapPin, Droplets, Zap, User } from 'lucide-react'
+import { ChevronRight, Loader2, MapPin, Droplets, Zap, User, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
@@ -8,13 +8,17 @@ import { VAT_RATE, consumerBreakdown, priceForCategory } from '../../lib/pricing
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
+import { formatPlate } from '../../lib/formatPlate.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import MotionButton from '../../components/ui/MotionButton.jsx'
 import WashMark from '../../components/ui/WashMark.jsx'
+import IsraeliPlate from '../../components/ui/IsraeliPlate.jsx'
 import LocationSheet from '../../components/consumer/LocationSheet.jsx'
 import LicensePlatePicker from '../../components/consumer/LicensePlatePicker.jsx'
 import CarPhotoUpload from '../../components/consumer/CarPhotoUpload.jsx'
+import VehiclePickerSheet from '../../components/consumer/VehiclePickerSheet.jsx'
+import SaveVehicleDialog from '../../components/consumer/SaveVehicleDialog.jsx'
 
 // Derive up to 2 initials from profile.full_name, falling back to the email prefix.
 function getInitials(profile, user) {
@@ -61,6 +65,33 @@ function SiteResourceCard({ icon: Icon, label, available, onToggle, t }) {
   )
 }
 
+// Confirmed vehicle summary — shown when a vehicle is selected (saved or free-text confirmed).
+function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
+  return (
+    <div className="flex items-center gap-3" dir="ltr">
+      <IsraeliPlate number={formatPlate(licenseData.plate)} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] font-bold text-ink leading-snug truncate" dir="auto">
+          {[licenseData.make, licenseData.model, licenseData.year].filter(Boolean).join(' · ')}
+        </p>
+        <p className="text-[12px] text-ink-muted flex items-center gap-1.5" dir="auto">
+          {[licenseData.color, licenseData.category ? t(`carLabels.${licenseData.category}`) : null].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button type="button" onClick={onChangeVehicle} className="text-[11px] font-semibold text-primary-700 hover:underline">
+          {t('consumer.home.changeVehicle')}
+        </button>
+        <div className="w-[26px] h-[26px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)]">
+          <Check className="h-[14px] w-[14px] text-white" strokeWidth={3} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const EMPTY_LICENSE = { make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false }
+
 export default function ConsumerHome() {
   const navigate        = useNavigate()
   const { user, profile } = useAuth()
@@ -80,10 +111,49 @@ export default function ConsumerHome() {
   const submittingRef                   = useRef(false)
   const [error, setError]               = useState('')
 
-  // License plate / vehicle identity
-  const [licenseData, setLicenseData] = useState({ make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false })
-
   const [photos, setPhotos] = useState({ front: null, back: null, driver: null, passenger: null })
+
+  // ── Vehicle state ─────────────────────────────────────────────────────────
+  const [licenseData, setLicenseData]       = useState(EMPTY_LICENSE)
+  const [vehicleId, setVehicleId]           = useState(null)   // UUID when from saved vehicle
+  const [savedVehicles, setSavedVehicles]   = useState([])
+  const [vehiclesLoaded, setVehiclesLoaded] = useState(false)
+  const [showPicker, setShowPicker]         = useState(false)  // true = show LicensePlatePicker
+  const [pickerSheetOpen, setPickerSheetOpen] = useState(false)
+
+  // Post-booking save-vehicle dialog state
+  const [saveDialogData, setSaveDialogData]       = useState(null)  // licenseData snapshot
+  const [saveDialogOrderId, setSaveDialogOrderId] = useState(null)
+
+  // Fetch vehicles on mount; pre-select the default vehicle if one exists.
+  useEffect(() => {
+    supabase
+      .from('vehicles')
+      .select('*')
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        const vehicles = data ?? []
+        setSavedVehicles(vehicles)
+        const defaultV = vehicles.find(v => v.is_default)
+        if (defaultV) {
+          setLicenseData({
+            make:     defaultV.make,
+            model:    defaultV.model,
+            year:     defaultV.year,
+            plate:    defaultV.plate,
+            color:    defaultV.color,
+            category: defaultV.category ?? 'private',
+            isValid:  true,
+          })
+          setVehicleId(defaultV.id)
+          setShowPicker(false)
+        } else {
+          setShowPicker(true)
+        }
+        setVehiclesLoaded(true)
+      })
+  }, [user.id])
 
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
@@ -99,6 +169,39 @@ export default function ConsumerHome() {
   const displayAddress = effectivePin
     ? (pin?.address_label ?? pinAddress ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`)
     : null
+
+  // ── Vehicle selection handlers ────────────────────────────────────────────
+
+  function handleSelectSavedVehicle(v) {
+    setLicenseData({
+      make:     v.make,
+      model:    v.model,
+      year:     v.year,
+      plate:    v.plate,
+      color:    v.color,
+      category: v.category ?? 'private',
+      isValid:  true,
+    })
+    setVehicleId(v.id)
+    setShowPicker(false)
+  }
+
+  function handleEnterNewPlate() {
+    setLicenseData(EMPTY_LICENSE)
+    setVehicleId(null)
+    setShowPicker(true)
+  }
+
+  // ── Post-booking dialog handlers ──────────────────────────────────────────
+
+  function navigateToOrder() {
+    const id = saveDialogOrderId
+    setSaveDialogData(null)
+    setSaveDialogOrderId(null)
+    navigate(`/order/${id}`)
+  }
+
+  // ── Booking ───────────────────────────────────────────────────────────────
 
   async function handleBook() {
     if (submittingRef.current) return
@@ -147,6 +250,7 @@ export default function ConsumerHome() {
         car_photo_back:      photos.back?.path      ?? null,
         car_photo_driver:    photos.driver?.path    ?? null,
         car_photo_passenger: photos.passenger?.path ?? null,
+        vehicle_id:    vehicleId ?? null,
       })
       .select('id')
       .single()
@@ -155,8 +259,17 @@ export default function ConsumerHome() {
     setSubmitting(false)
     if (dbError) { setError(dbError.message); return }
     showToast(t('consumer.home.bookingSuccess'), 'success')
-    navigate(`/order/${data.id}`)
+
+    if (vehicleId === null && licenseData.plate) {
+      // Free-text path: offer to save the vehicle before navigating away.
+      setSaveDialogData({ ...licenseData })
+      setSaveDialogOrderId(data.id)
+    } else {
+      navigate(`/order/${data.id}`)
+    }
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <PageShell>
@@ -165,7 +278,6 @@ export default function ConsumerHome() {
         {/* ── Header ── */}
         <div className="px-5 pt-4 pb-2 flex items-center justify-between shrink-0">
           <WashMark />
-          {/* Avatar — initials if available, User icon fallback */}
           <div
             className="w-[38px] h-[38px] rounded-[14px] flex items-center justify-center text-white font-bold text-[14px] shadow-[0_2px_6px_rgba(38,181,95,0.3)]"
             style={{ background: 'linear-gradient(135deg, #B9E5CB, #47D17F)' }}
@@ -210,11 +322,9 @@ export default function ConsumerHome() {
             className="flex items-stretch w-full text-start rounded-glass overflow-hidden bg-glass border border-glass-border backdrop-blur-xl shadow-glass"
             style={{ minHeight: 78 }}
           >
-            {/* Mini map thumbnail */}
             <div className="w-[78px] shrink-0 bg-primary-50 flex items-center justify-center border-e border-glass-border">
               <MapPin className="h-[22px] w-[22px] text-primary-700" />
             </div>
-            {/* Address content */}
             <div className="flex-1 px-4 py-3.5 flex flex-col justify-center min-w-0">
               <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
                 {t('consumer.home.pickupLocation')}
@@ -231,7 +341,6 @@ export default function ConsumerHome() {
                 <p className="text-[15px] font-bold text-ink-muted mt-0.5">{t('consumer.home.tapToSetLocation')}</p>
               )}
             </div>
-            {/* Chevron */}
             <div className="px-3 flex items-center text-ink-subtle shrink-0">
               <ChevronRight className="h-5 w-5" />
             </div>
@@ -244,7 +353,31 @@ export default function ConsumerHome() {
                 {t('consumer.home.vehicle')}
               </p>
             </div>
-            <LicensePlatePicker onChange={setLicenseData} />
+
+            {!vehiclesLoaded ? (
+              <div className="h-[44px] rounded-xl bg-neutral-100/60 animate-pulse" />
+            ) : showPicker ? (
+              <div className="flex flex-col gap-3">
+                {savedVehicles.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPickerSheetOpen(true)}
+                    className="text-[12px] font-semibold text-primary-700 hover:underline self-start"
+                  >
+                    {t('consumer.home.pickVehicle.chooseSaved')}
+                  </button>
+                )}
+                <LicensePlatePicker
+                  onChange={data => { setLicenseData(data); setVehicleId(null) }}
+                />
+              </div>
+            ) : (
+              <ConfirmedVehicleDisplay
+                licenseData={licenseData}
+                onChangeVehicle={() => setPickerSheetOpen(true)}
+                t={t}
+              />
+            )}
           </GlassCard>
 
           {/* ── Photos card ── */}
@@ -289,7 +422,7 @@ export default function ConsumerHome() {
             />
           </div>
 
-          {/* ── Access notes (functional, not in mockup — preserved) ── */}
+          {/* ── Access notes ── */}
           <GlassCard className="p-4">
             <label className="label">
               {t('consumer.home.fields.accessNotes')}{' '}
@@ -346,6 +479,23 @@ export default function ConsumerHome() {
         initialPosition={effectivePin}
         onConfirm={result => { setPin(result); setSheetOpen(false) }}
         onClose={() => setSheetOpen(false)}
+      />
+
+      <VehiclePickerSheet
+        open={pickerSheetOpen}
+        vehicles={savedVehicles}
+        selectedId={vehicleId}
+        onSelectVehicle={handleSelectSavedVehicle}
+        onEnterNew={handleEnterNewPlate}
+        onClose={() => setPickerSheetOpen(false)}
+      />
+
+      <SaveVehicleDialog
+        open={!!saveDialogData}
+        plateData={saveDialogData}
+        consumerId={user.id}
+        onSaved={navigateToOrder}
+        onDismiss={navigateToOrder}
       />
     </PageShell>
   )

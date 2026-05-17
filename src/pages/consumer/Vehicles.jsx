@@ -5,19 +5,13 @@ import { ArrowLeft, Plus, Pencil, Trash2, Check, X, Star, Car } from 'lucide-rea
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
+import { formatPlate } from '../../lib/formatPlate.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import MotionButton from '../../components/ui/MotionButton.jsx'
 import IsraeliPlate from '../../components/ui/IsraeliPlate.jsx'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import AddVehicleSheet from '../../components/consumer/AddVehicleSheet.jsx'
-
-function formatPlate(digits) {
-  if (!digits) return ''
-  if (digits.length === 7) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
-  if (digits.length >= 8) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
-  return digits
-}
 
 export default function Vehicles() {
   const { user } = useAuth()

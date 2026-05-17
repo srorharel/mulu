@@ -123,6 +123,19 @@
         "title": "תמונות הרכב שלך",
         "subtitle": "נדרשות 4 תמונות, אחת מכל צד"
       },
+      "changeVehicle": "שנה רכב",
+      "pickVehicle": {
+        "title": "בחר רכב",
+        "enterNew": "הזן לוחית חדשה",
+        "chooseSaved": "בחר רכב שמור"
+      },
+      "saveVehicle": {
+        "title": "לשמור את הרכב להפעם הבאה?",
+        "nicknameLabel": "שם",
+        "nicknamePlaceholder": "לדוג׳ הקורולה שלי",
+        "save": "שמור רכב",
+        "skip": "דלג"
+      },
       "plate": {
         "lookingUp": "מחפש את הרכב...",
         "isThisYourCar": "האם זה הרכב שלך?",

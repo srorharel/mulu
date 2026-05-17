@@ -123,6 +123,19 @@
         "title": "Photos of your car",
         "subtitle": "4 photos required, one from each side"
       },
+      "changeVehicle": "Change vehicle",
+      "pickVehicle": {
+        "title": "Choose vehicle",
+        "enterNew": "Enter a new plate",
+        "chooseSaved": "Choose a saved vehicle"
+      },
+      "saveVehicle": {
+        "title": "Save this car for next time?",
+        "nicknameLabel": "Name",
+        "nicknamePlaceholder": "e.g. My Corolla",
+        "save": "Save car",
+        "skip": "Skip"
+      },
       "plate": {
         "lookingUp": "Looking up your car...",
         "isThisYourCar": "Is this your car?",

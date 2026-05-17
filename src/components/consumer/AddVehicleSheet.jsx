@@ -6,17 +6,11 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
 import { useHistoryDismissible } from '../../hooks/useHistoryDismissible.js'
+import { formatPlate } from '../../lib/formatPlate.js'
 import MotionButton from '../ui/MotionButton.jsx'
 import LicensePlatePicker from './LicensePlatePicker.jsx'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
-
-function formatPlate(digits) {
-  if (!digits) return ''
-  if (digits.length === 7) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
-  if (digits.length >= 8) return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
-  return digits
-}
 
 const EMPTY_VEHICLE = { make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false }
 
