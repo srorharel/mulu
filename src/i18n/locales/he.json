@@ -373,18 +373,23 @@
         "label": "הכנסה",
         "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})"
       },
-      "uploadEvidence": "העלה הוכחה",
-      "washVideo": "וידאו שטיפה (חובה)",
-      "wiperFluidEvidence": "💧 מילוי נוזל מגבים",
-      "tirePressureEvidence": "🛞 בדיקת לחץ צמיגים",
-      "videoTooLong": "הוידאו חייב להיות עד 30 שניות",
-      "videoReadError": "לא ניתן לקרוא את קובץ הוידאו",
+      "arrivalPhotos": {
+        "title": "צלם תמונות הגעה",
+        "subtitle": "נדרשות 4 תמונות לפני שניתן לסמן הגעה"
+      },
+      "completionPhotos": {
+        "title": "תמונות סיום",
+        "subtitle": "נדרשות 4 תמונות כדי לשלוח לאישור"
+      },
+      "photoSlots": {
+        "front": "חזית",
+        "back": "אחורי",
+        "driver": "צד נהג",
+        "passenger": "צד נוסע"
+      },
       "required": "חובה",
       "uploaded": "הועלה",
-      "recordVideo": "הקלט וידאו",
-      "replaceVideo": "החלף וידאו",
       "uploading": "מעלה...",
-      "uploadRequired": "נדרשת העלאה: {{items}}",
       "cancelJob": "בטל עבודה",
       "cancelling": "מבטל...",
       "cancel": {
@@ -395,7 +400,6 @@
         "shortLabel": "ביטול"
       },
       "jobCompleted": "עבודה הושלמה — כל הכבוד!",
-      "videoTooLarge": "הוידאו חייב להיות מתחת ל-50 MB",
       "vehicle": {
         "title": "רכב",
         "notProvided": "פרטי הרכב לא סופקו",
@@ -420,10 +424,6 @@
       },
       "submitted": "נשלח!",
       "submittedDesc": "ממתין לאישור מנהל"
-    },
-    "evidence": {
-      "before": "סרטון לפני",
-      "after": "סרטון אחרי"
     },
     "toggle": {
       "online": "מחובר",

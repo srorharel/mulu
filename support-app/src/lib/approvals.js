@@ -6,6 +6,8 @@ export async function fetchPendingApprovals() {
     .select(`
       id, status, car_type, car_make, car_model, car_year, car_color, car_plate,
       evidence_before_path, evidence_after_path,
+      arrival_photo_front, arrival_photo_back, arrival_photo_driver, arrival_photo_passenger,
+      completion_photo_front, completion_photo_back, completion_photo_driver, completion_photo_passenger,
       created_at, accepted_at,
       submitted_lat, submitted_lng, submitted_location_at,
       lat, lng, address_label,

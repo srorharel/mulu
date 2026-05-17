@@ -1,11 +1,13 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle, Clock, Play, X, User } from 'lucide-react'
+import { CheckCircle, Clock, Play, X, User, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { approveOrder, getSignedUrl } from '../lib/approvals.js'
 import { useReverseGeocode } from '../lib/geocode.js'
 
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
+
+const PHOTO_SLOTS = ['front', 'back', 'driver', 'passenger']
 
 function formatPlate(digits) {
   if (!digits) return ''
@@ -46,6 +48,26 @@ function VideoModal({ url, onClose }) {
   )
 }
 
+function ImageModal({ url, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute -top-9 right-0 text-white/70 hover:text-white" aria-label="Close">
+          <X className="h-6 w-6" />
+        </button>
+        <img src={url} alt="" className="w-full rounded-xl max-h-[80vh] object-contain bg-black" />
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function VideoThumb({ label, url }) {
   const [open, setOpen] = useState(false)
   return (
@@ -66,8 +88,33 @@ function VideoThumb({ label, url }) {
   )
 }
 
-// UI-only warning threshold — no enforcement. Flag orders where the washer
-// submitted from more than this distance from the job address. May need tuning.
+function PhotoThumb({ label, url }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => url && setOpen(true)}
+        disabled={!url}
+        className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
+          url ? 'border-edge hover:border-accent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
+        } bg-surface`}
+      >
+        {url ? (
+          <img src={url} alt="" className="w-full aspect-square object-cover" />
+        ) : (
+          <div className="w-full aspect-square flex items-center justify-center">
+            <Camera className="h-5 w-5 text-ink-muted" />
+          </div>
+        )}
+        <span className="text-[11px] text-ink-muted font-medium text-center py-1.5 px-1 truncate">{label}</span>
+      </button>
+      {open && url && <ImageModal url={url} onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
+// UI-only warning threshold — no enforcement.
 const SUBMISSION_DISTANCE_WARN_M = 500
 
 function haversineM(lat1, lng1, lat2, lng2) {
@@ -113,7 +160,6 @@ function LocationCard({ order }) {
             />
           </Suspense>
 
-          {/* Legend */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
@@ -145,15 +191,38 @@ function LocationCard({ order }) {
 export default function ApprovalRow({ order, onApproved }) {
   const { t } = useTranslation()
 
-  const [beforeUrl, setBeforeUrl] = useState(null)
-  const [afterUrl,  setAfterUrl]  = useState(null)
+  // New orders have completion_photo_* populated; legacy orders have evidence_before/after_path.
+  const isNewShape = Boolean(
+    order.completion_photo_front ||
+    order.completion_photo_back  ||
+    order.completion_photo_driver ||
+    order.completion_photo_passenger
+  )
+
+  const [beforeUrl,  setBeforeUrl]  = useState(null)
+  const [afterUrl,   setAfterUrl]   = useState(null)
+  const [photoUrls,  setPhotoUrls]  = useState({})
   const [confirming, setConfirming] = useState(false)
   const [approving,  setApproving]  = useState(false)
   const [error, setError]           = useState('')
 
   useEffect(() => {
-    getSignedUrl(order.evidence_before_path).then(setBeforeUrl)
-    getSignedUrl(order.evidence_after_path).then(setAfterUrl)
+    if (isNewShape) {
+      const entries = [
+        ...PHOTO_SLOTS.map(s => ({ key: `arrival_${s}`,    path: order[`arrival_photo_${s}`]    })),
+        ...PHOTO_SLOTS.map(s => ({ key: `completion_${s}`, path: order[`completion_photo_${s}`] })),
+      ]
+      Promise.all(
+        entries.map(async ({ key, path }) => ({ key, url: await getSignedUrl(path) }))
+      ).then(results => {
+        const urls = {}
+        results.forEach(({ key, url }) => { if (url) urls[key] = url })
+        setPhotoUrls(urls)
+      })
+    } else {
+      getSignedUrl(order.evidence_before_path).then(setBeforeUrl)
+      getSignedUrl(order.evidence_after_path).then(setAfterUrl)
+    }
   }, [order.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function doApprove() {
@@ -231,11 +300,48 @@ export default function ApprovalRow({ order, onApproved }) {
         </div>
       )}
 
-      {/* Videos */}
-      <div className="grid grid-cols-2 gap-3">
-        <VideoThumb label={t('approvals.row.videoBefore')} url={beforeUrl} />
-        <VideoThumb label={t('approvals.row.videoAfter')}  url={afterUrl}  />
-      </div>
+      {/* Evidence — dual shape */}
+      {isNewShape ? (
+        <>
+          {/* Arrival photos */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+              {t('approvals.section.arrival')}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {PHOTO_SLOTS.map(slot => (
+                <PhotoThumb
+                  key={slot}
+                  label={t(`approvals.photoSlots.${slot}`)}
+                  url={photoUrls[`arrival_${slot}`]}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Completion photos */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+              {t('approvals.section.completion')}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {PHOTO_SLOTS.map(slot => (
+                <PhotoThumb
+                  key={slot}
+                  label={t(`approvals.photoSlots.${slot}`)}
+                  url={photoUrls[`completion_${slot}`]}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Legacy orders: before/after videos */
+        <div className="grid grid-cols-2 gap-3">
+          <VideoThumb label={t('approvals.row.videoBefore')} url={beforeUrl} />
+          <VideoThumb label={t('approvals.row.videoAfter')}  url={afterUrl}  />
+        </div>
+      )}
 
       {/* Location card */}
       <LocationCard order={order} />

@@ -373,18 +373,23 @@
         "label": "Earnings",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})"
       },
-      "uploadEvidence": "Upload evidence",
-      "washVideo": "Wash video (required)",
-      "wiperFluidEvidence": "💧 Wiper fluid refill",
-      "tirePressureEvidence": "🛞 Tire pressure check",
-      "videoTooLong": "Video must be 30 seconds or less",
-      "videoReadError": "Could not read video file",
+      "arrivalPhotos": {
+        "title": "Take arrival photos",
+        "subtitle": "4 photos required before you can mark arrived"
+      },
+      "completionPhotos": {
+        "title": "Completion photos",
+        "subtitle": "4 photos required to submit for approval"
+      },
+      "photoSlots": {
+        "front": "Front",
+        "back": "Back",
+        "driver": "Driver side",
+        "passenger": "Passenger side"
+      },
       "required": "Required",
       "uploaded": "Uploaded",
-      "recordVideo": "Record video",
-      "replaceVideo": "Replace video",
       "uploading": "Uploading…",
-      "uploadRequired": "Upload required: {{items}}",
       "cancelJob": "Cancel job",
       "cancelling": "Cancelling…",
       "cancel": {
@@ -395,7 +400,6 @@
         "shortLabel": "Cancel"
       },
       "jobCompleted": "Job complete — great work!",
-      "videoTooLarge": "Video must be under 50 MB",
       "vehicle": {
         "title": "Vehicle",
         "notProvided": "Vehicle info not provided",
@@ -420,10 +424,6 @@
       },
       "submitted": "Submitted!",
       "submittedDesc": "Awaiting admin approval"
-    },
-    "evidence": {
-      "before": "Before video",
-      "after": "After video"
     },
     "toggle": {
       "online": "Online",

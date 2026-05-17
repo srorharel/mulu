@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2,
-  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, Video, MessageCircle, Camera,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageCircle, Camera,
   Phone, Droplets, Zap, Star, ArrowLeft, Check,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
@@ -22,6 +22,7 @@ import PhotoLightbox from '../ui/PhotoLightbox.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 import i18n from '../../i18n/index.js'
 import { VAT_RATE } from '../../lib/pricing.js'
+import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
@@ -42,81 +43,67 @@ const ADVANCE_TOAST_KEYS = {
   // pending_approval handled separately (triggers onJobDone with delay)
 }
 
-const FILE_NAMES = {
-  before:        'before.mp4',
-  after:         'after.mp4',
-  wiper_fluid:   'wiper_fluid.mp4',
-  tire_pressure: 'tire_pressure.mp4',
-}
+const PHOTO_SLOTS = ['front', 'back', 'driver', 'passenger']
 
-const COLUMNS = {
-  before:        'evidence_before_path',
-  after:         'evidence_after_path',
-  wiper_fluid:   'evidence_wiper_fluid_path',
-  tire_pressure: 'evidence_tire_pressure_path',
-}
-
-function checkVideoDuration(file) {
-  return new Promise((resolve) => {
-    const video = document.createElement('video')
-    video.preload = 'metadata'
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src)
-      resolve(video.duration > 30 ? i18n.t('washer.drawer.videoTooLong') : null)
-    }
-    video.onerror = () => {
-      URL.revokeObjectURL(video.src)
-      resolve(i18n.t('washer.drawer.videoReadError'))
-    }
-    video.src = URL.createObjectURL(file)
-  })
-}
-
-function EvidenceCard({ label, path, uploading, error, onRecord }) {
+function EvidencePhotoSlot({ label, path, preview, isUploading, error, onSelect }) {
   const { t }    = useTranslation()
   const inputRef = useRef(null)
-
   return (
-    <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink">{label}</p>
-        {path
-          ? <span className="flex items-center gap-1 text-accent text-xs font-medium">
-              <CheckCircle className="h-4 w-4" /> {t('washer.drawer.uploaded')}
-            </span>
-          : <span className="text-xs text-danger-500 font-medium">{t('washer.drawer.required')}</span>
-        }
-      </div>
-
-      {error && <p className="text-danger-500 text-xs -mt-1">{error}</p>}
-
-      {uploading && (
-        <div className="h-1.5 bg-neutral-100 dark:bg-edge rounded-full overflow-hidden">
-          <div className="h-full bg-accent rounded-full w-3/5 animate-pulse" />
-        </div>
-      )}
-
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold text-ink-muted text-center truncate">{label}</span>
+      <button
+        type="button"
+        disabled={isUploading}
+        onClick={() => inputRef.current?.click()}
+        className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1.5 relative overflow-hidden transition-colors ${
+          (path || preview)
+            ? 'border-accent/30 bg-accent-muted'
+            : 'border-dashed border-glass-border bg-glass'
+        } disabled:opacity-60`}
+      >
+        {isUploading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-ink-muted" />
+        ) : preview ? (
+          <img src={preview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : path ? (
+          <>
+            <CheckCircle className="h-5 w-5 text-accent" />
+            <span className="text-[10px] text-accent font-semibold">{t('washer.drawer.uploaded')}</span>
+          </>
+        ) : (
+          <>
+            <Camera className="h-5 w-5 text-ink-muted" />
+            <span className="text-[10px] text-ink-muted">{t('washer.drawer.required')}</span>
+          </>
+        )}
+      </button>
+      {error && <p className="text-[10px] text-danger-500 text-center leading-snug">{error}</p>}
       <input
         ref={inputRef}
         type="file"
-        accept="video/*"
-        capture="environment"
+        accept="image/*"
         className="hidden"
-        onChange={e => { if (e.target.files[0]) onRecord(e.target.files[0]) }}
+        onChange={e => { if (e.target.files[0]) { onSelect(e.target.files[0]); e.target.value = '' } }}
       />
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className={`w-full ${path ? 'btn-ghost text-sm' : 'btn-outline text-sm'}`}
-      >
-        <Video className="h-4 w-4" />
-        {uploading
-          ? t('washer.drawer.uploading')
-          : path
-            ? t('washer.drawer.replaceVideo')
-            : t('washer.drawer.recordVideo')
-        }
-      </button>
+    </div>
+  )
+}
+
+function EvidencePhotoGrid({ setKey, order, uploadingSlot, uploadErrors, photoPreviews, onUpload }) {
+  const { t } = useTranslation()
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {PHOTO_SLOTS.map(slot => (
+        <EvidencePhotoSlot
+          key={slot}
+          label={t(`washer.drawer.photoSlots.${slot}`)}
+          path={order?.[`${setKey}_photo_${slot}`]}
+          preview={photoPreviews[`${setKey}_${slot}`]}
+          isUploading={uploadingSlot === `${setKey}_${slot}`}
+          error={uploadErrors[`${setKey}_${slot}`]}
+          onSelect={file => onUpload(setKey, slot, file)}
+        />
+      ))}
     </div>
   )
 }
@@ -365,10 +352,11 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const { t }     = useTranslation()
   const { address } = useReverseGeocode(activeJob?.lat, activeJob?.lng)
 
-  const [advancing, setAdvancing]     = useState(false)
-  const advancingRef                  = useRef(false)
-  const [uploading, setUploading]     = useState({})
-  const [uploadErrors, setUploadErrors] = useState({})
+  const [advancing, setAdvancing]         = useState(false)
+  const advancingRef                      = useRef(false)
+  const [uploadingSlot, setUploadingSlot] = useState(null)
+  const [uploadErrors, setUploadErrors]   = useState({})
+  const [photoPreviews, setPhotoPreviews] = useState({})
   const [supportConvId, setSupportConvId] = useState(null)
   const [supportOpen, setSupportOpen]     = useState(false)
   const [openingSupport, setOpeningSupport] = useState(false)
@@ -412,39 +400,51 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     if (failedAttemptsRef.current.length >= 3) setShowContactSupport(true)
   }
 
-  async function uploadEvidence(type, file) {
-    if (file.size > 50 * 1024 * 1024) {
-      setUploadErrors(e => ({ ...e, [type]: t('washer.drawer.videoTooLarge') }))
-      return
-    }
-    const durationError = await checkVideoDuration(file)
-    if (durationError) {
-      setUploadErrors(e => ({ ...e, [type]: durationError }))
-      return
-    }
-    setUploading(u => ({ ...u, [type]: true }))
-    setUploadErrors(e => ({ ...e, [type]: '' }))
+  async function uploadPhoto(setKey, slot, file) {
+    const slotKey = `${setKey}_${slot}`
+    const colName = `${setKey}_photo_${slot}`
+    setUploadErrors(e => ({ ...e, [slotKey]: '' }))
 
-    const path = `${activeJob.id}/${FILE_NAMES[type]}`
+    if (file.size > MAX_BYTES) {
+      setUploadErrors(e => ({ ...e, [slotKey]: t('consumer.home.photos.tooLarge') }))
+      return
+    }
+
+    setUploadingSlot(slotKey)
+
+    let blob
+    try {
+      blob = await resizeToBlob(file)
+    } catch {
+      setUploadErrors(e => ({ ...e, [slotKey]: t('consumer.home.photos.uploadFailed') }))
+      setUploadingSlot(null)
+      return
+    }
+
+    const path = `${activeJob.id}/${setKey}/${slot}.jpg`
     const { error: uploadError } = await supabase.storage
       .from('job-evidence')
-      .upload(path, file, { upsert: true })
+      .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
 
     if (uploadError) {
-      setUploadErrors(e => ({ ...e, [type]: uploadError.message }))
-      setUploading(u => ({ ...u, [type]: false }))
+      setUploadErrors(e => ({ ...e, [slotKey]: uploadError.message }))
+      setUploadingSlot(null)
       return
     }
 
     const { error: updateError } = await supabase
       .from('orders')
-      .update({ [COLUMNS[type]]: path })
+      .update({ [colName]: path })
       .eq('id', activeJob.id)
 
-    if (updateError) setUploadErrors(e => ({ ...e, [type]: updateError.message }))
-    else mutateOrder({ [COLUMNS[type]]: path })
+    if (updateError) {
+      setUploadErrors(e => ({ ...e, [slotKey]: updateError.message }))
+    } else {
+      setPhotoPreviews(p => ({ ...p, [slotKey]: URL.createObjectURL(blob) }))
+      mutateOrder({ [colName]: path })
+    }
 
-    setUploading(u => ({ ...u, [type]: false }))
+    setUploadingSlot(null)
   }
 
   async function advance() {
@@ -499,33 +499,27 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const trans        = TRANSITION_KEYS[order.status]
   const isCompleting = trans?.next === 'pending_approval'
   const isArriving   = trans?.next === 'arrived'
-  const anyUploading = Object.values(uploading).some(Boolean)
+  const anyUploading = uploadingSlot !== null
 
   // Client-side geofence
   const distanceM = (isArriving && position && order.lat && order.lng)
     ? Math.round(haversineKm(position.lat, position.lng, order.lat, order.lng) * 1000)
     : null
-  const isTooFar   = isArriving && (distanceM === null || distanceM > 100)
-  const noGps      = isArriving && !position
+  const isTooFar = isArriving && (distanceM === null || distanceM > 100)
+  const noGps    = isArriving && !position
 
-  // Both before + after required to submit for approval.
-  // Legacy addon evidence (wiper/tire) still gates completion for old orders.
-  const canComplete = (
-    order.evidence_before_path != null &&
-    order.evidence_after_path  != null &&
-    (!order.addon_wiper_fluid   || order.evidence_wiper_fluid_path   != null) &&
-    (!order.addon_tire_pressure || order.evidence_tire_pressure_path != null)
-  )
-
-  const missingEvidence = [
-    !order.evidence_before_path                                        && t('washer.evidence.before'),
-    !order.evidence_after_path                                         && t('washer.evidence.after'),
-    order.addon_wiper_fluid   && !order.evidence_wiper_fluid_path     && t('washer.drawer.wiperFluidEvidence'),
-    order.addon_tire_pressure && !order.evidence_tire_pressure_path   && t('washer.drawer.tirePressureEvidence'),
-  ].filter(Boolean)
+  const allArrivalUploaded    = PHOTO_SLOTS.every(s => order?.[`arrival_photo_${s}`])
+  const allCompletionUploaded = PHOTO_SLOTS.every(s => order?.[`completion_photo_${s}`])
 
   const noGpsSubmit      = isCompleting && !position
-  const isActionDisabled = advancing || anyUploading || (isCompleting && !canComplete) || (isArriving && isTooFar) || noGpsSubmit
+  const isActionDisabled = (
+    advancing ||
+    anyUploading ||
+    (isArriving && isTooFar) ||
+    (isArriving && !allArrivalUploaded) ||
+    (isCompleting && !allCompletionUploaded) ||
+    noGpsSubmit
+  )
 
   // Consumer info for the customer card.
   const consumerName     = consumerProfile?.full_name || t('washer.drawer.customer')
@@ -617,42 +611,39 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
         <WasherStageDots status={order.status} t={t} />
       </div>
 
-      {/* ── Evidence section — only when in_progress ── */}
-      {order.status === 'in_progress' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-ink px-1">{t('washer.drawer.uploadEvidence')}</p>
-          <EvidenceCard
-            label={t('washer.evidence.before')}
-            path={order.evidence_before_path}
-            uploading={!!uploading.before}
-            error={uploadErrors.before}
-            onRecord={file => uploadEvidence('before', file)}
+      {/* ── Arrival photos — upload before marking arrived ── */}
+      {isArriving && (
+        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-semibold text-ink">{t('washer.drawer.arrivalPhotos.title')}</p>
+            <p className="text-xs text-ink-muted mt-0.5">{t('washer.drawer.arrivalPhotos.subtitle')}</p>
+          </div>
+          <EvidencePhotoGrid
+            setKey="arrival"
+            order={order}
+            uploadingSlot={uploadingSlot}
+            uploadErrors={uploadErrors}
+            photoPreviews={photoPreviews}
+            onUpload={uploadPhoto}
           />
-          <EvidenceCard
-            label={t('washer.evidence.after')}
-            path={order.evidence_after_path}
-            uploading={!!uploading.after}
-            error={uploadErrors.after}
-            onRecord={file => uploadEvidence('after', file)}
+        </div>
+      )}
+
+      {/* ── Completion photos — upload before submitting for approval ── */}
+      {isCompleting && (
+        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-semibold text-ink">{t('washer.drawer.completionPhotos.title')}</p>
+            <p className="text-xs text-ink-muted mt-0.5">{t('washer.drawer.completionPhotos.subtitle')}</p>
+          </div>
+          <EvidencePhotoGrid
+            setKey="completion"
+            order={order}
+            uploadingSlot={uploadingSlot}
+            uploadErrors={uploadErrors}
+            photoPreviews={photoPreviews}
+            onUpload={uploadPhoto}
           />
-          {order.addon_wiper_fluid && (
-            <EvidenceCard
-              label={t('washer.drawer.wiperFluidEvidence')}
-              path={order.evidence_wiper_fluid_path}
-              uploading={!!uploading.wiper_fluid}
-              error={uploadErrors.wiper_fluid}
-              onRecord={file => uploadEvidence('wiper_fluid', file)}
-            />
-          )}
-          {order.addon_tire_pressure && (
-            <EvidenceCard
-              label={t('washer.drawer.tirePressureEvidence')}
-              path={order.evidence_tire_pressure_path}
-              uploading={!!uploading.tire_pressure}
-              error={uploadErrors.tire_pressure}
-              onRecord={file => uploadEvidence('tire_pressure', file)}
-            />
-          )}
         </div>
       )}
 
@@ -714,9 +705,14 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
               {t('washer.drawer.submit.gpsRequired')}
             </p>
           )}
-          {isCompleting && !canComplete && (
+          {isArriving && !allArrivalUploaded && (
             <p className="text-xs text-center text-ink-muted px-2">
-              {t('washer.drawer.uploadRequired', { items: missingEvidence.join(', ') })}
+              {t('washer.drawer.arrivalPhotos.subtitle')}
+            </p>
+          )}
+          {isCompleting && !allCompletionUploaded && (
+            <p className="text-xs text-center text-ink-muted px-2">
+              {t('washer.drawer.completionPhotos.subtitle')}
             </p>
           )}
         </>
