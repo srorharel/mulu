@@ -27,46 +27,63 @@ const EVENT_ROUTE_FALLBACK = {
  * No-ops on web / PWA — native only.
  */
 export async function initNotifications({ navigate, showToast }) {
+  console.log('[WASH-NOTIF] initNotifications called, platform=' + Capacitor.getPlatform())
+
   if (!Capacitor.isNativePlatform()) {
     console.debug('Notifications: web platform, skipping native push registration')
     return
   }
 
-  const { receive } = await PushNotifications.requestPermissions()
+  console.log('[WASH-NOTIF] native platform confirmed')
+
+  const permResult = await PushNotifications.requestPermissions()
+  console.log('[WASH-NOTIF] Permission result: ' + JSON.stringify(permResult))
+
+  const { receive } = permResult
   if (receive !== 'granted') {
     console.debug('Notifications: permission not granted:', receive)
     return
   }
 
-  await PushNotifications.register()
+  // ── Listeners must be registered BEFORE calling register() ───────────────
+  // FCM may return a cached token synchronously; if register() fires the event
+  // before addListener() is called, the token is lost.
 
   // ── Token registration ────────────────────────────────────────────────────
   PushNotifications.addListener('registration', async ({ value: token }) => {
+    console.log('[WASH-NOTIF] Token received: ' + token.substring(0, 20) + '...')
     currentToken = token
     localStorage.setItem(TOKEN_STORAGE_KEY, token)
     const platform = Capacitor.getPlatform() // 'android' | 'ios'
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) {
-      console.warn('Notifications: registration event fired with no active session — token not saved')
+      console.warn('[WASH-NOTIF] registration event fired with no active session — token not saved')
       return
     }
 
-    const { error } = await supabase
+    const userId = session.user.id
+    console.log('[WASH-NOTIF] Upserting token for user: ' + userId + ' platform: ' + platform)
+
+    const upsertResult = await supabase
       .from('device_tokens')
       .upsert(
-        { user_id: session.user.id, token, platform, last_seen_at: new Date().toISOString() },
+        { user_id: userId, token, platform, last_seen_at: new Date().toISOString() },
         { onConflict: 'user_id,token' }
       )
 
-    if (error) console.error('Notifications: failed to upsert device token:', error.message)
+    console.log('[WASH-NOTIF] Upsert result: ' + JSON.stringify({ error: upsertResult.error ?? null, status: upsertResult.status }))
+    if (upsertResult.error) console.error('[WASH-NOTIF] Upsert error detail:', upsertResult.error)
   })
 
   // ── Registration failure ──────────────────────────────────────────────────
   PushNotifications.addListener('registrationError', (err) => {
-    console.error('Notifications: registration error:', err)
+    console.error('[WASH-NOTIF] Registration error: ' + JSON.stringify(err))
     // Do not throw — app must keep functioning if FCM is unavailable.
   })
+
+  console.log('[WASH-NOTIF] Calling PushNotifications.register()')
+  await PushNotifications.register()
 
   // ── Foreground delivery (app is open) ────────────────────────────────────
   PushNotifications.addListener('pushNotificationReceived', (notification) => {
