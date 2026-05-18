@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
   const title = copy.title
   const body  = resolveBody(copy.body, data)
   const route = data.route ?? routeFor(event_type, data)
-  const sound = prefs.sound ?? 'default'
+  const sound = prefs.sound ?? 'chirp'
 
   // ── 4. Get cached FCM access token ────────────────────────────────────────
   const fcmProjectId = Deno.env.get('FCM_PROJECT_ID')!

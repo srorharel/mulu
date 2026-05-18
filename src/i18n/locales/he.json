@@ -577,12 +577,12 @@
     "photos": {
       "heading": "הרכב שלכם אחרי השטיפה",
       "slot": {
-        "front":     "חזית",
-        "back":      "אחורי",
-        "driver":    "צד נהג",
+        "front": "חזית",
+        "back": "אחורי",
+        "driver": "צד נהג",
         "passenger": "צד נוסע"
       },
-      "expand":    "הקישו להגדלה",
+      "expand": "הקישו להגדלה",
       "loadError": "התמונה לא זמינה"
     },
     "prompt": {
@@ -632,7 +632,7 @@
     "masterToggle": "התראות",
     "soundLabel": "צליל",
     "sound": {
-      "default": "ברירת מחדל",
+      "chirp": "ברירת מחדל",
       "chime": "צלצול",
       "bell": "פעמון",
       "gentle": "עדין",

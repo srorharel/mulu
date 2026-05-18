@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../ui/Toast.jsx'
 import { getOsPermissionState } from '../../lib/notifications.js'
 
-const SOUNDS = ['default', 'chime', 'bell', 'gentle']
+const SOUNDS = ['chirp', 'chime', 'bell', 'gentle']
 
 function Toggle({ checked, onChange, disabled }) {
   return (
@@ -36,7 +36,7 @@ export default function NotificationsSection() {
   const { t } = useTranslation()
 
   const [osState, setOsState]       = useState(null)   // null = loading
-  const [prefs, setPrefs]           = useState({ enabled: true, sound: 'default' })
+  const [prefs, setPrefs]           = useState({ enabled: true, sound: 'chirp' })
   const [loadingPrefs, setLoadingPrefs] = useState(true)
 
   useEffect(() => {

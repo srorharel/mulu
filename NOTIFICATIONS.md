@@ -144,9 +144,10 @@ Custom sounds are bundled with the native build.
 
 **Android:**
 - Sound files placed in `android/app/src/main/res/raw/`
-- Named: `default.mp3`, `chime.mp3`, `bell.mp3`, `gentle.mp3`
+- Named: `chirp.mp3`, `chime.mp3`, `bell.mp3`, `gentle.mp3`
 - FCM payload field: `android.notification.sound` → filename without extension (e.g. `"chime"`)
 - Android ignores the extension; the file must be in `res/raw/`
+- Note: internal identifier is `chirp` (not `default`) because `default` is a reserved Java keyword — Android cannot generate an `R.raw.default` constant and the build fails at `mergeDebugResources`.
 
 **iOS (deferred — `ios/` folder does not yet exist):**
 - Sound files placed in `ios/App/App/`
@@ -158,7 +159,7 @@ Custom sounds are bundled with the native build.
 | Setting | Column | Location | Scope |
 |---|---|---|---|
 | In-app new-job ping | `profiles.ringtone_preference` | Washer Settings | Sound played inside the running app when a new nearby job appears. Browser `Audio` API or Howler. Washer-only. |
-| OS push notification sound | `notification_preferences.sound` | Notifications section (both roles) | Sound the OS plays for a push notification when the app is backgrounded or closed. FCM/APNs field. Both roles. |
+| OS push notification sound | `notification_preferences.sound` | Notifications section (both roles) | Sound the OS plays for a push notification when the app is backgrounded or closed. FCM/APNs field. Both roles. Allowed values: `chirp`, `chime`, `bell`, `gentle` (display labels: Default, Chime, Bell, Gentle). |
 
 These have different lifecycles: the in-app ping plays only when the washer has the app open; the push notification sound plays when the app is closed. Do not merge them.
 

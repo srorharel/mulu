@@ -577,12 +577,12 @@
     "photos": {
       "heading": "Your car after the wash",
       "slot": {
-        "front":     "Front",
-        "back":      "Back",
-        "driver":    "Driver side",
+        "front": "Front",
+        "back": "Back",
+        "driver": "Driver side",
         "passenger": "Passenger side"
       },
-      "expand":    "Tap to expand",
+      "expand": "Tap to expand",
       "loadError": "Photo unavailable"
     },
     "prompt": {
@@ -632,7 +632,7 @@
     "masterToggle": "Notifications",
     "soundLabel": "Sound",
     "sound": {
-      "default": "Default",
+      "chirp": "Default",
       "chime": "Chime",
       "bell": "Bell",
       "gentle": "Gentle",
