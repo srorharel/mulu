@@ -1,6 +1,8 @@
-import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
+import { useToast } from './components/ui/Toast.jsx'
+import { initNotifications } from './lib/notifications.js'
 import RoleGuard from './components/RoleGuard.jsx'
 import WasherShell from './components/ui/WasherShell.jsx'
 import WasherMapShell from './components/ui/WasherMapShell.jsx'
@@ -22,6 +24,23 @@ import JobDetail       from './pages/washer/JobDetail.jsx'
 import Earnings        from './pages/washer/Earnings.jsx'
 import Shop            from './pages/washer/Shop.jsx'
 import Settings        from './pages/washer/Settings.jsx'
+
+// Initialises push notifications once a logged-in user is confirmed.
+// Renders nothing — exists only to call hooks inside the BrowserRouter context.
+function NotificationsInit() {
+  const { user } = useAuth()
+  const navigate  = useNavigate()
+  const showToast = useToast()
+  const inited    = useRef(false)
+
+  useEffect(() => {
+    if (!user || inited.current) return
+    inited.current = true
+    initNotifications({ navigate, showToast })
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null
+}
 
 // Redirects authenticated users away from public pages
 function AuthRedirect({ children }) {
@@ -56,6 +75,7 @@ export function AppRouter() {
 
   return (
     <BrowserRouter>
+      <NotificationsInit />
       <Routes>
         {/* Public — redirect away if already logged in */}
         <Route path="/"       element={<AuthRedirect><Landing /></AuthRedirect>} />

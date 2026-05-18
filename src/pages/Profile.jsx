@@ -10,6 +10,7 @@ import { useToast } from '../components/ui/Toast.jsx'
 import PageShell from '../components/ui/PageShell.jsx'
 import { useTheme } from '../hooks/useTheme.js'
 import Badge from '../components/ui/Badge.jsx'
+import NotificationsSection from '../components/settings/NotificationsSection.jsx'
 
 const schema = z.object({
   full_name:       z.string().min(2),
@@ -120,6 +121,11 @@ export default function Profile() {
             <LogOut className="h-4 w-4" />
             {t('profile.signOut')}
           </button>
+        </div>
+
+        {/* ── Notifications ───────────────────────────────────────────── */}
+        <div className="px-5 pb-8">
+          <NotificationsSection />
         </div>
       </PageShell>
     </div>

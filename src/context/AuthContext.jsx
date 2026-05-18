@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import i18n from '../i18n/index.js'
+import { unregisterToken } from '../lib/notifications.js'
 
 const AuthContext = createContext(null)
 
@@ -82,6 +83,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    await unregisterToken()   // must run before signOut clears the session
     await supabase.auth.signOut()
   }
 

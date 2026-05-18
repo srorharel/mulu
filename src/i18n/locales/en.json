@@ -348,8 +348,8 @@
     "settings": {
       "title": "Settings",
       "ringtone": {
-        "label": "New job notification sound",
-        "hint": "Sound preview and live notifications coming soon.",
+        "label": "Job alert sound (in app)",
+        "hint": "Played inside the app when a new job appears nearby.",
         "default": "Default",
         "chime": "Chime",
         "bell": "Bell",
@@ -621,6 +621,23 @@
     "send": "Send",
     "readOnly": "Order is complete — chat is read-only",
     "charsRemaining": "{{count}} characters left"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "osDenied": "Notifications are disabled in your phone settings",
+    "osDeniedAction": "Open Settings",
+    "osPrompt": "Receive a notification when your wash is ready and when there are updates",
+    "osPromptAction": "Enable notifications",
+    "webOnly": "Install the WASH app to receive notifications",
+    "masterToggle": "Notifications",
+    "soundLabel": "Sound",
+    "sound": {
+      "default": "Default",
+      "chime": "Chime",
+      "bell": "Bell",
+      "gentle": "Gentle",
+      "preview": "Play"
+    }
   },
   "agent": {
     "shell": {

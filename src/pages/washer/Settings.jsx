@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useTheme } from '../../hooks/useTheme.js'
 import i18n from '../../i18n/index.js'
+import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
@@ -141,7 +142,7 @@ export default function Settings() {
       <div className="px-4 pt-6 pb-8 flex flex-col gap-6">
         <h1 className="text-xl font-bold text-ink">{t('washer.settings.title')}</h1>
 
-        {/* ── 1. Ringtone ───────────────────────────────────────────── */}
+        {/* ── 1. Job alert sound (in-app ping) ──────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
           <p className="text-sm font-semibold text-ink">{t('washer.settings.ringtone.label')}</p>
           <GridPill
@@ -189,6 +190,9 @@ export default function Settings() {
             onChange={saveLanguage}
           />
         </section>
+
+        {/* ── 5. Push notifications (OS-level sound, both roles) ────── */}
+        <NotificationsSection />
       </div>
     </PageShell>
   )
