@@ -9,7 +9,9 @@ import { HistoryRowSkeleton } from '../../components/Skeleton.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 
-const LIVE_STATUSES = new Set(['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval'])
+// pending_approval is intentionally excluded: wash is done from the consumer's
+// perspective, so the row uses the same muted chrome as completed.
+const LIVE_STATUSES = new Set(['pending', 'accepted', 'en_route', 'arrived', 'in_progress'])
 
 function formatPlate(plate) {
   if (!plate) return null
