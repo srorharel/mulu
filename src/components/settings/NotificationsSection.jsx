@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { App } from '@capacitor/app'
+import { Play } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../ui/Toast.jsx'
@@ -35,8 +37,8 @@ export default function NotificationsSection() {
   const showToast = useToast()
   const { t } = useTranslation()
 
-  const [osState, setOsState]       = useState(null)   // null = loading
-  const [prefs, setPrefs]           = useState({ enabled: true, sound: 'chirp' })
+  const [osState, setOsState]           = useState(null)
+  const [prefs, setPrefs]               = useState({ enabled: true, sound: 'chirp' })
   const [loadingPrefs, setLoadingPrefs] = useState(true)
 
   useEffect(() => {
@@ -52,6 +54,8 @@ export default function NotificationsSection() {
         setLoadingPrefs(false)
       })
   }, [user])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Handlers — unchanged ─────────────────────────────────────────────────────
 
   async function handleRequestPermission() {
     const { receive } = await PushNotifications.requestPermissions()
@@ -98,14 +102,15 @@ export default function NotificationsSection() {
     }
   }
 
-  // Still detecting OS permission state
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   if (osState === null) return null
 
   // Web / PWA — no native push support in v1
   if (osState === 'web') {
     return (
-      <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5">
-        <p className="text-sm font-semibold text-ink mb-2">{t('notifications.title')}</p>
+      <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-5 flex flex-col gap-3">
+        <p className="text-sm font-semibold text-ink">{t('notifications.title')}</p>
         <p className="text-sm text-ink-muted">{t('notifications.webOnly')}</p>
       </section>
     )
@@ -114,24 +119,30 @@ export default function NotificationsSection() {
   const isGranted = osState === 'granted'
 
   return (
-    <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-4">
+    <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-5 flex flex-col gap-3">
       <p className="text-sm font-semibold text-ink">{t('notifications.title')}</p>
 
-      {/* ── OS denied ───────────────────────────────────────────────── */}
+      {/* ── OS denied — warning panel ────────────────────────────────── */}
       {osState === 'denied' && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-ink-muted">{t('notifications.osDenied')}</p>
-          <button onClick={handleOpenSettings} className="btn-ghost self-start text-sm">
+        <div className="rounded-xl border border-warning-200 bg-warning-50 dark:border-edge dark:bg-surface-elevated p-3 flex flex-col gap-2">
+          <p className="text-sm text-warning-800 dark:text-ink-muted">{t('notifications.osDenied')}</p>
+          <button
+            onClick={handleOpenSettings}
+            className="btn-ghost self-start text-sm text-warning-700 dark:text-ink-muted"
+          >
             {t('notifications.osDeniedAction')}
           </button>
         </div>
       )}
 
-      {/* ── OS not yet asked ────────────────────────────────────────── */}
+      {/* ── OS not yet asked — prompt panel ─────────────────────────── */}
       {osState === 'prompt' && (
-        <div className="flex flex-col gap-2">
+        <div className="rounded-xl border border-primary-200 bg-primary-50 dark:border-edge dark:bg-surface-elevated p-3 flex flex-col gap-2">
           <p className="text-sm text-ink-muted">{t('notifications.osPrompt')}</p>
-          <button onClick={handleRequestPermission} className="btn-primary self-start text-sm">
+          <button
+            onClick={handleRequestPermission}
+            className="btn-primary self-start text-sm"
+          >
             {t('notifications.osPromptAction')}
           </button>
         </div>
@@ -140,8 +151,9 @@ export default function NotificationsSection() {
       {/* ── Granted: master toggle + sound picker ───────────────────── */}
       {isGranted && !loadingPrefs && (
         <>
+          {/* Master toggle — matches Appearance section pattern */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-ink">{t('notifications.masterToggle')}</span>
+            <p className="text-sm text-ink flex-1 min-w-0 me-3">{t('notifications.masterToggle')}</p>
             <Toggle
               checked={prefs.enabled}
               onChange={saveEnabled}
@@ -149,34 +161,58 @@ export default function NotificationsSection() {
             />
           </div>
 
+          {/* Sound picker */}
           {prefs.enabled && (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-[0.4px]">
                 {t('notifications.soundLabel')}
               </p>
-              {SOUNDS.map(sound => (
-                <div key={sound} className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
-                    <input
-                      type="radio"
-                      name="notif-sound"
-                      value={sound}
-                      checked={prefs.sound === sound}
-                      onChange={() => saveSound(sound)}
-                      className="accent-accent shrink-0"
-                    />
-                    <span className="text-sm text-ink truncate">
-                      {t(`notifications.sound.${sound}`)}
-                    </span>
-                  </label>
-                  <button
-                    onClick={() => playPreview(sound)}
-                    className="shrink-0 text-xs text-accent border border-edge rounded-lg px-2.5 py-1 hover:bg-accent-muted transition-colors"
-                  >
-                    {t('notifications.sound.preview')}
-                  </button>
-                </div>
-              ))}
+
+              <div className="flex flex-col gap-1" role="radiogroup">
+                {SOUNDS.map(sound => {
+                  const isSelected = prefs.sound === sound
+                  return (
+                    <motion.div
+                      key={sound}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => saveSound(sound)}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          saveSound(sound)
+                        }
+                      }}
+                      className={`flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl cursor-pointer transition-colors border-s-[3px] ${
+                        isSelected
+                          ? 'border-accent'
+                          : 'border-transparent hover:bg-neutral-50 dark:hover:bg-surface-elevated'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ink leading-snug">
+                          {t(`notifications.sound.${sound}`)}
+                        </p>
+                        <p className="text-xs text-ink-subtle leading-snug">
+                          {t(`settings.notifications.sound.${sound}.desc`)}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); playPreview(sound) }}
+                        aria-label={t('notifications.sound.preview')}
+                        className="shrink-0 flex items-center justify-center rounded-lg text-ink-muted hover:text-accent hover:bg-accent-muted transition-colors"
+                        style={{ minHeight: 44, minWidth: 44 }}
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                      </button>
+                    </motion.div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </>

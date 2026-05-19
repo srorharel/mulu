@@ -644,7 +644,7 @@
     "osPrompt": "Receive a notification when your wash is ready and when there are updates",
     "osPromptAction": "Enable notifications",
     "webOnly": "Install the WASH app to receive notifications",
-    "masterToggle": "Notifications",
+    "masterToggle": "Receive notifications",
     "soundLabel": "Sound",
     "sound": {
       "chirp": "Default",
@@ -657,6 +657,14 @@
   "settings": {
     "language": {
       "label": "Language"
+    },
+    "notifications": {
+      "sound": {
+        "chirp": { "desc": "Soft two-tone ping" },
+        "chime": { "desc": "Bright chime bell" },
+        "bell":  { "desc": "Classic single ring" },
+        "gentle":{ "desc": "Quiet muted tone" }
+      }
     }
   },
   "agent": {
