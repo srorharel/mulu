@@ -24,9 +24,7 @@ function formatPlate(plate) {
 function formatDate(createdAt, locale, todayStr) {
   const date = new Date(createdAt)
   if (date.toDateString() === new Date().toDateString()) return todayStr
-  const diffDays = Math.floor((Date.now() - date) / 86_400_000)
-  if (diffDays < 7) return date.toLocaleDateString(locale, { weekday: 'short' })
-  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 function formatTime(createdAt, locale) {
@@ -89,8 +87,16 @@ export default function OrderHistory() {
   }, [user.id])
 
   // Derive year stats from already-loaded data — no extra query.
+  // Cancelled orders excluded from both count and spend; everything else
+  // (pending through completed) counts — the consumer ordered and paid.
   const thisYear   = new Date().getFullYear()
-  const yearOrders = useMemo(() => orders.filter(o => new Date(o.created_at).getFullYear() === thisYear), [orders, thisYear])
+  const yearOrders = useMemo(() =>
+    orders.filter(o =>
+      new Date(o.created_at).getFullYear() === thisYear &&
+      o.status !== 'cancelled'
+    ),
+    [orders, thisYear]
+  )
   const yearCount  = yearOrders.length
   const yearSpent  = useMemo(() => yearOrders.reduce((s, o) => s + (o.total_price || 0), 0), [yearOrders])
 
@@ -207,9 +213,10 @@ export default function OrderHistory() {
 
                               {/* Date + plate + car */}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-baseline gap-2">
+                                <div className="flex items-baseline gap-1.5">
                                   <span className="text-[14px] font-bold text-ink">{dateStr}</span>
-                                  <span className="text-[12px] text-ink-muted">{timeStr}</span>
+                                  <span className="text-[12px] text-ink-muted" aria-hidden="true">·</span>
+                                  <span className="text-[12px] text-ink-muted tabular-nums">{timeStr}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-ink-muted min-w-0">
                                   {plate && (
