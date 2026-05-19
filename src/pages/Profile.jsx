@@ -48,7 +48,7 @@ export default function Profile() {
   }
 
   return (
-    <div className={isDark ? 'dark h-full' : 'h-full'}>
+    <div className={`${isDark ? 'dark ' : ''}h-full bg-surface`}>
       <PageShell>
         <div className="px-5 pt-10 pb-6">
           <div className="flex items-center gap-3 mb-6">
