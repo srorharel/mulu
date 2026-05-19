@@ -210,6 +210,13 @@
         "completed": "הרכב שלך נקי ומבריק!",
         "cancelled": "ההזמנה בוטלה"
       },
+      "eta_pill": {
+        "accepted": "שוטף שויך",
+        "en_route": "השוטף בדרך",
+        "arrived": "השוטף כאן",
+        "in_progress": "שטיפה מתבצעת",
+        "pending_approval": "שטיפה הושלמה · בבדיקה"
+      },
       "eta": {
         "arrivingIn": "מגיע בעוד",
         "placeholder": "~15 דק׳"

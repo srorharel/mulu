@@ -228,7 +228,8 @@ The year-stat card (count + spend) currently computes client-side from the alrea
 The top-right widget on the Washer Dashboard shows `₪—`. Needs a `get_washer_today_earnings()` security-definer RPC returning the sum of `base_price` on completed orders where `approved_at::date = current_date`. Trigger or live subscription on new completions optional (a per-mount fetch is probably sufficient).
 
 **ADR-016 · Live ETA on Order Tracking** — Priority: **high**  
-Paired with ADR-013. Once the washer's `current_location` is subscribed on the consumer side, compute ETA by sending a single OSRM `/route` request from washer lat/lng to `order.lat/lng`. Cache result; refresh every position update. Display as `X min · Y km` in the existing ETA pill. Fallback: keep `~15 min` if location or routing is unavailable.
+Paired with ADR-013. Once the washer's `current_location` is subscribed on the consumer side, compute ETA by sending a single OSRM `/route` request from washer lat/lng to `order.lat/lng`. Cache result; refresh every position update. Display as `X min · Y km` in the existing ETA pill. Fallback: keep `~15 min` if location or routing is unavailable.  
+*Update 2026-05-20:* ETA minutes display removed; pill now shows status-driven label. Live ETA still deferred.
 
 **ADR-017 · Washer and consumer star ratings** — Priority: **med**  
 Both the washer card on Order Tracking and the customer card in Active Job show a hardcoded `4.8`. Needs: `rating numeric(3,2)` and `completed_jobs_count int` columns on `profiles`; a trigger on `orders` that updates the washer's stats when `status → completed`; a consumer-facing review submission screen or modal after job completion. The consumer side of ADR-017 (customer card in Active Job) also needs `consumer_orders_count int` for the "— orders" line.

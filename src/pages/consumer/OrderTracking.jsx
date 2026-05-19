@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Clock, MessageCircle, MessageSquare, Phone, Star, Check } from 'lucide-react'
+import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
@@ -279,14 +279,13 @@ export default function OrderTracking() {
 
         {isActive && (
           <div className="absolute left-1/2 -translate-x-1/2 z-20" style={{ top: 72 }}>
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white shadow-[0_6px_20px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]">
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-800">
-                <Clock className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <p className="text-[11px] text-ink-muted font-medium leading-none">{t('consumer.tracking.eta.arrivingIn')}</p>
-                <p className="text-[16px] font-extrabold text-ink tracking-[-0.3px] leading-tight">{t('consumer.tracking.eta.placeholder')}</p>
-              </div>
+            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-full shadow-[0_6px_20px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)] ${
+              order.status === 'arrived' ? 'bg-primary-50' : 'bg-white'
+            }`}>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${order.status === 'arrived' ? 'bg-primary-700' : 'bg-primary-500'}`} />
+              <p className={`text-[14px] font-bold tracking-[-0.2px] ${order.status === 'arrived' ? 'text-primary-700' : 'text-ink'}`}>
+                {t(`consumer.tracking.eta_pill.${order.status}`, t('consumer.tracking.eta_pill.accepted'))}
+              </p>
             </div>
           </div>
         )}

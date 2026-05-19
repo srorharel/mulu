@@ -210,6 +210,13 @@
         "completed": "Your car is sparkling clean!",
         "cancelled": "This order was cancelled"
       },
+      "eta_pill": {
+        "accepted": "Washer assigned",
+        "en_route": "Washer on the way",
+        "arrived": "Washer is here",
+        "in_progress": "Washing in progress",
+        "pending_approval": "Wash complete · under review"
+      },
       "eta": {
         "arrivingIn": "Arriving in",
         "placeholder": "~15 min"
