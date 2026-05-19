@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LogOut, User, MessageCircle, Car } from 'lucide-react'
+import { LogOut, User, MessageCircle, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase.js'
@@ -10,7 +10,6 @@ import { useToast } from '../components/ui/Toast.jsx'
 import PageShell from '../components/ui/PageShell.jsx'
 import { useTheme } from '../hooks/useTheme.js'
 import Badge from '../components/ui/Badge.jsx'
-import NotificationsSection from '../components/settings/NotificationsSection.jsx'
 
 const schema = z.object({
   full_name:       z.string().min(2),
@@ -101,11 +100,11 @@ export default function Profile() {
           {profile?.role === 'consumer' && (
             <>
               <button
-                onClick={() => navigate('/profile/vehicles')}
+                onClick={() => navigate('/profile/settings')}
                 className="btn-ghost w-full mt-4"
               >
-                <Car className="h-4 w-4" />
-                {t('profile.vehicles')}
+                <Settings className="h-4 w-4" />
+                {t('profile.settings')}
               </button>
               <button
                 onClick={() => navigate('/support')}
@@ -123,10 +122,6 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* ── Notifications ───────────────────────────────────────────── */}
-        <div className="px-5 pb-8">
-          <NotificationsSection />
-        </div>
       </PageShell>
     </div>
   )

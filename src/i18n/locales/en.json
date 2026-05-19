@@ -64,7 +64,8 @@
     "saveChanges": "Save changes",
     "signOut": "Sign out",
     "updated": "Profile updated",
-    "vehicles": "My vehicles"
+    "vehicles": "My vehicles",
+    "settings": "Settings"
   },
   "consumer": {
     "home": {
@@ -255,6 +256,14 @@
         "nicknamePlaceholder": "e.g. My Corolla",
         "nicknameHint": "A short name to tell your vehicles apart",
         "save": "Save vehicle"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "appearance": {
+        "title": "Appearance",
+        "darkMode": "Dark mode",
+        "betaNote": "Dark mode for consumers is in progress. Some screens may look unfinished."
       }
     },
     "history": {

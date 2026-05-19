@@ -16,8 +16,9 @@ import Support      from './pages/Support.jsx'
 import ConsumerHome   from './pages/consumer/Home.jsx'
 import OrderTracking  from './pages/consumer/OrderTracking.jsx'
 import OrderHistory   from './pages/consumer/OrderHistory.jsx'
-import Vehicles       from './pages/consumer/Vehicles.jsx'
-import ConsumerLayout from './components/consumer/ConsumerLayout.jsx'
+import Vehicles         from './pages/consumer/Vehicles.jsx'
+import ConsumerSettings from './pages/consumer/Settings.jsx'
+import ConsumerLayout   from './components/consumer/ConsumerLayout.jsx'
 
 import WasherDashboard from './pages/washer/Dashboard.jsx'
 import JobDetail       from './pages/washer/JobDetail.jsx'
@@ -90,6 +91,7 @@ export function AppRouter() {
             <Route path="/order/:id"         element={<OrderTracking />} />
             <Route path="/history"           element={<OrderHistory />} />
             <Route path="/profile/vehicles"  element={<Vehicles />} />
+            <Route path="/profile/settings"  element={<ConsumerSettings />} />
           </Route>
         </Route>
 

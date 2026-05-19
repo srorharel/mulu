@@ -64,7 +64,8 @@
     "saveChanges": "שמור שינויים",
     "signOut": "התנתקות",
     "updated": "הפרופיל עודכן",
-    "vehicles": "הרכבים שלי"
+    "vehicles": "הרכבים שלי",
+    "settings": "הגדרות"
   },
   "consumer": {
     "home": {
@@ -255,6 +256,14 @@
         "nicknamePlaceholder": "לדוג׳ הקורולה שלי",
         "nicknameHint": "שם קצר כדי להבדיל בין הרכבים",
         "save": "שמור רכב"
+      }
+    },
+    "settings": {
+      "title": "הגדרות",
+      "appearance": {
+        "title": "מראה",
+        "darkMode": "מצב כהה",
+        "betaNote": "מצב כהה לצרכנים נמצא בפיתוח. חלק מהמסכים עשויים להיראות לא גמורים."
       }
     },
     "history": {
