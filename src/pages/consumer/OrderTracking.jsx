@@ -224,7 +224,7 @@ export default function OrderTracking() {
   const subtitle = t(`consumer.tracking.subtitle.${order.status}`, { name: washerFirstName, defaultValue: '' })
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-surface">
 
       {/* ── Map area ─────────────────────────────────────────────────────── */}
       <div className="relative shrink-0 overflow-hidden h-[55vh] min-h-[200px]">
@@ -255,7 +255,7 @@ export default function OrderTracking() {
           </g>
         </svg>
 
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-white pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-surface pointer-events-none" />
 
         <div
           className="absolute start-4 end-4 flex items-center justify-between z-20"
@@ -292,7 +292,7 @@ export default function OrderTracking() {
       </div>
 
       {/* ── Bottom sheet ─────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-white rounded-t-[28px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] -mt-7 relative z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-surface-elevated rounded-t-[28px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] -mt-7 relative z-10">
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-edge" />
         </div>

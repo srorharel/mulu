@@ -238,6 +238,9 @@ Both the washer card on Order Tracking and the customer card in Active Job show 
 
 ### Code-level TODOs accumulated during the redesign
 
+**Consumer dark-mode completion** — Priority: **med**  
+The consumer opt-in dark mode toggle (ADR-023) is live, but 9 files have hardcoded light-mode Tailwind classes without `dark:` equivalents. Adding `dark:` variants to these files is the remaining work before consumer dark mode can be considered fully polished. Files requiring `dark:` audit: `OrderTracking.jsx`, `Vehicles.jsx`, `Home.jsx`, `CarPhotoUpload.jsx`, `LocationSheet.jsx`, `RatingModal.jsx`, `VehiclePickerSheet.jsx`, `AddVehicleSheet.jsx`, `LicensePlatePicker.jsx`. Also `BottomNav.jsx` (`bg-primary-50` active tab bg needs a dark equivalent). The smoke test confirmed all screens are navigable in dark; contrast issues are cosmetic, not blocking.
+
 **Phone numbers on profiles** — Priority: **med**  
 The washer card (Order Tracking) and customer card (Active Job) both have a dimmed phone button that does nothing. Needs a `phone text` column on `profiles`, capture at signup, and a `tel:` href wired to the button. Washer phone is the more urgent half — the consumer needs to reach the washer quickly on arrival.
 
@@ -278,6 +281,14 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 **Context:** The vehicle management list lets consumers rename a saved vehicle. The edit could be done inline (text becomes an input in place, with Save / Cancel buttons) or via a modal (tap edit → modal with input → save).
 **Decision:** Inline. Nickname is a single short field; a modal adds ceremony (backdrop, dismiss affordance, header) that is disproportionate to the action. Inline editing keeps the user's eye on the vehicle row they are modifying, matches established patterns for single-field list-item renames (Notion tasks, iOS shortcuts), and is consistent with the app's density target (Wolt-level, §13). State is minimal: one `editingId` + `editingValue` per page. The ConfirmDialog component is reserved for destructive confirmations (delete) where friction is intentional.
 **Consequence:** The vehicle row expands slightly when in edit mode to accommodate the input and Save/Cancel buttons. Only one row can be in edit mode at a time; starting a new edit implicitly cancels the previous one.
+
+## ADR-023: Consumer display_preference enabled (role-split relaxed)
+**Date:** 2026-05-20
+**Status:** Accepted
+**Context:** DESIGN.md §2 codified Light vs. Dark as a role-based architecture: consumer always light, washer respects `display_preference`. The product decision is to allow consumers to opt into dark mode via a Settings toggle.
+**Decision:** `profile.display_preference` now drives theme for both roles. `useTheme()` already respected `display_preference` before role in its resolution order — no hook change was needed. The UI toggle lives at `/profile/settings → Appearance`. A one-line note informs the consumer that dark mode is in progress. The role-based default (consumer → light, washer → dark) still applies when `display_preference` is unset.
+**Consequence:** All consumer pages need dark-mode equivalents. The redesign was built consumer-light-only; 9 files have hardcoded light values without `dark:` variants (see "Consumer dark-mode completion" in Open follow-ups). A smoke test was performed in this commit; screens confirmed navigable in dark mode. Remaining gaps tracked in follow-ups.
+**Alternatives considered:** Keep the role split (rejected — user explicitly wants the toggle). Render the toggle but no-op it for consumer (rejected — dishonest UI). Ship as hidden feature flag (rejected — adds complexity not needed at this scale).
 
 ## ADR-021: orders INSERT RLS updated to validate vehicle_id ownership
 **Date:** 2026-05-18

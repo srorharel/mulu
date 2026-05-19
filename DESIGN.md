@@ -14,16 +14,20 @@ What Wash is NOT: luxury, playful-childish, eco-preachy, or corporate-cold. No d
 
 ## 2. Architecture: two visual modes
 
-The app has two distinct color modes — not "light/dark" as a user preference, but as a role split:
+The app has two visual modes. Originally role-based (consumer always light, washer respects preference), the split was relaxed in ADR-023 to allow consumers to opt into dark mode.
 
 | Mode | Who | Trigger | Palette style |
 |------|-----|---------|---------------|
-| **Consumer (light)** | Customers booking washes | Default; public pages | Concrete Tailwind classes (`neutral-*`, `primary-*`) |
-| **Washer (dark)** | Washers fulfilling jobs | `.dark` class on `WasherShell` / `WasherMapShell` | Semantic token classes (`text-ink`, `bg-surface`, `border-edge`) |
+| **Consumer (light, default)** | Customers booking washes | Default when `display_preference` unset | Concrete Tailwind classes (`neutral-*`, `primary-*`) |
+| **Consumer (dark, opt-in)** | Customers who enable dark mode | `display_preference = 'dark'` via Settings | Same concrete classes — `dark:` variants in progress (see ADR-023) |
+| **Washer (dark, default)** | Washers fulfilling jobs | `.dark` class on `WasherShell` / `WasherMapShell` | Semantic token classes (`text-ink`, `bg-surface`, `border-edge`) |
+| **Washer (light, opt-in)** | Washers who prefer light | `display_preference = 'light'` via Washer Settings | Same semantic token classes |
 
-Washer dark mode is applied by `WasherShell.jsx` based on `profile.display_preference`. Washer light mode (`display_preference === 'light'`) toggles off the `.dark` class.
+As of ADR-023, `profile.display_preference` drives theme for both roles. The role-based default (consumer → light, washer → dark) still applies when `display_preference` is unset.
 
 **Rule:** Consumer pages use concrete palette classes. Washer pages use semantic token classes. Never mix the two systems on the same screen. Profile.jsx is the only shared page — it conditionally wraps in `.dark` based on role.
+
+> **Note:** Consumer dark-mode `dark:` variant coverage is in progress. See "Consumer dark-mode completion" in DECISIONS.md open follow-ups.
 
 ### Consumer screen pattern (glass over mesh)
 
