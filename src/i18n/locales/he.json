@@ -655,6 +655,11 @@
       "preview": "נגן"
     }
   },
+  "settings": {
+    "language": {
+      "label": "שפה"
+    }
+  },
   "agent": {
     "shell": {
       "title": "תמיכה"

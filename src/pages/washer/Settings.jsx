@@ -6,38 +6,9 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useTheme } from '../../hooks/useTheme.js'
-import i18n from '../../i18n/index.js'
+import { useLocale } from '../../hooks/useLocale.js'
 import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
-
-const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
-
-// Horizontal pill selector
-function PillRow({ groupId, options, value, onChange }) {
-  return (
-    <LayoutGroup id={groupId}>
-      <div className="flex rounded-xl overflow-hidden border border-edge bg-surface">
-        {options.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => onChange(opt.value)}
-            className="relative flex-1 py-3 text-sm font-medium transition-colors"
-          >
-            {value === opt.value && (
-              <motion.div
-                layoutId={`${groupId}-pill`}
-                className="absolute inset-0 bg-accent-muted"
-                transition={SPRING}
-              />
-            )}
-            <span className={`relative z-10 ${value === opt.value ? 'text-accent' : 'text-ink-muted'}`}>
-              {opt.label}
-            </span>
-          </button>
-        ))}
-      </div>
-    </LayoutGroup>
-  )
-}
+import PillRow from '../../components/settings/PillRow.jsx'
 
 // 2×2 grid pill selector
 function GridPill({ groupId, options, value, onChange }) {
@@ -70,6 +41,7 @@ function GridPill({ groupId, options, value, onChange }) {
 export default function Settings() {
   const { profile, user, refreshProfile } = useAuth()
   const { setTheme } = useTheme()
+  const { locale, setLocale } = useLocale()
   const showToast = useToast()
   const { t } = useTranslation()
 
@@ -100,7 +72,6 @@ export default function Settings() {
     ringtone: 'default',
     display:  'dark',
     nav:      'waze',
-    language: i18n.language === 'he' ? 'he' : 'en',
   })
 
   useEffect(() => {
@@ -109,7 +80,6 @@ export default function Settings() {
       ringtone: profile.ringtone_preference ?? 'default',
       display:  profile.display_preference  ?? 'dark',
       nav:      profile.nav_app_preference   ?? 'waze',
-      language: profile.locale ?? (i18n.language === 'he' ? 'he' : 'en'),
     })
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -124,17 +94,6 @@ export default function Settings() {
       return
     }
     await refreshProfile()
-  }
-
-  async function saveLanguage(lang) {
-    setPrefs(p => ({ ...p, language: lang }))
-    await i18n.changeLanguage(lang)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ locale: lang })
-      .eq('id', user.id)
-    if (error) showToast(error.message, 'error')
-    else await refreshProfile()
   }
 
   return (
@@ -182,12 +141,15 @@ export default function Settings() {
 
         {/* ── 4. Language ───────────────────────────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
-          <p className="text-sm font-semibold text-ink">{t('washer.settings.language.label')}</p>
+          <p className="text-sm font-semibold text-ink">{t('settings.language.label')}</p>
           <PillRow
-            groupId="language"
+            groupId="washer-language"
             options={LANGUAGE_OPTIONS}
-            value={prefs.language}
-            onChange={saveLanguage}
+            value={locale}
+            onChange={async (lang) => {
+              const { error } = await setLocale(lang)
+              if (error) showToast(error.message, 'error')
+            }}
           />
         </section>
 

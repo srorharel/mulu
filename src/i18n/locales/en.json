@@ -655,6 +655,11 @@
       "preview": "Play"
     }
   },
+  "settings": {
+    "language": {
+      "label": "Language"
+    }
+  },
   "agent": {
     "shell": {
       "title": "Support"

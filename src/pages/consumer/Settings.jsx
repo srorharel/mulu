@@ -5,10 +5,20 @@ import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
 import AppearanceSection from '../../components/settings/AppearanceSection.jsx'
+import PillRow from '../../components/settings/PillRow.jsx'
+import { useLocale } from '../../hooks/useLocale.js'
+import { useToast } from '../../components/ui/Toast.jsx'
+
+const LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English' },
+  { value: 'he', label: 'עברית'   },
+]
 
 export default function ConsumerSettings() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { locale, setLocale } = useLocale()
+  const showToast = useToast()
 
   return (
     <PageShell>
@@ -30,6 +40,19 @@ export default function ConsumerSettings() {
           <NotificationsSection />
 
           <AppearanceSection />
+
+          <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-5 flex flex-col gap-3">
+            <p className="text-sm font-semibold text-ink">{t('settings.language.label')}</p>
+            <PillRow
+              groupId="consumer-language"
+              options={LANGUAGE_OPTIONS}
+              value={locale}
+              onChange={async (lang) => {
+                const { error } = await setLocale(lang)
+                if (error) showToast(error.message, 'error')
+              }}
+            />
+          </section>
 
           <GlassCard className="p-0 overflow-hidden">
             <button
