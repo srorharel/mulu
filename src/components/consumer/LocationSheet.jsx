@@ -224,11 +224,11 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
             transition={SPRING}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 shrink-0">
-              <h2 className="font-semibold text-neutral-900">{t('location.chooseLocation')}</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-edge shrink-0">
+              <h2 className="font-semibold text-neutral-900 dark:text-ink">{t('location.chooseLocation')}</h2>
               <button
                 onClick={dismiss}
-                className="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 transition-colors"
+                className="rounded-full p-2 text-neutral-500 dark:text-ink-subtle hover:bg-neutral-100 dark:hover:bg-surface-elevated transition-colors"
                 style={{ minHeight: 44, minWidth: 44 }}
               >
                 <X className="h-5 w-5" />
@@ -237,7 +237,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
 
             {/* Map — 48vh leaves room for the address fields below */}
             <div className="shrink-0" style={{ height: '48vh' }}>
-              <Suspense fallback={<div className="h-full bg-neutral-100 animate-pulse" />}>
+              <Suspense fallback={<div className="h-full bg-neutral-100 dark:bg-surface-elevated animate-pulse" />}>
                 <MapPicker position={draft} onChange={handleDraftChange} height="100%" />
               </Suspense>
             </div>
@@ -246,7 +246,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
             <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
               {/* Read-only geocode preview */}
               {geocodePreview && (
-                <p className="text-xs text-neutral-400 truncate">
+                <p className="text-xs text-neutral-400 dark:text-ink-subtle truncate">
                   {t('consumer.locationSheet.fromMap', { address: geocodePreview })}
                 </p>
               )}
@@ -254,7 +254,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
               {/* Street + House number on one row */}
               <div className="flex gap-2">
                 <div className="flex flex-col gap-1 flex-[7]">
-                  <label className="text-xs font-medium text-neutral-500">
+                  <label className="text-xs font-medium text-neutral-500 dark:text-ink-subtle">
                     {t('consumer.locationSheet.fields.street')}
                   </label>
                   <input
@@ -267,7 +267,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
                   />
                 </div>
                 <div className="flex flex-col gap-1 flex-[3]">
-                  <label className="text-xs font-medium text-neutral-500">
+                  <label className="text-xs font-medium text-neutral-500 dark:text-ink-subtle">
                     {t('consumer.locationSheet.fields.number')}
                   </label>
                   <input
@@ -298,7 +298,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
 
               {/* Forward geocode status */}
               {forwardSearching && (
-                <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-ink-subtle">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   {t('consumer.locationSheet.searching')}
                 </div>
@@ -311,7 +311,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
             </div>
 
             {/* Confirm */}
-            <div className="px-4 py-4 shrink-0 border-t border-neutral-100 safe-bottom">
+            <div className="px-4 py-4 shrink-0 border-t border-neutral-100 dark:border-edge safe-bottom">
               <button
                 onClick={handleConfirm}
                 disabled={!draft}

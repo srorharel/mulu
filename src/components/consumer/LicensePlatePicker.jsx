@@ -167,28 +167,28 @@ export default function LicensePlatePicker({ onChange }) {
             </span>
           </div>
           {status === 'looking_up' && (
-            <p className="text-xs text-neutral-500">{t('consumer.home.plate.lookingUp')}</p>
+            <p className="text-xs text-neutral-500 dark:text-ink-subtle">{t('consumer.home.plate.lookingUp')}</p>
           )}
         </div>
       )}
 
       {/* ── Found: confirmation card below the (editable) input ─────────────── */}
       {status === 'found' && result && (
-        <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white/90 p-4 shadow-sm">
+        <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 dark:border-edge bg-white/90 dark:bg-surface-elevated p-4 shadow-sm">
           <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-neutral-400 uppercase tracking-wide font-medium">
+            <p className="text-xs text-neutral-400 dark:text-ink-subtle uppercase tracking-wide font-medium">
               {formatPlate(result.plate)}
             </p>
-            <p className="text-lg font-bold text-neutral-900 leading-tight">
+            <p className="text-lg font-bold text-neutral-900 dark:text-ink leading-tight">
               {[result.make, result.model].filter(Boolean).join(' ') || '—'}
             </p>
             {(result.year || result.color) && (
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-neutral-500 dark:text-ink-subtle">
                 {[result.year, result.color].filter(Boolean).join(' · ')}
               </p>
             )}
           </div>
-          <p className="text-sm font-semibold text-neutral-700">{t('consumer.home.plate.isThisYourCar')}</p>
+          <p className="text-sm font-semibold text-neutral-700 dark:text-ink-muted">{t('consumer.home.plate.isThisYourCar')}</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmResult} className="btn-primary flex-1 text-sm">
               {t('consumer.home.plate.yesItsMine')}
@@ -252,7 +252,7 @@ export default function LicensePlatePicker({ onChange }) {
                   className={`flex-1 rounded-xl border py-2 text-sm font-medium transition-colors ${
                     manualCategory === cat
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-neutral-200 bg-white/70 text-neutral-700'
+                      : 'border-neutral-200 dark:border-edge bg-white/70 dark:bg-surface-elevated text-neutral-700 dark:text-ink-muted'
                   }`}
                 >
                   {t(`carLabels.${cat}`)}

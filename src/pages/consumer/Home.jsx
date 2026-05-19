@@ -369,7 +369,7 @@ export default function ConsumerHome() {
             className="flex items-stretch w-full text-start rounded-glass overflow-hidden bg-glass border border-glass-border backdrop-blur-xl shadow-glass"
             style={{ minHeight: 78 }}
           >
-            <div className="w-[78px] shrink-0 bg-primary-50 flex items-center justify-center border-e border-glass-border">
+            <div className="w-[78px] shrink-0 bg-primary-50 dark:bg-accent-muted flex items-center justify-center border-e border-glass-border">
               <MapPin className="h-[22px] w-[22px] text-primary-700" />
             </div>
             <div className="flex-1 px-4 py-3.5 flex flex-col justify-center min-w-0">

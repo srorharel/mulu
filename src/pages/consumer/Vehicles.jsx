@@ -113,12 +113,12 @@ export default function Vehicles() {
 
           {loading ? (
             <GlassCard className="p-4 flex flex-col gap-3">
-              <div className="h-[80px] rounded-xl bg-neutral-100/80 animate-pulse" />
-              <div className="h-[80px] rounded-xl bg-neutral-100/80 animate-pulse" />
+              <div className="h-[80px] rounded-xl bg-neutral-100/80 dark:bg-surface-elevated animate-pulse" />
+              <div className="h-[80px] rounded-xl bg-neutral-100/80 dark:bg-surface-elevated animate-pulse" />
             </GlassCard>
           ) : vehicles.length === 0 ? (
             <GlassCard className="p-8 flex flex-col items-center gap-3 text-center">
-              <div className="w-14 h-14 rounded-[18px] bg-primary-50 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-[18px] bg-primary-50 dark:bg-accent-muted flex items-center justify-center">
                 <Car className="h-7 w-7 text-primary-600" />
               </div>
               <p className="text-[15px] font-bold text-ink">{t('consumer.vehicles.noVehicles')}</p>
@@ -227,7 +227,7 @@ function VehicleRow({
         </div>
 
         {v.is_default && !isEditing && (
-          <span className="shrink-0 px-2 py-0.5 rounded-md bg-primary-50 border border-primary-200 text-[10px] font-semibold text-primary-700 uppercase tracking-wide">
+          <span className="shrink-0 px-2 py-0.5 rounded-md bg-primary-50 dark:bg-accent-muted border border-primary-200 text-[10px] font-semibold text-primary-700 uppercase tracking-wide">
             {t('consumer.vehicles.defaultBadge')}
           </span>
         )}
@@ -247,7 +247,7 @@ function VehicleRow({
             </MotionButton>
             <MotionButton
               onClick={onCancelEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 text-ink-muted text-[13px] font-semibold h-[36px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-edge text-ink-muted text-[13px] font-semibold h-[36px]"
             >
               <X className="h-3.5 w-3.5" />
               {t('common.cancel')}
@@ -258,7 +258,7 @@ function VehicleRow({
             {!v.is_default && (
               <MotionButton
                 onClick={onSetDefault}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 text-ink-muted hover:text-primary-700 hover:border-primary-300 text-[13px] font-medium transition-colors h-[36px]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-edge text-ink-muted hover:text-primary-700 hover:border-primary-300 text-[13px] font-medium transition-colors h-[36px]"
               >
                 <Star className="h-3.5 w-3.5" />
                 {t('consumer.vehicles.setDefault')}
@@ -266,7 +266,7 @@ function VehicleRow({
             )}
             <MotionButton
               onClick={() => onStartEdit(v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 text-ink-muted hover:text-ink text-[13px] font-medium transition-colors h-[36px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-edge text-ink-muted hover:text-ink text-[13px] font-medium transition-colors h-[36px]"
             >
               <Pencil className="h-3.5 w-3.5" />
               {t('consumer.vehicles.editNickname')}

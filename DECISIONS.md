@@ -238,8 +238,8 @@ Both the washer card on Order Tracking and the customer card in Active Job show 
 
 ### Code-level TODOs accumulated during the redesign
 
-**Consumer dark-mode completion** — Priority: **med**  
-The consumer opt-in dark mode toggle (ADR-023) is live, but 9 files have hardcoded light-mode Tailwind classes without `dark:` equivalents. Adding `dark:` variants to these files is the remaining work before consumer dark mode can be considered fully polished. Files requiring `dark:` audit: `OrderTracking.jsx`, `Vehicles.jsx`, `Home.jsx`, `CarPhotoUpload.jsx`, `LocationSheet.jsx`, `RatingModal.jsx`, `VehiclePickerSheet.jsx`, `AddVehicleSheet.jsx`, `LicensePlatePicker.jsx`. Also `BottomNav.jsx` (`bg-primary-50` active tab bg needs a dark equivalent). The smoke test confirmed all screens are navigable in dark; contrast issues are cosmetic, not blocking.
+**Consumer dark-mode completion** — ~~Priority: **med**~~ **Resolved.**  
+54 hardcoded-light occurrences across 10 files patched with `dark:` variants. In-progress note removed from /profile/settings Appearance toggle. See commit `feat(consumer): close dark-mode gap; remove in-progress note`.
 
 **Phone numbers on profiles** — Priority: **med**  
 The washer card (Order Tracking) and customer card (Active Job) both have a dimmed phone button that does nothing. Needs a `phone text` column on `profiles`, capture at signup, and a `tel:` href wired to the button. Washer phone is the more urgent half — the consumer needs to reach the washer quickly on arrival.

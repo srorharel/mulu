@@ -34,12 +34,7 @@ export default function AppearanceSection() {
       <p className="text-sm font-semibold text-ink">{t('consumer.settings.appearance.title')}</p>
 
       <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0 me-3">
-          <p className="text-sm text-ink">{t('consumer.settings.appearance.darkMode')}</p>
-          <p className="text-xs text-ink-muted mt-0.5">
-            {t('consumer.settings.appearance.betaNote')}
-          </p>
-        </div>
+        <p className="text-sm text-ink flex-1 min-w-0 me-3">{t('consumer.settings.appearance.darkMode')}</p>
         <Toggle checked={isDark} onChange={handleToggle} />
       </div>
     </section>

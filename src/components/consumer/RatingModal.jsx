@@ -149,7 +149,7 @@ function ModalShell({ title, onX, body, footer }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 40 }}
       transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-      className="w-full max-w-sm bg-white rounded-[28px] shadow-2xl flex flex-col overflow-hidden"
+      className="w-full max-w-sm bg-white dark:bg-surface-elevated rounded-[28px] shadow-2xl flex flex-col overflow-hidden"
       style={{ maxHeight: 'min(90dvh, 680px)' }}
     >
       {/* Sticky header */}

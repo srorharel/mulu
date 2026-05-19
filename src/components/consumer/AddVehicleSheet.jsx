@@ -91,11 +91,11 @@ export default function AddVehicleSheet({ open, onClose, onAdded, consumerId }) 
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 shrink-0">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 dark:border-edge shrink-0">
               <h2 className="text-base font-bold text-ink">{t('consumer.vehicles.add.title')}</h2>
               <button
                 onClick={dismiss}
-                className="rounded-full p-2 text-ink-muted hover:bg-neutral-100 transition-colors"
+                className="rounded-full p-2 text-ink-muted hover:bg-neutral-100 dark:hover:bg-surface-elevated transition-colors"
                 style={{ minHeight: 44, minWidth: 44 }}
               >
                 <X className="h-5 w-5" />
@@ -124,7 +124,7 @@ export default function AddVehicleSheet({ open, onClose, onAdded, consumerId }) 
 
             {/* Footer CTA — only shown once the plate is confirmed */}
             {vehicleData.isValid && (
-              <div className="px-5 py-4 border-t border-neutral-100 shrink-0 safe-bottom">
+              <div className="px-5 py-4 border-t border-neutral-100 dark:border-edge shrink-0 safe-bottom">
                 <MotionButton
                   onClick={handleSave}
                   disabled={saving || !nickname.trim()}

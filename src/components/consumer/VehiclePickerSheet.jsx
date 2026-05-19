@@ -50,11 +50,11 @@ export default function VehiclePickerSheet({ open, vehicles, selectedId, onSelec
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 shrink-0">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 dark:border-edge shrink-0">
               <h2 className="text-base font-bold text-ink">{t('consumer.home.pickVehicle.title')}</h2>
               <button
                 onClick={dismiss}
-                className="rounded-full p-2 text-ink-muted hover:bg-neutral-100 transition-colors"
+                className="rounded-full p-2 text-ink-muted hover:bg-neutral-100 dark:hover:bg-surface-elevated transition-colors"
                 style={{ minHeight: 44, minWidth: 44 }}
               >
                 <X className="h-5 w-5" />
@@ -68,7 +68,7 @@ export default function VehiclePickerSheet({ open, vehicles, selectedId, onSelec
                   key={v.id}
                   type="button"
                   onClick={() => handleSelect(v)}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 text-start hover:bg-neutral-50 transition-colors border-b border-neutral-100/60"
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-start hover:bg-neutral-50 dark:hover:bg-surface-elevated transition-colors border-b border-neutral-100/60 dark:border-edge"
                 >
                   <div dir="ltr" className="shrink-0">
                     <IsraeliPlate number={formatPlate(v.plate)} />
@@ -82,7 +82,7 @@ export default function VehiclePickerSheet({ open, vehicles, selectedId, onSelec
                     )}
                   </div>
                   {v.is_default && (
-                    <span className="shrink-0 px-2 py-0.5 rounded-md bg-primary-50 border border-primary-200 text-[10px] font-semibold text-primary-700 uppercase tracking-wide">
+                    <span className="shrink-0 px-2 py-0.5 rounded-md bg-primary-50 dark:bg-accent-muted border border-primary-200 text-[10px] font-semibold text-primary-700 uppercase tracking-wide">
                       {t('consumer.vehicles.defaultBadge')}
                     </span>
                   )}
@@ -94,15 +94,15 @@ export default function VehiclePickerSheet({ open, vehicles, selectedId, onSelec
                 </MotionButton>
               ))}
 
-              {vehicles.length > 0 && <div className="h-px bg-neutral-200 mx-5 my-1" />}
+              {vehicles.length > 0 && <div className="h-px bg-neutral-200 dark:bg-surface-elevated mx-5 my-1" />}
 
               {/* Enter new plate */}
               <MotionButton
                 type="button"
                 onClick={handleEnterNew}
-                className="w-full flex items-center gap-3 px-5 py-4 text-start hover:bg-neutral-50 transition-colors"
+                className="w-full flex items-center gap-3 px-5 py-4 text-start hover:bg-neutral-50 dark:hover:bg-surface-elevated transition-colors"
               >
-                <div className="w-[38px] h-[38px] rounded-[12px] bg-neutral-100 flex items-center justify-center shrink-0">
+                <div className="w-[38px] h-[38px] rounded-[12px] bg-neutral-100 dark:bg-surface-elevated flex items-center justify-center shrink-0">
                   <Plus className="h-5 w-5 text-ink-muted" />
                 </div>
                 <p className="text-[14px] font-semibold text-ink">{t('consumer.home.pickVehicle.enterNew')}</p>

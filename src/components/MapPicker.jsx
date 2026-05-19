@@ -64,7 +64,7 @@ export default function MapPicker({ position, onChange, height = '280px' }) {
     : [31.7683, 35.2137] // Jerusalem fallback
 
   return (
-    <div style={{ height }} className="rounded-2xl overflow-hidden border border-neutral-200">
+    <div style={{ height }} className="rounded-2xl overflow-hidden border border-neutral-200 dark:border-edge">
       <MapContainer
         center={defaultCenter}
         zoom={14}

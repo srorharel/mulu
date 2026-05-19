@@ -44,7 +44,7 @@ export default function BottomNav() {
             to={to}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors ${
-                isActive ? 'text-primary-600' : 'text-neutral-400 hover:text-neutral-500'
+                isActive ? 'text-primary-600' : 'text-neutral-400 hover:text-neutral-500 dark:text-ink-muted dark:hover:text-ink'
               }`
             }
             style={{ minHeight: 56 }}
@@ -55,7 +55,7 @@ export default function BottomNav() {
                   {isActive && (
                     <motion.div
                       layoutId="nav-active-pill"
-                      className="absolute inset-0 rounded-xl bg-primary-50"
+                      className="absolute inset-0 rounded-xl bg-primary-50 dark:bg-accent-muted"
                       transition={SPRING}
                     />
                   )}

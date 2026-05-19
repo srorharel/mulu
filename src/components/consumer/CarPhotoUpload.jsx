@@ -75,7 +75,7 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
     return (
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium text-ink-muted text-center">{label}</span>
-        <div className="relative aspect-square rounded-xl overflow-hidden border border-neutral-200 shadow-sm">
+        <div className="relative aspect-square rounded-xl overflow-hidden border border-neutral-200 dark:border-edge shadow-sm">
           <img src={photo.previewUrl} alt="" className="w-full h-full object-cover" />
           <button
             type="button"
@@ -97,13 +97,13 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
         type="button"
         disabled={busy}
         onClick={handleOpen}
-        className="aspect-square rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 flex flex-col items-center justify-center gap-2 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-60"
+        className="aspect-square rounded-xl border-2 border-dashed border-neutral-300 dark:border-edge bg-neutral-50 dark:bg-surface flex flex-col items-center justify-center gap-2 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-60"
       >
         {busy
           ? <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
           : <Camera className="h-6 w-6 text-neutral-400" />
         }
-        <span className="text-xs text-neutral-500">
+        <span className="text-xs text-neutral-500 dark:text-ink-subtle">
           {busy ? t('common.uploading') : t('consumer.home.photos.addPhoto')}
         </span>
       </button>

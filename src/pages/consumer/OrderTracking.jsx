@@ -80,7 +80,7 @@ function WasherCard({ profile, onMessage, openingMessage, onOrderChat, chatDisab
   const washerPhone = profile?.phone || null
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-glass-sm">
+    <div className="flex items-center gap-3 p-3 bg-primary-50 dark:bg-accent-muted rounded-glass-sm">
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 border-2 border-white shadow-sm"
         style={{ background: 'linear-gradient(135deg, #9CDEB6, #26B55F)' }}
@@ -96,7 +96,7 @@ function WasherCard({ profile, onMessage, openingMessage, onOrderChat, chatDisab
           onClick={onMessage}
           disabled={openingMessage}
           aria-label={t('consumer.tracking.washer.message')}
-          className="w-10 h-10 rounded-[12px] bg-white flex items-center justify-center text-primary-800 shadow-sm"
+          className="w-10 h-10 rounded-[12px] bg-white dark:bg-surface-elevated flex items-center justify-center text-primary-800 shadow-sm"
         >
           <MessageCircle className="h-[18px] w-[18px]" />
         </button>
@@ -280,7 +280,7 @@ export default function OrderTracking() {
         {isActive && (
           <div className="absolute left-1/2 -translate-x-1/2 z-20" style={{ top: 72 }}>
             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-full shadow-[0_6px_20px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)] ${
-              order.status === 'arrived' ? 'bg-primary-50' : 'bg-white'
+              order.status === 'arrived' ? 'bg-primary-50 dark:bg-accent-muted' : 'bg-white dark:bg-surface-elevated'
             }`}>
               <span className={`w-2 h-2 rounded-full shrink-0 ${order.status === 'arrived' ? 'bg-primary-700' : 'bg-primary-500'}`} />
               <p className={`text-[14px] font-bold tracking-[-0.2px] ${order.status === 'arrived' ? 'text-primary-700' : 'text-ink'}`}>
@@ -326,7 +326,7 @@ export default function OrderTracking() {
 
           {/* Completed banner */}
           {order.status === 'completed' && (
-            <div className="rounded-glass p-4 text-center bg-primary-50 border border-primary-200">
+            <div className="rounded-glass p-4 text-center bg-primary-50 dark:bg-accent-muted border border-primary-200">
               <p className="font-semibold text-primary-700">{t('consumer.tracking.completed')}</p>
             </div>
           )}

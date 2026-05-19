@@ -262,8 +262,7 @@
       "title": "Settings",
       "appearance": {
         "title": "Appearance",
-        "darkMode": "Dark mode",
-        "betaNote": "Dark mode for consumers is in progress. Some screens may look unfinished."
+        "darkMode": "Dark mode"
       }
     },
     "history": {
