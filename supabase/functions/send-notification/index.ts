@@ -12,6 +12,9 @@ type EventType =
   | 'new_chat_message'
   | 'new_job_nearby'
   | 'customer_cancelled'
+  | 'support_message'
+  | 'support_resolved'
+  | 'tier_changed'
 
 interface SendPayload {
   user_id: string
@@ -87,6 +90,38 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
     en: { title: 'New job nearby',      body: 'A new wash job is available near you.' },
     he: { title: 'עבודה חדשה בקרבתך',   body: 'יש עבודת רחיצה חדשה בקרבתך.' },
   },
+  support_message: {
+    en: { title: 'Support replied',     body: (d) => d.preview ?? 'You have a new message from support.' },
+    he: { title: 'תמיכה ענתה',          body: (d) => d.preview ?? 'יש לך הודעה חדשה מהתמיכה.' },
+  },
+  tier_changed: {
+    en: {
+      title: 'Tier update',
+      body: (d) => d.direction === 'promoted'
+        ? `Great news — you now earn ₪${d.payout_amount} per wash! Tap to see your tier.`
+        : `Your earnings are now ₪${d.payout_amount} per wash. Tap to see your tier.`,
+    },
+    he: {
+      title: 'עדכון דרגה',
+      body: (d) => d.direction === 'promoted'
+        ? `מעולה — אתה מרוויח כעת ₪${d.payout_amount} לשטיפה! הקש לצפייה בדרגתך.`
+        : `ההכנסה שלך כעת היא ₪${d.payout_amount} לשטיפה. הקש לצפייה בדרגתך.`,
+    },
+  },
+  support_resolved: {
+    en: {
+      title: 'Support update',
+      body: (d) => d.final_status === 'resolved'
+        ? 'Your support request has been resolved. Tap to view.'
+        : 'Your support conversation was closed. Tap to view.',
+    },
+    he: {
+      title: 'עדכון תמיכה',
+      body: (d) => d.final_status === 'resolved'
+        ? 'פנייתך לתמיכה טופלה. הקש לצפייה.'
+        : 'שיחת התמיכה שלך נסגרה. הקש לצפייה.',
+    },
+  },
 }
 
 // ── Route map (server-side fallback; trigger pre-computes data.route) ─────────
@@ -105,6 +140,11 @@ function routeFor(event_type: EventType, data: Record<string, string>): string {
     case 'customer_cancelled':
     case 'new_job_nearby':
       return '/washer'
+    case 'support_message':
+    case 'support_resolved':
+      return '/support'
+    case 'tier_changed':
+      return '/washer/earnings'
     default:
       return '/home'
   }
