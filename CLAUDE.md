@@ -68,6 +68,7 @@ Three roles exist in `profiles.role`:
 - `/order/:id` — order tracking page
 - `/history` — order history
 - `/profile/vehicles` — saved vehicles management
+- `/profile/settings` — consumer settings (notifications, appearance/dark mode, language, vehicles link)
 
 **Washer routes**:
 - `/washer` — map dashboard (inside `WasherMapShell`)
@@ -98,7 +99,7 @@ Key tables:
 - `support_messages` — messages within a support conversation
 - `support_canned_responses` — per-agent quick-reply templates
 - `device_tokens` — FCM push tokens per user (`user_id`, `token`, `platform`, `last_seen_at`)
-- `notification_preferences` — per-user push opt-in and sound preference (`enabled`, `sound`)
+- `notification_preferences` — per-user push opt-in and sound preference (`enabled`, `sound`); `sound CHECK ('chirp','chime','bell','gentle')` DEFAULT `'chirp'`; has SELECT + UPDATE + INSERT RLS policies; client uses upsert (not update) so missing rows self-heal
 - `notification_log` — audit log of every push attempt (`user_id`, `event_type`, `payload`, `delivered`, `error`)
 - `order_washer_notifications` — dedup table; one row per (order_id, washer_id) pair already notified for nearby-job fan-out
 
@@ -113,7 +114,9 @@ Key RPC functions (security-definer, called from client unless noted):
 - `set_default_vehicle(vehicle_id)` — sets one vehicle as default, clears previous default
 - `notify_send(user_id, event, data)` — internal helper called by DB triggers; fires `net.http_post` to `send-notification` Edge Function via Vault secrets
 
-Migrations live in `supabase/migrations/` (0001–0053). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
+Migrations live in `supabase/migrations/` (0001–0055). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
+
+**Bootstrap warning:** `npm run db:migrate --bootstrap` records every migration file as applied *without* executing its SQL. If a column is missing despite a migration existing for it (e.g. `profiles.locale`), run the `ALTER TABLE` directly in the Supabase SQL editor to heal the DB state — the migration runner will skip the file since it's already in `schema_migrations`.
 
 ### Storage Buckets
 
@@ -177,6 +180,8 @@ From `/home` (`src/pages/consumer/Home.jsx`):
 ### Israeli License Plate Lookup
 
 `src/lib/vehicleLookup.js` queries the data.gov.il CKAN API (`{plate}` → make/model/color/year/category). Manual fallback fields shown on lookup failure. `LicensePlatePicker` is a single DOM element (never unmounts the input mid-flow). `formatPlate` formats the raw plate string for display.
+
+**Found-state card** (shown after a successful lookup, before confirmation): plate badge at top, bold make+model line, muted `year · color · category · ₪price` line, Yes/No buttons. Outer card uses `dir="ltr"` (block layout, no flex) to prevent RTL cross-axis issues; individual text `<p>` elements use `dir="auto"` for Hebrew color strings. Strings are pre-computed before JSX to avoid expression edge cases. Category label uses `carLabels.*` i18n keys; price from `priceForCategory()` in `src/lib/pricing.js`.
 
 ### Order Tracking (`/order/:id`)
 
@@ -264,11 +269,11 @@ FCM (Firebase Cloud Messaging) push via two Supabase Edge Functions. Native Capa
 - `trg_notify_on_tier_change` (profiles UPDATE, non-null tier change only)
 
 **Client side** (`src/lib/notifications.js`):
-- `initNotifications({ navigate, showToast })` — called once on login by `NotificationsInit` in the router; registers Capacitor push listeners before `PushNotifications.register()`; upserts token into `device_tokens`
+- `initNotifications({ navigate, showToast })` — called once on login by `NotificationsInit` in the router; creates 4 Android notification channels (`wash_chirp`, `wash_chime`, `wash_bell`, `wash_gentle`) before `PushNotifications.register()`; upserts token into `device_tokens`
 - `unregisterToken()` — deletes the FCM token from DB on sign-out
 - `getOsPermissionState()` — returns `'granted'|'denied'|'prompt'|'web'`
 
-**Notification sounds** (available options): `chirp`, `chime`, `bell`, `gentle`. Files served from `/sounds/{name}.mp3`. Stored in `notification_preferences.sound`; picked by the user in Washer Settings (`NotificationsSection` component).
+**Notification sounds** (available options): `chirp`, `chime`, `bell`, `gentle`. MP3 files in `public/sounds/{name}.mp3` (web preview) and `android/app/src/main/res/raw/{name}.mp3` (native). Stored in `notification_preferences.sound`; picked in the `NotificationsSection` component (shared by consumer `/profile/settings` and washer `/washer/settings`). The Edge Function sets `channel_id: wash_${sound}` so Android routes to the pre-created channel with the correct sound URI. Android O+ requires channel sound to be set at creation time — the 4 channels are created idempotently on every app init.
 
 **Required Vault secrets:** `edge_function_url`, `service_role_key`, `fan_out_nearby_job_url`
 **Required Edge Function secrets:** `TRIGGER_SECRET`, `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT_JSON`, `NEARBY_JOB_RADIUS_METERS`
@@ -287,6 +292,28 @@ Supabase Realtime channels drive live UX:
 ### Mobile (Capacitor)
 
 `capacitor.config.json` wraps the `dist/` web build as `com.sparklego.app`. `src/hooks/useGeolocation.js` falls back to Capacitor's native geolocation API when the browser API is unavailable. Build APK via `update.ps1` or Android Studio; output is `wash-latest.apk` in the project root.
+
+### Dark Mode
+
+`darkMode: 'class'` in Tailwind config — the `.dark` class must be applied explicitly to an ancestor `div`. **Both consumer and washer** can toggle dark mode (ADR-023); washer defaults to dark, consumer defaults to light when `display_preference` is unset.
+
+`useTheme()` returns `{ isDark, theme, setTheme }` and reads/writes `profiles.display_preference`. It does **not** touch the DOM — the shell component is responsible for applying `.dark`. Canonical shell pattern:
+```jsx
+const { isDark } = useTheme()
+return <div className={`${isDark ? 'dark ' : ''}h-full bg-surface text-ink`}>
+```
+
+Applied in: `ConsumerLayout` (consumer inner routes), `WasherMapShell`, `WasherShell`, `Support.jsx`, `Profile.jsx`.
+
+### Shared Settings Components
+
+- `src/hooks/useLocale.js` — reads `profile.locale`, writes `profiles.locale` via Supabase + calls `i18n.changeLanguage`. Used by both consumer and washer settings pages.
+- `src/components/settings/PillRow.jsx` — animated horizontal pill selector (Framer Motion `LayoutGroup`). Props: `groupId`, `options [{value, label}]`, `value`, `onChange`. Used for Language, Display, Navigation in washer/Settings and Language in consumer/Settings.
+- `src/components/settings/NotificationsSection.jsx` — OS permission state + master enabled toggle + sound picker. Shared between consumer `/profile/settings` and washer `/washer/settings`. Uses `upsert` on `notification_preferences`.
+- `src/components/settings/AppearanceSection.jsx` — dark/light mode toggle. Consumer-only (washer Settings uses `PillRow` + `GridPill` for Display directly).
+- `src/lib/format.js` — `toTitleCase(name)` utility for display names.
+
+**Washer Settings (`/washer/settings`) note:** contains a local `GridPill` component (2×2 grid, used for the ringtone section) that depends on a module-level `const SPRING = { type: 'spring', stiffness: 300, damping: 30 }`. Do not remove this constant during refactors — it is not imported from `PillRow`.
 
 ### i18n
 
