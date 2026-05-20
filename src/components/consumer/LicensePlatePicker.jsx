@@ -114,6 +114,19 @@ export default function LicensePlatePicker({ onChange }) {
     return null
   }
 
+  // ── Pre-compute display strings (outside JSX to avoid expression edge cases) ──
+  const makeModelStr = result
+    ? ([result.make, result.model].filter(Boolean).join(' ') || '—')
+    : '—'
+  const detailsStr = result
+    ? ([
+        result.year,
+        result.color,
+        t(`carLabels.${result.category}`),
+        `₪${priceForCategory(result.category).consumer}`,
+      ].filter(Boolean).join(' · '))
+    : ''
+
   // ── Render ───────────────────────────────────────────────────────────────────
   //
   // ARCHITECTURE: one single return so the plate <input> is always the same DOM
@@ -133,7 +146,7 @@ export default function LicensePlatePicker({ onChange }) {
             <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
               {[result.make, result.model, result.year].filter(Boolean).join(' · ')}
             </p>
-            <p className="text-[12px] text-ink-muted flex items-center gap-1.5" dir="auto">
+            <p className="text-[12px] text-ink-muted" dir="auto">
               {[result.color, result.category ? t(`carLabels.${result.category}`) : null].filter(Boolean).join(' · ')}
             </p>
           </div>
@@ -174,28 +187,21 @@ export default function LicensePlatePicker({ onChange }) {
       )}
 
       {/* ── Found: confirmation card below the (editable) input ─────────────── */}
+      {/* dir="ltr" on card: prevents RTL flex-col from right-aligning the badge.  */}
+      {/* Block layout (no flex on card itself): eliminates RTL cross-axis issues. */}
       {status === 'found' && result && (
-        <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 dark:border-edge bg-white/90 dark:bg-surface-elevated p-4 shadow-sm">
-          {/* Plate badge — own row, not next to text */}
-          <div className="self-start">
-            <IsraeliPlate number={formatPlate(result.plate)} />
-          </div>
-          {/* Vehicle info — two single-element text lines */}
-          <div className="flex flex-col gap-1">
-            <p className="text-base font-bold text-neutral-900 dark:text-ink leading-snug" dir="auto">
-              {[result.make, result.model].filter(Boolean).join(' ') || '—'}
-            </p>
-            <p className="text-sm text-neutral-500 dark:text-ink-subtle" dir="auto">
-              {[
-                result.year,
-                result.color,
-                t(`carLabels.${result.category}`),
-                `₪${priceForCategory(result.category).consumer}`,
-              ].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-          {/* Action buttons */}
-          <div className="flex gap-2">
+        <div
+          dir="ltr"
+          className="rounded-xl border border-neutral-200 dark:border-edge bg-white/90 dark:bg-surface-elevated p-4 shadow-sm"
+        >
+          <IsraeliPlate number={formatPlate(result.plate)} />
+          <p className="mt-3 text-base font-bold text-neutral-900 dark:text-ink leading-snug" dir="auto">
+            {makeModelStr}
+          </p>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-ink-subtle" dir="auto">
+            {detailsStr}
+          </p>
+          <div className="mt-3 flex gap-2">
             <button type="button" onClick={confirmResult} className="btn-primary flex-1 text-sm">
               {t('consumer.home.plate.yesItsMine')}
             </button>
