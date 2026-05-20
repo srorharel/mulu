@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
 import { lookupPlate, clearPlateFailure } from '../../lib/vehicleLookup.js'
 import { formatPlate } from '../../lib/formatPlate.js'
+import { priceForCategory } from '../../lib/pricing.js'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -175,20 +176,19 @@ export default function LicensePlatePicker({ onChange }) {
       {/* ── Found: confirmation card below the (editable) input ─────────────── */}
       {status === 'found' && result && (
         <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 dark:border-edge bg-white/90 dark:bg-surface-elevated p-4 shadow-sm">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-neutral-400 dark:text-ink-subtle uppercase tracking-wide font-medium">
-              {formatPlate(result.plate)}
-            </p>
-            <p className="text-lg font-bold text-neutral-900 dark:text-ink leading-tight">
+          <div className="flex flex-col gap-1">
+            <p className="text-lg font-bold text-neutral-900 dark:text-ink leading-tight" dir="auto">
               {[result.make, result.model].filter(Boolean).join(' ') || '—'}
             </p>
-            {(result.year || result.color) && (
-              <p className="text-sm text-neutral-500 dark:text-ink-subtle">
-                {[result.year, result.color].filter(Boolean).join(' · ')}
-              </p>
-            )}
+            <p className="text-sm text-neutral-500 dark:text-ink-subtle" dir="auto">
+              {[
+                result.year,
+                result.color,
+                t(`carLabels.${result.category}`),
+                `₪${priceForCategory(result.category).consumer}`,
+              ].filter(Boolean).join(' · ')}
+            </p>
           </div>
-          <p className="text-sm font-semibold text-neutral-700 dark:text-ink-muted">{t('consumer.home.plate.isThisYourCar')}</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmResult} className="btn-primary flex-1 text-sm">
               {t('consumer.home.plate.yesItsMine')}
