@@ -69,24 +69,24 @@ function SiteResourceCard({ icon: Icon, label, available, onToggle, t }) {
 // Confirmed vehicle summary — shown when a vehicle is selected (saved or free-text confirmed).
 function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
   return (
-    <div className="flex items-center gap-3" dir="ltr">
-      <IsraeliPlate number={formatPlate(licenseData.plate)} />
-      <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
-          {[licenseData.make, licenseData.model, licenseData.year].filter(Boolean).join(' · ')}
-        </p>
-        <p className="text-[12px] text-ink-muted flex items-center gap-1.5" dir="auto">
-          {[licenseData.color, licenseData.category ? t(`carLabels.${licenseData.category}`) : null].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button type="button" onClick={onChangeVehicle} className="text-[11px] font-semibold text-primary-700 hover:underline">
-          {t('consumer.home.changeVehicle')}
-        </button>
-        <div className="w-[26px] h-[26px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)]">
-          <Check className="h-[14px] w-[14px] text-white" strokeWidth={3} />
+    <div dir="ltr">
+      <div className="flex items-center justify-between mb-2">
+        <IsraeliPlate number={formatPlate(licenseData.plate)} />
+        <div className="flex items-center gap-2 shrink-0">
+          <button type="button" onClick={onChangeVehicle} className="text-[11px] font-semibold text-primary-700 hover:underline">
+            {t('consumer.home.changeVehicle')}
+          </button>
+          <div className="w-[26px] h-[26px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)]">
+            <Check className="h-[14px] w-[14px] text-white" strokeWidth={3} />
+          </div>
         </div>
       </div>
+      <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
+        {[licenseData.make, licenseData.model, licenseData.year].filter(Boolean).join(' · ')}
+      </p>
+      <p className="mt-0.5 text-[12px] text-ink-muted" dir="auto">
+        {[licenseData.color, licenseData.category ? t(`carLabels.${licenseData.category}`) : null].filter(Boolean).join(' · ')}
+      </p>
     </div>
   )
 }

@@ -137,27 +137,26 @@ export default function LicensePlatePicker({ onChange }) {
     <div className="flex flex-col gap-3">
 
       {status === 'confirmed' && result ? (
-        /* ── Confirmed summary — IsraeliPlate + car details + checkmark ──
-           dir="ltr" on row: plate stays physically left in RTL layouts.
-           dir="auto" on text: Hebrew content (colors, car types) flows correctly. */
-        <div className="flex items-center gap-3" dir="ltr">
-          <IsraeliPlate number={formatPlate(result.plate)} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
-              {[result.make, result.model, result.year].filter(Boolean).join(' · ')}
-            </p>
-            <p className="text-[12px] text-ink-muted" dir="auto">
-              {[result.color, result.category ? t(`carLabels.${result.category}`) : null].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button type="button" onClick={editPlate} className="text-[11px] font-semibold text-primary-700 hover:underline">
-              {t('consumer.home.plate.editPlate')}
-            </button>
-            <div className="w-[26px] h-[26px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)]">
-              <Check className="h-[14px] w-[14px] text-white" strokeWidth={3} />
+        /* ── Confirmed summary — block layout so text gets full width ──
+           dir="ltr": plate stays left in RTL. Text <p> use dir="auto". */
+        <div dir="ltr">
+          <div className="flex items-center justify-between mb-2">
+            <IsraeliPlate number={formatPlate(result.plate)} />
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={editPlate} className="text-[11px] font-semibold text-primary-700 hover:underline">
+                {t('consumer.home.plate.editPlate')}
+              </button>
+              <div className="w-[26px] h-[26px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)]">
+                <Check className="h-[14px] w-[14px] text-white" strokeWidth={3} />
+              </div>
             </div>
           </div>
+          <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
+            {[result.make, result.model, result.year].filter(Boolean).join(' · ')}
+          </p>
+          <p className="mt-0.5 text-[12px] text-ink-muted" dir="auto">
+            {[result.color, result.category ? t(`carLabels.${result.category}`) : null].filter(Boolean).join(' · ')}
+          </p>
         </div>
       ) : (
         /* ── Plate input — PERSISTENT across idle/looking_up/found/not_found/error ── */
