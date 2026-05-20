@@ -77,8 +77,10 @@ export default function NotificationsSection() {
     setPrefs(p => ({ ...p, enabled }))
     const { error } = await supabase
       .from('notification_preferences')
-      .update({ enabled, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id)
+      .upsert(
+        { user_id: user.id, enabled, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' },
+      )
     if (error) {
       setPrefs(p => ({ ...p, enabled: prev }))
       showToast(t('common.error'), 'error')
@@ -89,8 +91,10 @@ export default function NotificationsSection() {
     setPrefs(p => ({ ...p, sound }))
     const { error } = await supabase
       .from('notification_preferences')
-      .update({ sound, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id)
+      .upsert(
+        { user_id: user.id, sound, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' },
+      )
     if (error) showToast(t('common.error'), 'error')
   }
 
