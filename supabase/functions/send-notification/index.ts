@@ -395,8 +395,8 @@ async function sendFcmMessage(opts: {
   if (platform === 'android') {
     message.android = {
       notification: {
+        channel_id: `wash_${sound || 'chirp'}`,
         sound,            // filename without extension; must exist in res/raw/
-        channel_id: 'wash_default',
       },
     }
   } else if (platform === 'ios') {

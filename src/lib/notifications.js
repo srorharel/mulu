@@ -22,6 +22,35 @@ const EVENT_ROUTE_FALLBACK = {
   new_job_nearby:     ()  => '/washer',
 }
 
+// One channel per sound. createChannel is idempotent on Android — safe to call
+// on every init. Channels must exist before FCM can route a notification to them.
+// Existing channels with a different sound are NOT updated by Android; only new
+// installs (or users who reinstall) get the new config automatically.
+const CHANNELS = [
+  { id: 'wash_chirp',  sound: 'chirp'  },
+  { id: 'wash_chime',  sound: 'chime'  },
+  { id: 'wash_bell',   sound: 'bell'   },
+  { id: 'wash_gentle', sound: 'gentle' },
+]
+
+async function createChannels() {
+  if (Capacitor.getPlatform() !== 'android') return
+  for (const ch of CHANNELS) {
+    try {
+      await PushNotifications.createChannel({
+        id:         ch.id,
+        name:       `Wash notifications (${ch.sound})`,
+        importance: 4,       // HIGH — heads-up banner + sound
+        sound:      `${ch.sound}.mp3`,
+        vibration:  true,
+        lights:     true,
+      })
+    } catch (e) {
+      console.warn(`[WASH-NOTIF] Failed to create channel ${ch.id}`, e)
+    }
+  }
+}
+
 /**
  * Called once when a logged-in user is confirmed (App mount effect).
  * No-ops on web / PWA — native only.
@@ -82,6 +111,7 @@ export async function initNotifications({ navigate, showToast }) {
     // Do not throw — app must keep functioning if FCM is unavailable.
   })
 
+  await createChannels()
   console.log('[WASH-NOTIF] Calling PushNotifications.register()')
   await PushNotifications.register()
 
