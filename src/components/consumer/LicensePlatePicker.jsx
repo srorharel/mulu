@@ -129,7 +129,7 @@ export default function LicensePlatePicker({ onChange }) {
         <div className="flex items-center gap-3" dir="ltr">
           <IsraeliPlate number={formatPlate(result.plate)} />
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold text-ink leading-snug truncate" dir="auto">
+            <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
               {[result.make, result.model, result.year].filter(Boolean).join(' · ')}
             </p>
             <p className="text-[12px] text-ink-muted flex items-center gap-1.5" dir="auto">

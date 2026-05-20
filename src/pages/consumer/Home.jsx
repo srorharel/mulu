@@ -7,6 +7,7 @@ import { useReverseGeocode } from '../../lib/geocode.js'
 import { VAT_RATE, consumerBreakdown, priceForCategory } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useTheme } from '../../hooks/useTheme.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { formatPlate } from '../../lib/formatPlate.js'
 import PageShell from '../../components/ui/PageShell.jsx'
@@ -71,7 +72,7 @@ function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
     <div className="flex items-center gap-3" dir="ltr">
       <IsraeliPlate number={formatPlate(licenseData.plate)} />
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-bold text-ink leading-snug truncate" dir="auto">
+        <p className="text-[15px] font-bold text-ink leading-snug" dir="auto">
           {[licenseData.make, licenseData.model, licenseData.year].filter(Boolean).join(' · ')}
         </p>
         <p className="text-[12px] text-ink-muted flex items-center gap-1.5" dir="auto">
@@ -95,6 +96,7 @@ const EMPTY_LICENSE = { make: null, model: null, year: null, plate: null, color:
 export default function ConsumerHome() {
   const navigate        = useNavigate()
   const { user, profile } = useAuth()
+  const { isDark } = useTheme()
   const { position: gpsPosition, error: geoError, permissionState, requestPermission } = useGeolocation()
   const showToast       = useToast()
   const { t }           = useTranslation()
@@ -492,7 +494,7 @@ export default function ConsumerHome() {
           {/* ── Price + CTA ── */}
           <GlassCard
             className="p-3.5"
-            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.85), rgba(243,252,247,0.85))', borderColor: '#B9E5CB' }}
+            style={isDark ? undefined : { background: 'linear-gradient(135deg, rgba(255,255,255,0.85), rgba(243,252,247,0.85))', borderColor: '#B9E5CB' }}
           >
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
