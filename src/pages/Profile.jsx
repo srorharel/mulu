@@ -10,6 +10,7 @@ import { useToast } from '../components/ui/Toast.jsx'
 import PageShell from '../components/ui/PageShell.jsx'
 import { useTheme } from '../hooks/useTheme.js'
 import Badge from '../components/ui/Badge.jsx'
+import { toTitleCase } from '../lib/format.js'
 
 const schema = z.object({
   full_name:       z.string().min(2),
@@ -56,7 +57,7 @@ export default function Profile() {
               <User className="h-6 w-6 text-primary-600 dark:text-accent" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg font-bold truncate">{profile?.full_name ?? t('profile.title')}</h1>
+              <h1 className="text-xl font-bold truncate dark:text-ink">{toTitleCase(profile?.full_name) || t('profile.title')}</h1>
               <Badge variant="default" className="uppercase tracking-wide text-primary-600 dark:text-accent bg-primary-50 dark:bg-accent-muted">
                 {profile?.role}
               </Badge>
