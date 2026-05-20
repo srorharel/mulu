@@ -10,6 +10,8 @@ import { useLocale } from '../../hooks/useLocale.js'
 import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
 import PillRow from '../../components/settings/PillRow.jsx'
 
+const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
+
 // 2×2 grid pill selector
 function GridPill({ groupId, options, value, onChange }) {
   return (
