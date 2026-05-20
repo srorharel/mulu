@@ -176,8 +176,13 @@ export default function LicensePlatePicker({ onChange }) {
       {/* ── Found: confirmation card below the (editable) input ─────────────── */}
       {status === 'found' && result && (
         <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 dark:border-edge bg-white/90 dark:bg-surface-elevated p-4 shadow-sm">
+          {/* Plate badge — own row, not next to text */}
+          <div className="self-start">
+            <IsraeliPlate number={formatPlate(result.plate)} />
+          </div>
+          {/* Vehicle info — two single-element text lines */}
           <div className="flex flex-col gap-1">
-            <p className="text-lg font-bold text-neutral-900 dark:text-ink leading-tight" dir="auto">
+            <p className="text-base font-bold text-neutral-900 dark:text-ink leading-snug" dir="auto">
               {[result.make, result.model].filter(Boolean).join(' ') || '—'}
             </p>
             <p className="text-sm text-neutral-500 dark:text-ink-subtle" dir="auto">
@@ -189,6 +194,7 @@ export default function LicensePlatePicker({ onChange }) {
               ].filter(Boolean).join(' · ')}
             </p>
           </div>
+          {/* Action buttons */}
           <div className="flex gap-2">
             <button type="button" onClick={confirmResult} className="btn-primary flex-1 text-sm">
               {t('consumer.home.plate.yesItsMine')}
