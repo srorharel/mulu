@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useTheme } from '../../hooks/useTheme.js'
 import RatingModal from './RatingModal.jsx'
 
 // Session-dismiss key: user tapped X for this order in this browser session.
@@ -28,6 +29,7 @@ function needsRating(order) {
 
 export default function ConsumerLayout() {
   const { user } = useAuth()
+  const { isDark } = useTheme()
   const location = useLocation()
 
   const [pendingOrder, setPendingOrder] = useState(null) // order to show modal for
@@ -118,7 +120,7 @@ export default function ConsumerLayout() {
   }
 
   return (
-    <>
+    <div className={`${isDark ? 'dark ' : ''}h-full bg-surface text-ink`}>
       <Outlet />
       <AnimatePresence>
         {modalOpen && pendingOrder && (
@@ -130,6 +132,6 @@ export default function ConsumerLayout() {
           />
         )}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

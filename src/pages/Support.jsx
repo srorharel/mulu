@@ -3,6 +3,7 @@ import { LifeBuoy, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../hooks/useTheme.js'
 import { listMyConversations, createGeneralConversation } from '../lib/support.js'
 import PageShell from '../components/ui/PageShell.jsx'
 import ConversationListItem from '../components/support/ConversationListItem.jsx'
@@ -107,6 +108,10 @@ function WasherSupport() {
 // Root: branch on role. Agents use support-app (port 3001), not this page.
 export default function Support() {
   const { profile } = useAuth()
-  if (profile?.role === 'consumer') return <ConsumerSupport />
-  return <WasherSupport />
+  const { isDark } = useTheme()
+  return (
+    <div className={`${isDark ? 'dark ' : ''}h-full bg-surface text-ink`}>
+      {profile?.role === 'consumer' ? <ConsumerSupport /> : <WasherSupport />}
+    </div>
+  )
 }
