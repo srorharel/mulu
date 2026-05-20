@@ -509,7 +509,7 @@ export default function ConsumerHome() {
               <MotionButton
                 onClick={handleBook}
                 disabled={submitting || !canSubmit}
-                className="h-[52px] px-[22px] rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)]"
+                className="h-[52px] px-[22px] rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)] dark:shadow-[0_4px_14px_rgba(38,181,95,0.15)]"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
