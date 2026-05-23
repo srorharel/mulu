@@ -116,7 +116,7 @@ const jobPinIcon = L.divIcon({
 // ── Captures the Leaflet map instance into a ref so siblings can call map APIs ─
 function MapCapture({ mapRef }) {
   const map = useMap()
-  useEffect(() => { mapRef.current = map }, [map])
+  useEffect(() => { mapRef.current = map }, [map]) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
 
@@ -202,7 +202,7 @@ function FollowLayer({ washerPosition, activeJob, followPaused, setFollowPaused 
       map.off('dragstart', pause)
       map.off('zoomstart', pause)
     }
-  }, [map, setFollowPaused]) // eslint-disable-line
+  }, [map, setFollowPaused])
 
   return null
 }

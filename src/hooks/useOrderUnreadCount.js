@@ -19,7 +19,7 @@ export function useOrderUnreadCount(orderId) {
       .is('read_at', null)
       .neq('sender_id', user.id)
       .then(({ count: c }) => setCount(c ?? 0))
-  }, [orderId, user?.id])
+  }, [orderId, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return count
 }

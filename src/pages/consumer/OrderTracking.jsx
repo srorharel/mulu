@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
+import IsraeliPlate from '../../components/ui/IsraeliPlate.jsx'
+import { formatPlate } from '../../lib/formatPlate.js'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { useReverseGeocode, looksLikeCoords } from '../../lib/geocode.js'
 import { useToast } from '../../components/ui/Toast.jsx'
@@ -127,6 +129,14 @@ function WasherCard({ profile, onMessage, openingMessage, onOrderChat, chatDisab
   )
 }
 
+function CheckBadge() {
+  return (
+    <div className="w-[22px] h-[22px] rounded-full bg-primary-500 flex items-center justify-center shadow-[0_1px_3px_rgba(38,181,95,0.4)] shrink-0">
+      <Check className="h-[11px] w-[11px] text-white" strokeWidth={3.5} />
+    </div>
+  )
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function OrderTracking() {
   const { id } = useParams()
@@ -222,6 +232,7 @@ export default function OrderTracking() {
   const washerFirstName = washerProfile?.full_name?.split(' ')[0] || t('consumer.tracking.washer.unknown')
   const heading  = t(`consumer.tracking.heading.${order.status}`,  { defaultValue: order.status })
   const subtitle = t(`consumer.tracking.subtitle.${order.status}`, { name: washerFirstName, defaultValue: '' })
+  const categoryLabel   = order.category ? t(`carLabels.${order.category}`) : null
 
   return (
     <div className="h-full flex flex-col bg-surface">
@@ -311,6 +322,37 @@ export default function OrderTracking() {
           </div>
 
           <TrackingDots status={order.status} t={t} />
+
+          {(order.car_plate || order.car_make) && (
+            <div
+              className="rounded-glass p-3.5 bg-white dark:bg-surface-elevated border border-edge"
+              data-testid="vehicle-card"
+            >
+              <div className="flex items-center gap-3 justify-between">
+                {/* RTL leading: badge + label */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <CheckBadge />
+                  <span className="text-primary-500 text-sm font-medium whitespace-nowrap">
+                    {t('order.vehicle')}
+                  </span>
+                </div>
+
+                {/* Middle: horizontal details, single string, allowed to truncate */}
+                <div className="flex-1 min-w-0 text-end">
+                  <p className="truncate text-ink font-semibold tabular-nums">
+                    {[order.car_make, order.car_model, order.car_year, order.car_color, categoryLabel]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+
+                {/* LTR leading: plate, vertically centered with row */}
+                <div className="shrink-0" dir="ltr">
+                  <IsraeliPlate number={formatPlate(order.car_plate)} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {order.washer_id && (
             <WasherCard

@@ -559,6 +559,9 @@
     "full": "Full Wash",
     "wash": "Car Wash"
   },
+  "order": {
+    "vehicle": "Vehicle"
+  },
   "carLabels": {
     "sedan": "Sedan",
     "suv": "SUV",

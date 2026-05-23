@@ -53,7 +53,7 @@ export default function NotificationsSection() {
         if (data) setPrefs({ enabled: data.enabled, sound: data.sound })
         setLoadingPrefs(false)
       })
-  }, [user])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user])
 
   // ── Handlers — unchanged ─────────────────────────────────────────────────────
 

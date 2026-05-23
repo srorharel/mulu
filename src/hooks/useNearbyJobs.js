@@ -33,7 +33,7 @@ export function useNearbyJobs(position, enabled = true) {
       .subscribe()
 
     return () => supabase.removeChannel(channel)
-  }, [position?.lat, position?.lng, enabled])
+  }, [position?.lat, position?.lng, enabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { jobs, loading, error, refresh: () => position && fetchJobs(position.lat, position.lng) }
 }

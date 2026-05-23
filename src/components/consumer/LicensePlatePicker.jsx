@@ -40,7 +40,7 @@ export default function LicensePlatePicker({ onChange }) {
     // Fires from any non-confirmed state — this is what enables auto-retry
     // when user edits the plate while in not_found or error.
     runLookup(debounced)
-  }, [debounced]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debounced])
 
   async function runLookup(plate) {
     const id = ++lookupIdRef.current
