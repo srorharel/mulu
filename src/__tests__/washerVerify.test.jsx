@@ -70,6 +70,7 @@ i18n.use(initReactI18next).init({
         'washerSignup.verify.sectionSelfie.retake': 'Retake',
         'washerSignup.verify.sectionSelfie.checking': 'Checking your photo…',
         'washerSignup.verify.sectionSelfie.noFace': 'No face detected. Please take a clear front-facing photo of your face.',
+        'washerSignup.verify.sectionSelfie.checkUnavailable': 'Could not verify face. Please try again on a different device or browser.',
         'washerSignup.verify.sectionLicense.title': 'Certificate of Licensed Dealer',
         'washerSignup.verify.sectionLicense.hint': 'Upload your business license',
         'washerSignup.verify.sectionLicense.upload': 'Upload document',
@@ -192,6 +193,19 @@ describe('Verify page — selfie face validation', () => {
 
     uploadToInput(getSelfieInput(), makeFile('selfie.jpg'))
     await waitFor(() => expect(screen.getByText('Selfie taken')).toBeInTheDocument())
+  })
+
+  it('shows checkUnavailable error and rejects selfie when detection throws', async () => {
+    mockDetectFace.mockRejectedValue(new Error('face_check_unavailable'))
+    render(<Verify />, { wrapper })
+
+    uploadToInput(getSelfieInput(), makeFile('unknown.jpg'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Could not verify face/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Selfie taken')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Submit for review/i })).toBeDisabled()
   })
 })
 

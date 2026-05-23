@@ -707,7 +707,8 @@
         "uploaded": "Selfie taken",
         "retake": "Retake",
         "checking": "Checking your photo…",
-        "noFace": "No face detected. Please take a clear front-facing photo of your face."
+        "noFace": "No face detected. Please take a clear front-facing photo of your face.",
+        "checkUnavailable": "Could not verify face. Please try again on a different device or browser."
       },
       "sectionLicense": {
         "title": "Certificate of Licensed Dealer",

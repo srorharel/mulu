@@ -15,6 +15,7 @@
     "db:migrate:bootstrap": "node scripts/run-migrations.js --bootstrap",
     "db:verify": "node scripts/verify-db.js",
     "setup": "npm run check:env && npm run db:migrate && npm run db:verify",
+    "setup:buckets": "node scripts/create-verification-bucket.mjs",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
     "update": "powershell -ExecutionPolicy Bypass -File ./update.ps1"

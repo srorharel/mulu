@@ -85,12 +85,12 @@ describe('detectFaceInImage — face-api fallback path', () => {
     expect(await detectFaceInImage('data:image/jpeg;base64,abc')).toBe(false)
   })
 
-  it('returns true as graceful fallback when all paths fail', async () => {
+  it('throws face_check_unavailable when all paths fail', async () => {
     // No FaceDetector, face-api script will fail to load
     vi.spyOn(document.head, 'appendChild').mockImplementation(el => {
       Promise.resolve().then(() => el.onerror?.(new Error('network')))
       return el
     })
-    expect(await detectFaceInImage('data:image/jpeg;base64,abc')).toBe(true)
+    await expect(detectFaceInImage('data:image/jpeg;base64,abc')).rejects.toThrow('face_check_unavailable')
   })
 })

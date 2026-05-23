@@ -120,9 +120,7 @@ export default function Verify() {
       setSelfieFile(blob)
       setSelfiePreview(previewUrl)
     } catch {
-      // Unexpected detection error — accept the photo, agents will review
-      setSelfieFile(blob)
-      setSelfiePreview(previewUrl)
+      setSelfieError(t('washerSignup.verify.sectionSelfie.checkUnavailable'))
     } finally {
       setSelfieChecking(false)
     }
@@ -196,16 +194,16 @@ export default function Verify() {
 
       let idPath
       try { idPath = await uploadFile(idFile, `${uid}/id_document.jpg`) }
-      catch (err) { setIdError(err.message || t('washerSignup.verify.submitError')); return }
+      catch (err) { console.error('[washer-verify] upload failed', { section: 'id', error: err }); setIdError(err.message || t('washerSignup.verify.submitError')); return }
 
       let selfiePath
       try { selfiePath = await uploadFile(selfieFile, `${uid}/selfie.jpg`) }
-      catch (err) { setSelfieError(err.message || t('washerSignup.verify.submitError')); return }
+      catch (err) { console.error('[washer-verify] upload failed', { section: 'selfie', error: err }); setSelfieError(err.message || t('washerSignup.verify.submitError')); return }
 
       const licenseExt = (licenseFile.name ?? 'file').split('.').pop().toLowerCase()
       let licensePath
       try { licensePath = await uploadFile(licenseFile, `${uid}/business_license.${licenseExt}`) }
-      catch (err) { setLicenseError(err.message || t('washerSignup.verify.submitError')); return }
+      catch (err) { console.error('[washer-verify] upload failed', { section: 'license', error: err }); setLicenseError(err.message || t('washerSignup.verify.submitError')); return }
 
       const { error: insertErr } = await supabase.from('washer_verifications').insert({
         washer_id:             uid,

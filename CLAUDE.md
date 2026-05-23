@@ -131,7 +131,7 @@ Migrations live in `supabase/migrations/` (0001–0058). Run `npm run db:migrate
 - `car-photos` — consumer car photos uploaded at booking time (4 angles per order: front/back/driver/passenger). Path: `{consumer_id}/{order_id}/{angle}.jpg`. Washer can read photos for their assigned order.
 - `job-evidence` — washer arrival photos + completion photos. Signed URLs (600 s TTL) fetched client-side for display in RatingModal and support-app ApprovalRow.
 - `support-attachments` — support chat file attachments (private, 5 MB, jpg/png/webp). Create manually in Supabase dashboard; apply `supabase/storage_support.sql` for RLS.
-- `washer-verification` — private bucket for washer onboarding documents. Paths: `{user_id}/id_document.jpg`, `{user_id}/selfie.jpg`, `{user_id}/business_license.{ext}`. Washer can read/insert own folder; agents can read all. Storage policies are in `0058_washer_verification.sql` (apply via Supabase dashboard SQL editor).
+- `washer-verification` — private bucket for washer onboarding documents (10 MB limit; jpg/png/webp/pdf). Paths: `{user_id}/id_document.jpg`, `{user_id}/selfie.jpg`, `{user_id}/business_license.{ext}`. Washer can read/insert/update/delete own folder; agents can read all. Bucket + RLS policies created by `0060_create_washer_verification_bucket.sql` and improved by `0061_improve_washer_verification_bucket.sql`. If bucket is missing after migration, run `npm run setup:buckets` (uses admin SDK) then `npm run db:migrate` to apply policies.
 
 ### Order Status State Machine
 

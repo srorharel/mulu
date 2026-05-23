@@ -29,7 +29,8 @@ function loadImage(url) {
 
 /**
  * Returns true if at least one face is detected in the image at `imageUrl`.
- * Returns true (accept) as a graceful fallback if all detection paths fail.
+ * Returns false if detection ran but found no face.
+ * Throws Error('face_check_unavailable') if all detection paths fail.
  */
 export async function detectFaceInImage(imageUrl) {
   const img = await loadImage(imageUrl)
@@ -55,7 +56,6 @@ export async function detectFaceInImage(imageUrl) {
     )
     return !!det
   } catch {
-    // All detection paths failed — accept the photo and let agents review it
-    return true
+    throw new Error('face_check_unavailable')
   }
 }
