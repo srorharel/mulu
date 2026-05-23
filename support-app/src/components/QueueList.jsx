@@ -4,80 +4,143 @@ import { Search, ChevronDown } from 'lucide-react'
 import Pill from './Pill.jsx'
 import QueueItem from './QueueItem.jsx'
 
-function QueueGroup({ label, count, countColor, items, selectedId, agentId, onSelect, collapsed, onToggle }) {
-  return (
-    <div>
-      {/* Group header */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-[18px] py-2 hover:bg-surface-elevated-2/40 transition-colors"
-        aria-expanded={!collapsed}
-      >
-        <div className="flex items-center gap-2">
-          <ChevronDown
-            size={11}
-            className="text-ink-subtle transition-transform"
-            style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
-          />
-          <span className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.06em]">
-            {label}
-          </span>
-        </div>
-        <span className="text-[11px] font-bold" style={{ color: countColor }}>
-          {count}
-        </span>
-      </button>
+function filterConvs(list, q) {
+  if (!q) return list
+  return list.filter(c =>
+    (c.opener?.full_name || '').toLowerCase().includes(q) ||
+    (c.order_id || '').toLowerCase().includes(q) ||
+    (c.subject || '').toLowerCase().includes(q)
+  )
+}
 
-      {!collapsed && items.map(conv => (
-        <QueueItem
-          key={conv.id}
-          conversation={conv}
-          agentId={agentId}
-          isSelected={conv.id === selectedId}
-          onClick={() => onSelect(conv)}
+function ItemList({ items, selectedId, agentId, onSelect }) {
+  return items.map(conv => (
+    <QueueItem
+      key={conv.id}
+      conversation={conv}
+      agentId={agentId}
+      isSelected={conv.id === selectedId}
+      onClick={() => onSelect(conv)}
+    />
+  ))
+}
+
+// Top-level group header (Unassigned — prominent, amber accent strip)
+function UnassignedHeader({ count, collapsed, onToggle }) {
+  const { t } = useTranslation()
+  return (
+    <button
+      data-testid="group-header-unassigned"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between px-[18px] py-2.5 hover:bg-surface-elevated-2/40 transition-colors relative"
+      aria-expanded={!collapsed}
+      aria-label={t('queue.unassigned', { defaultValue: 'Unassigned' })}
+    >
+      {/* Amber left accent strip */}
+      <span
+        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r"
+        style={{ width: 3, height: 20, background: 'var(--color-warning)' }}
+        aria-hidden
+      />
+      <div className="flex items-center gap-2">
+        <ChevronDown
+          size={11}
+          className="text-ink-subtle transition-transform"
+          style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
         />
-      ))}
-    </div>
+        <span className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.06em]">
+          {t('queue.unassigned', { defaultValue: 'Unassigned' })}
+        </span>
+      </div>
+      <span className="text-[11px] font-bold" style={{ color: 'var(--color-warning)' }}>
+        {count}
+      </span>
+    </button>
+  )
+}
+
+// Parent group header (Conversations — wraps Mine + All)
+function ConversationsHeader({ count, collapsed, onToggle }) {
+  const { t } = useTranslation()
+  return (
+    <button
+      data-testid="group-header-conversations"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between px-[18px] py-2 mt-2 hover:bg-surface-elevated-2/40 transition-colors"
+      aria-expanded={!collapsed}
+      aria-label={t('queue.conversations', { defaultValue: 'Conversations' })}
+    >
+      <div className="flex items-center gap-2">
+        <ChevronDown
+          size={11}
+          className="text-ink-subtle transition-transform"
+          style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
+        />
+        <span className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.06em]">
+          {t('queue.conversations', { defaultValue: 'Conversations' })}
+        </span>
+      </div>
+      <span className="text-[11px] font-bold text-ink-subtle">{count}</span>
+    </button>
+  )
+}
+
+// Sub-group header inside Conversations (Mine / All — lower contrast)
+function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId }) {
+  return (
+    <button
+      data-testid={testId}
+      onClick={onToggle}
+      className="w-full flex items-center justify-between pl-[28px] pr-[18px] py-1.5 hover:bg-surface-elevated-2/40 transition-colors"
+      aria-expanded={!collapsed}
+      aria-label={label}
+    >
+      <div className="flex items-center gap-1.5">
+        <ChevronDown
+          size={10}
+          className="text-ink-subtle transition-transform"
+          style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
+        />
+        <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-[0.06em]">
+          {label}
+        </span>
+      </div>
+      <span className="text-[10px] font-bold" style={{ color: countColor }}>
+        {count}
+      </span>
+    </button>
   )
 }
 
 export default function QueueList({ unassigned, mine, all, agentId, selectedId, onSelect, loading }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
-  const [collapsed, setCollapsed] = useState({ mine: false, unassigned: false, all: true })
+  const [collapsed, setCollapsed] = useState({
+    unassigned:    false,
+    conversations: false,
+    mine:          false,
+    all:           true,
+  })
 
-  // Build the "all" list excluding items already in mine/unassigned
   const mineIds       = new Set(mine.map(c => c.id))
   const unassignedIds = new Set(unassigned.map(c => c.id))
   const allRest       = all.filter(c => !mineIds.has(c.id) && !unassignedIds.has(c.id))
 
-  // Simple client-side filter
   const q = search.trim().toLowerCase()
-  function filterConvs(list) {
-    if (!q) return list
-    return list.filter(c =>
-      (c.opener?.full_name || '').toLowerCase().includes(q) ||
-      (c.order_id || '').toLowerCase().includes(q) ||
-      (c.subject || '').toLowerCase().includes(q)
-    )
-  }
+  const fUnassigned = filterConvs(unassigned, q)
+  const fMine       = filterConvs(mine, q)
+  const fAllRest    = filterConvs(allRest, q)
 
   function toggle(key) {
     setCollapsed(s => ({ ...s, [key]: !s[key] }))
   }
-
-  const groups = [
-    { key: 'mine',       label: t('queue.mine',       { defaultValue: 'Mine' }),       items: filterConvs(mine),       color: 'var(--color-agent)',    countColor: 'var(--color-agent)' },
-    { key: 'unassigned', label: t('queue.unassigned', { defaultValue: 'Unassigned' }), items: filterConvs(unassigned), color: 'var(--color-warning)',  countColor: 'var(--color-warning)' },
-    { key: 'all',        label: t('queue.all',         { defaultValue: 'All' }),        items: filterConvs(allRest),    color: 'var(--color-ink-subtle)', countColor: 'var(--color-ink-subtle)' },
-  ]
 
   return (
     <div
       className="flex flex-col shrink-0 border-r border-edge bg-surface-elevated h-full"
       style={{ width: 320 }}
     >
-      {/* Header */}
+      {/* Column header */}
       <div className="px-[18px] pt-[18px] pb-3 border-b border-edge shrink-0">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[17px] font-bold text-ink" style={{ letterSpacing: '-0.3px' }}>
@@ -86,7 +149,6 @@ export default function QueueList({ unassigned, mine, all, agentId, selectedId, 
           <Pill color="agent" dot>Live</Pill>
         </div>
 
-        {/* Search */}
         <div
           className="flex items-center gap-2 px-2.5 rounded-[10px] border border-edge bg-surface"
           style={{ height: 36 }}
@@ -105,27 +167,80 @@ export default function QueueList({ unassigned, mine, all, agentId, selectedId, 
         </div>
       </div>
 
-      {/* Groups */}
+      {/* Group list */}
       <div className="flex-1 overflow-y-auto py-2">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="h-6 w-6 animate-spin rounded-full border-4 border-agent border-t-transparent" />
           </div>
         ) : (
-          groups.map(g => (
-            <QueueGroup
-              key={g.key}
-              label={g.label}
-              count={g.items.length}
-              countColor={g.countColor}
-              items={g.items}
-              selectedId={selectedId}
-              agentId={agentId}
-              onSelect={onSelect}
-              collapsed={collapsed[g.key]}
-              onToggle={() => toggle(g.key)}
-            />
-          ))
+          <>
+            {/* ── 1. Unassigned — first, prominent ─────────────────────── */}
+            <div className="mb-1">
+              <UnassignedHeader
+                count={fUnassigned.length}
+                collapsed={collapsed.unassigned}
+                onToggle={() => toggle('unassigned')}
+              />
+              {!collapsed.unassigned && (
+                <ItemList
+                  items={fUnassigned}
+                  selectedId={selectedId}
+                  agentId={agentId}
+                  onSelect={onSelect}
+                />
+              )}
+            </div>
+
+            {/* ── 2. Conversations — second, wraps Mine + All ──────────── */}
+            <div>
+              <ConversationsHeader
+                count={fMine.length + fAllRest.length}
+                collapsed={collapsed.conversations}
+                onToggle={() => toggle('conversations')}
+              />
+
+              {!collapsed.conversations && (
+                <>
+                  {/* Mine sub-group */}
+                  <SubGroupHeader
+                    testId="group-header-mine"
+                    label={t('queue.mine', { defaultValue: 'Mine' })}
+                    count={fMine.length}
+                    countColor="var(--color-agent)"
+                    collapsed={collapsed.mine}
+                    onToggle={() => toggle('mine')}
+                  />
+                  {!collapsed.mine && (
+                    <ItemList
+                      items={fMine}
+                      selectedId={selectedId}
+                      agentId={agentId}
+                      onSelect={onSelect}
+                    />
+                  )}
+
+                  {/* All sub-group */}
+                  <SubGroupHeader
+                    testId="group-header-all"
+                    label={t('queue.all', { defaultValue: 'All' })}
+                    count={fAllRest.length}
+                    countColor="var(--color-ink-subtle)"
+                    collapsed={collapsed.all}
+                    onToggle={() => toggle('all')}
+                  />
+                  {!collapsed.all && (
+                    <ItemList
+                      items={fAllRest}
+                      selectedId={selectedId}
+                      agentId={agentId}
+                      onSelect={onSelect}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
