@@ -7,8 +7,8 @@ import { initReactI18next } from 'react-i18next'
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────
 const { mockUpload, mockCheckPermissions, mockRequestPermissions } = vi.hoisted(() => ({
-  mockUpload:            vi.fn().mockResolvedValue({ error: null }),
-  mockCheckPermissions:  vi.fn().mockResolvedValue({ camera: 'granted' }),
+  mockUpload:             vi.fn().mockResolvedValue({ error: null }),
+  mockCheckPermissions:   vi.fn().mockResolvedValue({ camera: 'granted' }),
   mockRequestPermissions: vi.fn().mockResolvedValue({ camera: 'granted' }),
 }))
 
@@ -18,11 +18,10 @@ vi.mock('../lib/supabase.js', () => ({
   },
 }))
 
-// isNativePlatform is overridden per-test in the permission suite
 vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: vi.fn(() => false) } }))
 vi.mock('@capacitor/camera', () => ({
   Camera: {
-    checkPermissions:  mockCheckPermissions,
+    checkPermissions:   mockCheckPermissions,
     requestPermissions: mockRequestPermissions,
   },
 }))
@@ -74,9 +73,11 @@ function stubVideoElement() {
 function makeStream() {
   const stop  = vi.fn()
   const track = { stop, kind: 'video' }
-  return { stream: { getTracks: () => [track] }, track, stop }
+  return { stream: { getTracks: () => [track], active: true }, track, stop }
 }
 
+// A face box that evaluateFace(box, 640, 480) → 'good'
+// cx=0.5, cy=0.5, area≈0.165 (all within bounds)
 const GOOD_FACE = { x: 210, y: 125, width: 220, height: 230 }
 
 // ── i18n ──────────────────────────────────────────────────────────────────
@@ -88,7 +89,10 @@ i18n.use(initReactI18next).init({
         'washerSignup.verify.sectionSelfie.title':            'Selfie verification',
         'washerSignup.verify.sectionSelfie.hint':             "We'll verify your face using your camera",
         'washerSignup.verify.sectionSelfie.start':            'Start verification',
-        'washerSignup.verify.sectionSelfie.positioning':      'Position your face in the frame',
+        'washerSignup.verify.sectionSelfie.position':         'Position your face in the oval',
+        'washerSignup.verify.sectionSelfie.center':           'Center your face',
+        'washerSignup.verify.sectionSelfie.closer':           'Move closer',
+        'washerSignup.verify.sectionSelfie.farther':          'Move back',
         'washerSignup.verify.sectionSelfie.hold':             'Hold still...',
         'washerSignup.verify.sectionSelfie.captured':         'Captured',
         'washerSignup.verify.sectionSelfie.verified':         'Selfie verified',
@@ -110,7 +114,7 @@ const wrapper = ({ children }) => (
   <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
 )
 
-import SelfieVerificationModal from '../components/washer/SelfieVerificationModal.jsx'
+import SelfieVerificationModal, { evaluateFace } from '../components/washer/SelfieVerificationModal.jsx'
 import { Capacitor } from '@capacitor/core'
 import { Camera } from '@capacitor/camera'
 
@@ -122,6 +126,42 @@ function renderModal(props = {}) {
     { wrapper },
   )}
 }
+
+// ── evaluateFace unit tests ────────────────────────────────────────────────
+
+describe('evaluateFace', () => {
+  const vw = 640, vh = 480
+
+  it('returns "none" when no box provided', () => {
+    expect(evaluateFace(null, vw, vh)).toBe('none')
+    expect(evaluateFace(undefined, vw, vh)).toBe('none')
+  })
+
+  it('returns "good" for a centered face of reasonable size', () => {
+    // cx=0.5, cy=0.5, area≈0.165
+    expect(evaluateFace(GOOD_FACE, vw, vh)).toBe('good')
+  })
+
+  it('returns "too_far" when face area < 0.08', () => {
+    // Small box: 100×100 = 10000 / 307200 ≈ 0.033
+    expect(evaluateFace({ x: 270, y: 190, width: 100, height: 100 }, vw, vh)).toBe('too_far')
+  })
+
+  it('returns "too_close" when face area > 0.45', () => {
+    // Large box: 500×400 = 200000 / 307200 ≈ 0.65
+    expect(evaluateFace({ x: 70, y: 40, width: 500, height: 400 }, vw, vh)).toBe('too_close')
+  })
+
+  it('returns "off_center" when face is off to the side', () => {
+    // cx = (10 + 150) / 640 = 0.25 → |0.25 - 0.5| = 0.25 > 0.15
+    expect(evaluateFace({ x: 10, y: 90, width: 300, height: 250 }, vw, vh)).toBe('off_center')
+  })
+
+  it('returns "off_center" when face is too high', () => {
+    // cy = (5 + 115) / 480 = 0.25 → |0.25 - 0.5| = 0.25 > 0.20
+    expect(evaluateFace({ x: 210, y: 5, width: 220, height: 230 }, vw, vh)).toBe('off_center')
+  })
+})
 
 // ── Modal lifecycle ────────────────────────────────────────────────────────
 
@@ -150,6 +190,7 @@ describe('SelfieVerificationModal — modal lifecycle', () => {
     const { stop } = makeStream()
     navigator.mediaDevices.getUserMedia = vi.fn().mockResolvedValue({
       getTracks: () => [{ stop, kind: 'video' }],
+      active: true,
     })
     const onClose = vi.fn()
     renderModal({ onClose })
@@ -340,6 +381,52 @@ describe('SelfieVerificationModal — detector fallback', () => {
   })
 })
 
+// ── Video loadedmetadata ───────────────────────────────────────────────────
+
+describe('SelfieVerificationModal — video loadedmetadata', () => {
+  it('starts detection loop immediately when readyState >= 1', async () => {
+    stubVideoElement() // readyState = 4
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    delete window.FaceDetector
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([]) }
+    })
+    const { stream } = makeStream()
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+    renderModal()
+    // Loop should start (rAF scheduled) without needing a loadedmetadata event
+    await waitFor(() => expect(rafCallbacks.size).toBeGreaterThan(0))
+  })
+
+  it('waits for loadedmetadata when readyState is 0', async () => {
+    // Override readyState to 0 (no metadata yet)
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth',  { get: () => 640, configurable: true })
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get: () => 480, configurable: true })
+    Object.defineProperty(HTMLVideoElement.prototype, 'readyState',  { get: () => 0, configurable: true })
+    HTMLVideoElement.prototype.play = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(HTMLVideoElement.prototype, 'srcObject',
+      { set: vi.fn(), get: () => null, configurable: true })
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    delete window.FaceDetector
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([]) }
+    })
+    const { stream } = makeStream()
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+    renderModal()
+    // Wait for camera to open + detector to load (buildDetector is async)
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
+    // rAF should NOT be scheduled yet because readyState=0 and event not fired
+    expect(rafCallbacks.size).toBe(0)
+  })
+})
+
 // ── Detection countdown ────────────────────────────────────────────────────
 
 describe('SelfieVerificationModal — detection countdown', () => {
@@ -348,13 +435,35 @@ describe('SelfieVerificationModal — detection countdown', () => {
     Capacitor.isNativePlatform.mockReturnValue(false)
     Object.defineProperty(window.navigator, 'mediaDevices', {
       value: {
-        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }] }),
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }], active: true }),
       },
       configurable: true,
     })
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }))
     HTMLCanvasElement.prototype.toBlob = vi.fn((cb) => cb(new Blob(['img'], { type: 'image/jpeg' })))
     vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:test') })
+  })
+
+  it('shows "Hold still" text when face is good', async () => {
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([{ boundingBox: GOOD_FACE }]) }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(5)
+    await waitFor(() => expect(screen.getByText(/Hold still/i)).toBeInTheDocument())
+  })
+
+  it('shows "Position your face in the oval" when no face', async () => {
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([]) }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(3)
+    await waitFor(() =>
+      expect(screen.getByText(/Position your face in the oval/i)).toBeInTheDocument()
+    )
   })
 
   it('resets counter when face is lost mid-countdown', async () => {
@@ -371,7 +480,7 @@ describe('SelfieVerificationModal — detection countdown', () => {
     await waitFor(() => expect(screen.getByText(/Hold still/i)).toBeInTheDocument())
     await driveFrames(5)
     await waitFor(() =>
-      expect(screen.getByText(/Position your face in the frame/i)).toBeInTheDocument()
+      expect(screen.getByText(/Position your face in the oval/i)).toBeInTheDocument()
     )
   })
 
@@ -394,8 +503,89 @@ describe('SelfieVerificationModal — detection countdown', () => {
     const onCapture = vi.fn()
     renderModal({ onCapture })
     await waitFor(() => rafCallbacks.size > 0)
-    await driveFrames(60)
+    await driveFrames(100)
     expect(onCapture).not.toHaveBeenCalled()
+  })
+
+  it('shows "Move closer" text when face is too far away', async () => {
+    // Small box: area ≈ 0.033 < 0.08 → too_far
+    vi.stubGlobal('FaceDetector', class {
+      detect() {
+        return Promise.resolve([{ boundingBox: { x: 270, y: 190, width: 100, height: 100 } }])
+      }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(3)
+    await waitFor(() => expect(screen.getByText(/Move closer/i)).toBeInTheDocument())
+  })
+
+  it('shows "Center your face" text when face is off-center', async () => {
+    // Off to the left: cx = (10+150)/640 = 0.25
+    vi.stubGlobal('FaceDetector', class {
+      detect() {
+        return Promise.resolve([{ boundingBox: { x: 10, y: 90, width: 300, height: 250 } }])
+      }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(3)
+    await waitFor(() => expect(screen.getByText(/Center your face/i)).toBeInTheDocument())
+  })
+})
+
+// ── Oval stroke color binding ──────────────────────────────────────────────
+
+describe('SelfieVerificationModal — oval stroke color', () => {
+  beforeEach(() => {
+    stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }], active: true }),
+      },
+      configurable: true,
+    })
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }))
+    HTMLCanvasElement.prototype.toBlob = vi.fn((cb) => cb(new Blob(['img'], { type: 'image/jpeg' })))
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:test') })
+  })
+
+  function getOvalStroke() {
+    const ellipse = document.querySelector('ellipse[stroke-width="4"]')
+    return ellipse?.getAttribute('stroke')
+  }
+
+  it('oval stroke is gray when no face detected', async () => {
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([]) }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(3)
+    await waitFor(() => expect(getOvalStroke()).toBe('#9ca3af'))
+  })
+
+  it('oval stroke is yellow when face is off-center', async () => {
+    vi.stubGlobal('FaceDetector', class {
+      detect() {
+        return Promise.resolve([{ boundingBox: { x: 10, y: 90, width: 300, height: 250 } }])
+      }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(3)
+    await waitFor(() => expect(getOvalStroke()).toBe('#facc15'))
+  })
+
+  it('oval stroke is green when face is good', async () => {
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([{ boundingBox: GOOD_FACE }]) }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(5)
+    await waitFor(() => expect(getOvalStroke()).toBe('#22c55e'))
   })
 })
 
@@ -407,7 +597,7 @@ describe('SelfieVerificationModal — upload integration', () => {
     Capacitor.isNativePlatform.mockReturnValue(false)
     Object.defineProperty(window.navigator, 'mediaDevices', {
       value: {
-        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }] }),
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }], active: true }),
       },
       configurable: true,
     })
@@ -457,6 +647,7 @@ describe('SelfieVerificationModal — upload integration', () => {
     const stop = vi.fn()
     navigator.mediaDevices.getUserMedia = vi.fn().mockResolvedValue({
       getTracks: () => [{ stop, kind: 'video' }],
+      active: true,
     })
     renderModal()
     await waitFor(() => rafCallbacks.size > 0)

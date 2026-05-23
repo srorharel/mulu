@@ -5,35 +5,50 @@ import { Capacitor } from '@capacitor/core'
 import { Camera } from '@capacitor/camera'
 import { supabase } from '../../lib/supabase.js'
 
-const BUCKET         = 'washer-verification'
-const FRAMES_NEEDED  = 45    // ~1.5 s at 30 fps
-const CENTER_TOL     = 0.35  // face centre ≤35% from frame centre
-const MIN_AREA_RATIO = 0.15  // face must cover ≥15% of frame area
+const BUCKET        = 'washer-verification'
+const FRAMES_NEEDED = 45   // ~1.5 s at 30 fps
 
-// Phases:
-//  starting   → requesting permission + opening camera + loading detector
-//  detecting  → live video, no stable face yet
-//  countdown  → face stable, counting 3-2-1
-//  uploading  → frame captured, uploading blob
-//  denied     → camera permission refused (show "Try again" after going to settings)
-//  no_camera  → no camera hardware found
-//  unsupported → getUserMedia / WebRTC not available
-//  error      → upload failed (show retry)
+// Detection states:
+//   none       → no face found
+//   off_center → face found but outside center zone
+//   too_far    → face too small (far away)
+//   too_close  → face too large (too close)
+//   good       → properly positioned, countdown active
+//
+// Modal phases:
+//   starting    → permission check + camera open + detector load
+//   live        → camera running; detectionState tracks sub-state
+//   uploading   → frame captured, uploading to storage
+//   denied      → camera permission refused
+//   no_camera   → no camera hardware
+//   unsupported → getUserMedia / WebRTC / detectors all unavailable
+//   error       → upload failed
 
-function isFaceGood(face, vw, vh) {
-  const cx = face.x + face.width  / 2
-  const cy = face.y + face.height / 2
-  return (
-    Math.abs(cx - vw / 2) < vw * CENTER_TOL &&
-    Math.abs(cy - vh / 2) < vh * CENTER_TOL &&
-    (face.width * face.height) / (vw * vh) >= MIN_AREA_RATIO
-  )
+const OVAL_STROKE = {
+  none:       '#9ca3af',   // gray-400
+  off_center: '#facc15',   // yellow-400
+  too_far:    '#facc15',
+  too_close:  '#facc15',
+  good:       '#22c55e',   // green-500
+}
+
+// Exported so unit tests can exercise it directly.
+export function evaluateFace(box, vw, vh) {
+  if (!box) return 'none'
+  const cx   = (box.x + box.width  / 2) / vw
+  const cy   = (box.y + box.height / 2) / vh
+  const area = (box.width * box.height) / (vw * vh)
+  if (area < 0.08) return 'too_far'
+  if (area > 0.45) return 'too_close'
+  if (Math.abs(cx - 0.5) > 0.15 || Math.abs(cy - 0.5) > 0.20) return 'off_center'
+  return 'good'
 }
 
 async function buildDetector() {
   if ('FaceDetector' in window) {
     try {
       const native = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
+      console.log('[selfie] using native FaceDetector')
       return {
         type: 'native',
         isAsync: true,
@@ -44,10 +59,11 @@ async function buildDetector() {
       }
     } catch { /* fall through */ }
   }
+  console.log('[selfie] loading MediaPipe...')
   try {
     const vision = await import('@mediapipe/tasks-vision')
     const fileset = await vision.FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'
     )
     const mp = await vision.FaceDetector.createFromOptions(fileset, {
       baseOptions: {
@@ -57,6 +73,7 @@ async function buildDetector() {
       },
       runningMode: 'VIDEO',
     })
+    console.log('[selfie] MediaPipe ready')
     return {
       type: 'mediapipe',
       isAsync: false,
@@ -68,14 +85,12 @@ async function buildDetector() {
         }))
       },
     }
-  } catch { /* fall through */ }
+  } catch (err) {
+    console.error('[selfie] MediaPipe failed to load', err)
+  }
   return null
 }
 
-// Checks + requests the Android camera permission via the Capacitor Camera
-// plugin (which maps to the Android CAMERA runtime permission).
-// Returns 'granted' | 'denied'. On web, always returns 'granted' and the
-// browser's own permission prompt fires when getUserMedia is called.
 async function ensureCameraPermission() {
   if (!Capacitor.isNativePlatform()) return 'granted'
   try {
@@ -83,13 +98,12 @@ async function ensureCameraPermission() {
     console.log('[selfie] checkPermissions:', status.camera)
     if (status.camera === 'granted') return 'granted'
     if (status.camera === 'denied')  return 'denied'
-    // 'prompt' or 'prompt-with-rationale' → show system dialog
     status = await Camera.requestPermissions({ permissions: ['camera'] })
     console.log('[selfie] requestPermissions result:', status.camera)
     return status.camera === 'granted' ? 'granted' : 'denied'
   } catch (err) {
     console.error('[selfie] permission check error', err)
-    return 'granted' // best-effort: let getUserMedia fail with its own error if needed
+    return 'granted'
   }
 }
 
@@ -98,9 +112,10 @@ async function ensureCameraPermission() {
 export default function SelfieVerificationModal({ userId, onCapture, onClose }) {
   const { t } = useTranslation()
 
-  const [phase,     setPhase]     = useState('starting')
-  const [countdown, setCountdown] = useState(3)
-  const [errorMsg,  setErrorMsg]  = useState('')
+  const [phase,          setPhase]          = useState('starting')
+  const [detectionState, setDetectionState] = useState('none')
+  const [countdown,      setCountdown]      = useState(3)
+  const [errorMsg,       setErrorMsg]       = useState('')
 
   const videoRef       = useRef(null)
   const streamRef      = useRef(null)
@@ -121,6 +136,31 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
 
   useEffect(() => () => stopCamera(), [stopCamera])
 
+  // ── capture & upload ───────────────────────────────────────────────────────
+  const capture = useCallback(async (video) => {
+    stopCamera()
+    setPhase('uploading')
+    try {
+      const canvas  = document.createElement('canvas')
+      canvas.width  = video.videoWidth  || 640
+      canvas.height = video.videoHeight || 480
+      // Draw without mirroring — save the raw camera frame (un-mirrored)
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85))
+      const path = `${userId}/selfie.jpg`
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+      if (upErr) throw upErr
+      onCapture(URL.createObjectURL(blob), path)
+    } catch (err) {
+      console.error('[selfie] upload failed', err)
+      capturedRef.current = false
+      setPhase('error')
+      setErrorMsg(err.message || t('washerSignup.verify.submitError'))
+    }
+  }, [userId, onCapture, stopCamera, t])
+
   // ── detection loop ─────────────────────────────────────────────────────────
   const loop = useCallback(() => {
     const tick = async () => {
@@ -138,14 +178,18 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         rafRef.current = requestAnimationFrame(tick)
         return
       }
-      const vw   = video.videoWidth  || video.clientWidth  || 1
-      const vh   = video.videoHeight || video.clientHeight || 1
-      const good = faces.length > 0 && isFaceGood(faces[0], vw, vh)
-      if (good) {
+      const vw    = video.videoWidth  || video.clientWidth  || 1
+      const vh    = video.videoHeight || video.clientHeight || 1
+      const box   = faces.length > 0 ? faces[0] : null
+      const state = evaluateFace(box, vw, vh)
+
+      console.log('[selfie] detect tick', { state, faces: faces.length, box })
+
+      if (state === 'good') {
         consecutiveRef.current += 1
         const n  = consecutiveRef.current
         const cd = n < FRAMES_NEEDED / 3 ? 3 : n < (2 * FRAMES_NEEDED) / 3 ? 2 : 1
-        setPhase('countdown')
+        setDetectionState('good')
         setCountdown(cd)
         if (n >= FRAMES_NEEDED) {
           capturedRef.current = true
@@ -156,37 +200,13 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         if (consecutiveRef.current > 0) {
           consecutiveRef.current = 0
           setCountdown(3)
-          setPhase('detecting')
         }
+        setDetectionState(state)
       }
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── capture & upload ───────────────────────────────────────────────────────
-  const capture = useCallback(async (video) => {
-    stopCamera()
-    setPhase('uploading')
-    try {
-      const canvas = document.createElement('canvas')
-      canvas.width  = video.videoWidth  || 640
-      canvas.height = video.videoHeight || 480
-      canvas.getContext('2d').drawImage(video, 0, 0)
-      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85))
-      const path = `${userId}/selfie.jpg`
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-      if (upErr) throw upErr
-      onCapture(URL.createObjectURL(blob), path)
-    } catch (err) {
-      console.error('[selfie] upload failed', err)
-      capturedRef.current = false
-      setPhase('error')
-      setErrorMsg(err.message || t('washerSignup.verify.submitError'))
-    }
-  }, [userId, onCapture, stopCamera, t])
+  }, [capture])
 
   // ── start (permission → camera → detector → loop) ─────────────────────────
   const startCamera = useCallback(async () => {
@@ -194,9 +214,12 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
     consecutiveRef.current = 0
     capturedRef.current    = false
     setPhase('starting')
+    setDetectionState('none')
     setErrorMsg('')
 
-    // 1. Ensure Android camera runtime permission is granted
+    console.log('[selfie] startCamera called')
+    console.log('[selfie] FaceDetector available?', 'FaceDetector' in window)
+
     const permResult = await ensureCameraPermission()
     if (permResult === 'denied') {
       console.error('[selfie] camera permission denied')
@@ -204,7 +227,6 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       return
     }
 
-    // 2. Open the front camera with forgiving constraints
     let stream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -228,30 +250,55 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
     }
 
     streamRef.current = stream
+    console.log('[selfie] stream active?', stream.active, 'tracks:', stream.getTracks().length)
+
     if (videoRef.current) {
       videoRef.current.srcObject = stream
       await videoRef.current.play().catch(() => {})
     }
 
-    // 3. Init face detector (may lazy-load MediaPipe)
     const detector = await buildDetector()
+    console.log('[selfie] detector type:', detector?.type ?? 'none')
     if (!detector) { setPhase('unsupported'); return }
     detectorRef.current = detector
-    setPhase('detecting')
-    loop()
+    setPhase('live')
+
+    const video = videoRef.current
+    if (!video) return
+
+    const startLoop = () => {
+      console.log('[selfie] starting detection loop. dims:', video.videoWidth, 'x', video.videoHeight)
+      loop()
+    }
+
+    if (video.readyState >= 1) {
+      startLoop()
+    } else {
+      video.addEventListener('loadedmetadata', startLoop, { once: true })
+    }
   }, [stopCamera, loop])
 
-  // Mount: start immediately
   useEffect(() => { startCamera() }, [startCamera])
 
   // ── derived UI ─────────────────────────────────────────────────────────────
-  const statusText =
-    phase === 'detecting'  ? t('washerSignup.verify.sectionSelfie.positioning')
-    : phase === 'countdown' ? `${t('washerSignup.verify.sectionSelfie.hold')} ${countdown}…`
-    : phase === 'uploading' ? t('washerSignup.verify.sectionSelfie.captured')
-    : ''
+  const selfieT   = useCallback((key) => t(`washerSignup.verify.sectionSelfie.${key}`), [t])
+  const showVideo = phase === 'starting' || phase === 'live' || phase === 'uploading'
 
-  const showVideo = phase === 'starting' || phase === 'detecting' || phase === 'countdown'
+  const ovalStroke = phase === 'uploading'
+    ? '#16a34a'
+    : (OVAL_STROKE[detectionState] ?? '#9ca3af')
+
+  const statusText = (() => {
+    if (phase === 'live') {
+      if (detectionState === 'good')       return `${selfieT('hold')} ${countdown}…`
+      if (detectionState === 'off_center') return selfieT('center')
+      if (detectionState === 'too_far')    return selfieT('closer')
+      if (detectionState === 'too_close')  return selfieT('farther')
+      return selfieT('position')
+    }
+    if (phase === 'uploading') return selfieT('captured')
+    return ''
+  })()
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
@@ -262,7 +309,7 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         type="button"
         onClick={() => { stopCamera(); onClose() }}
         className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/40 z-10"
-        aria-label={t('washerSignup.verify.sectionSelfie.cancel')}
+        aria-label={selfieT('cancel')}
       >
         <X className="h-5 w-5" />
       </button>
@@ -275,7 +322,8 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover scale-x-[-1]"
+            className="w-full h-full object-cover"
+            style={{ transform: 'scaleX(-1)' }}
           />
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
@@ -293,8 +341,9 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
             <ellipse
               cx="150" cy="185" rx="95" ry="125"
               fill="none"
-              stroke={phase === 'countdown' ? '#22c55e' : 'rgba(255,255,255,0.85)'}
-              strokeWidth="3"
+              stroke={ovalStroke}
+              strokeWidth="4"
+              style={{ transition: 'stroke 150ms' }}
             />
           </svg>
         </div>
@@ -315,13 +364,13 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       {/* Permission denied */}
       {phase === 'denied' && (
         <div className="flex flex-col items-center gap-5 px-8 text-center">
-          <p className="text-white text-base">{t('washerSignup.verify.sectionSelfie.permissionDenied')}</p>
+          <p className="text-white text-base">{selfieT('permissionDenied')}</p>
           <button
             type="button"
             onClick={startCamera}
             className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm"
           >
-            {t('washerSignup.verify.sectionSelfie.tryAgain')}
+            {selfieT('tryAgain')}
           </button>
         </div>
       )}
@@ -329,14 +378,14 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       {/* No camera hardware */}
       {phase === 'no_camera' && (
         <p className="px-8 text-white text-base text-center">
-          {t('washerSignup.verify.sectionSelfie.noCameraFound')}
+          {selfieT('noCameraFound')}
         </p>
       )}
 
       {/* Unsupported browser / WebRTC unavailable */}
       {phase === 'unsupported' && (
         <p className="px-8 text-white text-base text-center">
-          {t('washerSignup.verify.sectionSelfie.unsupported')}
+          {selfieT('unsupported')}
         </p>
       )}
 
@@ -349,7 +398,7 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
             onClick={startCamera}
             className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm"
           >
-            {t('washerSignup.verify.sectionSelfie.retake')}
+            {selfieT('retake')}
           </button>
         </div>
       )}
