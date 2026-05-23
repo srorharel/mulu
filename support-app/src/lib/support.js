@@ -47,7 +47,7 @@ export async function fetchConversations() {
   return supabase
     .from('support_conversations')
     .select(`
-      id, status, subject, order_id, opener_role, last_message_at, created_at, updated_at,
+      id, status, subject, order_id, opener_role, last_message_at, last_message_body, created_at, updated_at,
       opener_id, counterparty_id, assigned_agent_id,
       opener_last_read_at, counterparty_last_read_at, agent_last_read_at,
       opener:profiles!opener_id(id, full_name, role, phone),

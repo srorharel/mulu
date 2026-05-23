@@ -61,9 +61,22 @@ export function useSupportConversation(convId) {
           return [...prev, { ...newMsg, sender }]
         })
       },
-      onConvUpdate: (updated) => {
+      onConvUpdate: async () => {
+        // payload.new lacks joined data — re-fetch so agent profile embed is populated
         if (cancelled) return
-        setConversation(prev => prev ? { ...prev, ...updated } : updated)
+        const { data } = await supabase
+          .from('support_conversations')
+          .select(`
+            id, status, subject, order_id, created_at, updated_at,
+            opener_last_read_at, counterparty_last_read_at, agent_last_read_at,
+            opener_id, counterparty_id, assigned_agent_id,
+            opener:profiles!opener_id(id, full_name, role),
+            counterparty:profiles!counterparty_id(id, full_name, role),
+            agent:profiles!assigned_agent_id(id, full_name, agent_display_name)
+          `)
+          .eq('id', convId)
+          .single()
+        if (!cancelled && data) setConversation(data)
       },
     })
 

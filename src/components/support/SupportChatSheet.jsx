@@ -130,7 +130,9 @@ export default function SupportChatSheet({ open, convId, onClose }) {
     || conversation?.agent?.full_name
     || null
 
-  const headerTitle = agentName || t('support.waitingForAgent')
+  const headerTitle = agentName
+    ? t('support.chattingWith', { name: agentName })
+    : t('support.waitingForAgent')
   const orderRef = conversation?.order_id?.slice(0, 8)
 
   const items = groupByDate(messages)
@@ -165,14 +167,25 @@ export default function SupportChatSheet({ open, convId, onClose }) {
 
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-edge shrink-0">
-              <div className="flex flex-col">
-                <span className="font-semibold text-ink text-sm">{headerTitle}</span>
-                {orderRef && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Hash className="h-3 w-3 text-ink-muted/50" />
-                    <span className="text-xs text-ink-muted/60">{orderRef}</span>
+              <div className="flex items-center gap-2.5">
+                {agentName && (
+                  <div
+                    className="flex items-center justify-center rounded-full text-white font-bold shrink-0 ring-2 ring-emerald-500"
+                    style={{ width: 32, height: 32, fontSize: 11, background: 'linear-gradient(135deg,#3fb58f,#2a7d62)' }}
+                    aria-hidden
+                  >
+                    {agentName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')}
                   </div>
                 )}
+                <div className="flex flex-col">
+                  <span data-testid="support-header-title" className="font-semibold text-ink text-sm">{headerTitle}</span>
+                  {orderRef && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Hash className="h-3 w-3 text-ink-muted/50" />
+                      <span className="text-xs text-ink-muted/60">{orderRef}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button

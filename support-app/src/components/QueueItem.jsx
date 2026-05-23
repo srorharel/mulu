@@ -31,7 +31,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
   )
   const unreadCount = conversation.unread_count ?? (hasUnread ? 1 : 0)
 
-  const preview = conversation.last_message_preview ?? conversation.subject ?? ''
+  const preview = conversation.last_message_body ?? conversation.subject ?? ''
 
   const hue = nameToHue(openerName)
   const initials = openerName
@@ -136,7 +136,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
 
         {/* Row 3: preview */}
         <p className="text-[12px] text-ink-muted mt-1.5 truncate leading-none">
-          {preview}
+          {preview || <span className="italic text-ink-subtle">No messages yet</span>}
         </p>
       </div>
 

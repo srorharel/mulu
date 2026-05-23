@@ -682,6 +682,7 @@
     "general": "שאלה כללית",
     "orderLinked": "הזמנה #{{id}}",
     "waitingForAgent": "ממתין לנציג...",
+    "chattingWith": "משוחח/ת עם {{name}}",
     "agentName": "נציג תמיכה",
     "needHelp": "צריך עזרה?",
     "chatTitle": "צ'אט תמיכה",

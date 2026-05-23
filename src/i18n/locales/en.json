@@ -682,6 +682,7 @@
     "general": "General question",
     "orderLinked": "Order #{{id}}",
     "waitingForAgent": "Waiting for agent...",
+    "chattingWith": "Chatting with {{name}}",
     "agentName": "Support Agent",
     "needHelp": "Need help?",
     "chatTitle": "Support chat",
