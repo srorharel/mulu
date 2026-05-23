@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, ChevronDown } from 'lucide-react'
+import { Search, ChevronDown, MessageSquareOff, AlertCircle } from 'lucide-react'
 import Pill from './Pill.jsx'
 import QueueItem from './QueueItem.jsx'
 
@@ -78,7 +78,7 @@ function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId 
   )
 }
 
-export default function QueueList({ mine, others, agentId, selectedId, onSelect, loading }) {
+export default function QueueList({ mine, others, agentId, selectedId, onSelect, loading, fetchError, onRetry }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState({
@@ -130,8 +130,28 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
       {/* Group list */}
       <div className="flex-1 overflow-y-auto py-2">
         {loading ? (
-          <div className="flex items-center justify-center h-32">
+          <div className="flex items-center justify-center h-32" data-testid="queue-loading">
             <div className="h-6 w-6 animate-spin rounded-full border-4 border-agent border-t-transparent" />
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center gap-3 h-48 px-6 text-center" data-testid="queue-error">
+            <AlertCircle className="h-8 w-8 text-danger/60" />
+            <p className="text-sm font-semibold text-danger">Failed to load conversations</p>
+            <p className="text-xs text-ink-muted font-mono break-all">{fetchError}</p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="text-xs font-semibold text-agent hover:underline"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        ) : mine.length === 0 && others.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 h-48 px-6 text-center" data-testid="queue-empty">
+            <MessageSquareOff className="h-8 w-8 text-ink-subtle/50" />
+            <p className="text-sm font-semibold text-ink">No conversations yet</p>
+            <p className="text-xs text-ink-muted">Assigned conversations will appear here</p>
           </div>
         ) : (
           <>

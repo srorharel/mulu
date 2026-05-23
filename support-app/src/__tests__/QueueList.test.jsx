@@ -51,14 +51,16 @@ const baseProps = {
 
 describe('QueueList — Assigned (Mine, Others)', () => {
   it('renders Assigned, Mine, and Others group headers', () => {
-    render(<QueueList {...baseProps} />, { wrapper })
+    const mine = [makeConv({ id: 'm1', name: 'Alice', assigned_agent_id: 'agent-1' })]
+    render(<QueueList {...baseProps} mine={mine} />, { wrapper })
     expect(screen.getByTestId('group-header-assigned')).toBeInTheDocument()
     expect(screen.getByTestId('group-header-mine')).toBeInTheDocument()
     expect(screen.getByTestId('group-header-others')).toBeInTheDocument()
   })
 
   it('Mine subgroup header appears before Others subgroup header', () => {
-    render(<QueueList {...baseProps} />, { wrapper })
+    const mine = [makeConv({ id: 'm1', name: 'Alice', assigned_agent_id: 'agent-1' })]
+    render(<QueueList {...baseProps} mine={mine} />, { wrapper })
     const mineHeader   = screen.getByTestId('group-header-mine')
     const othersHeader = screen.getByTestId('group-header-others')
     expect(mineHeader.compareDocumentPosition(othersHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

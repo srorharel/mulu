@@ -248,7 +248,7 @@ export default function Dashboard() {
 
   const { conversationId: urlConvId } = useParams()
 
-  const { conversations, unassigned, mine, others, all, loading, reload } = useAgentQueue(profile?.id)
+  const { conversations, unassigned, mine, others, all, loading, fetchError, reload } = useAgentQueue(profile?.id)
   const [selectedConv, setSelectedConv] = useState(null)
 
   // Derive active tab from URL path so /unassigned URL stays in sync
@@ -369,6 +369,8 @@ export default function Dashboard() {
               selectedId={latestConv?.id}
               onSelect={handleSelect}
               loading={loading}
+              fetchError={fetchError}
+              onRetry={reload}
             />
 
             {/* Center: Chat */}

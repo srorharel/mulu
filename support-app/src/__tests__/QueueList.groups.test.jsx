@@ -49,10 +49,11 @@ const baseProps = {
 
 describe('QueueList — Assigned(Mine, Others) group ordering', () => {
   it('Mine sub-header appears before Others sub-header in DOM', () => {
-    render(<QueueList {...baseProps} />, { wrapper })
-    const mine   = screen.getByTestId('group-header-mine')
-    const others = screen.getByTestId('group-header-others')
-    expect(mine.compareDocumentPosition(others) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const mine = [makeConv({ id: 'm1', name: 'Alice', assigned_agent_id: 'agent-1' })]
+    render(<QueueList {...baseProps} mine={mine} />, { wrapper })
+    const mineEl   = screen.getByTestId('group-header-mine')
+    const othersEl = screen.getByTestId('group-header-others')
+    expect(mineEl.compareDocumentPosition(othersEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('Others rows show assigned agent display name (expand group first)', () => {

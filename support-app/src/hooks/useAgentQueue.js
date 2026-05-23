@@ -5,10 +5,17 @@ import { fetchConversations } from '../lib/support.js'
 export function useAgentQueue(agentId) {
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
   const channelRef = useRef(null)
 
   async function load() {
-    const { data } = await fetchConversations()
+    const { data, error } = await fetchConversations()
+    if (error) {
+      console.error('[useAgentQueue] fetchConversations failed:', error.message, error)
+      setFetchError(error.message)
+    } else {
+      setFetchError(null)
+    }
     setConversations(data ?? [])
     setLoading(false)
   }
@@ -33,5 +40,5 @@ export function useAgentQueue(agentId) {
   const others     = conversations.filter(c => c.assigned_agent_id && c.assigned_agent_id !== agentId)
   const all        = conversations
 
-  return { conversations, unassigned, mine, others, all, loading, reload: load }
+  return { conversations, unassigned, mine, others, all, loading, fetchError, reload: load }
 }
