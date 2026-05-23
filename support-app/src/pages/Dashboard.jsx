@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, TicketCheck } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useAgentQueue } from '../hooks/useAgentQueue.js'
 import { claimConversation } from '../lib/support.js'
@@ -9,6 +9,7 @@ import { fetchPendingApprovals } from '../lib/approvals.js'
 import { supabase } from '../lib/supabase.js'
 import LeftRail from '../components/LeftRail.jsx'
 import QueueList from '../components/QueueList.jsx'
+import UnassignedView from '../components/UnassignedView.jsx'
 import ChatPane from '../components/ChatPane.jsx'
 import OrderPanel from '../components/OrderPanel.jsx'
 import UserPanel from '../components/UserPanel.jsx'
@@ -243,12 +244,18 @@ function TicketsView() {
 export default function Dashboard() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const { conversationId: urlConvId } = useParams()
 
   const { conversations, unassigned, mine, others, all, loading, reload } = useAgentQueue(profile?.id)
   const [selectedConv, setSelectedConv] = useState(null)
-  const [tab, setTab] = useState('conv') // 'conv' | 'approvals' | 'tickets'
+
+  // Derive active tab from URL path so /unassigned URL stays in sync
+  const isUnassignedPath = location.pathname === '/unassigned'
+  const [nonRouteTab, setNonRouteTab] = useState(isUnassignedPath ? 'unassigned' : 'conv')
+  const tab = isUnassignedPath ? 'unassigned' : nonRouteTab
+
   const [pendingCount, setPendingCount] = useState(0)
   const [ticketCount,  setTicketCount]  = useState(0)
 
@@ -304,6 +311,21 @@ export default function Dashboard() {
     navigate(`/conversations/${conv.id}`, { replace: true })
   }
 
+  async function handleClaim(conv) {
+    await claimConversation(conv.id)
+    reload()
+    navigate(`/conversations/${conv.id}`)
+  }
+
+  function handleTabChange(newTab) {
+    if (newTab === 'unassigned') {
+      navigate('/unassigned', { replace: true })
+    } else {
+      if (tab === 'unassigned') navigate('/', { replace: true })
+      setNonRouteTab(newTab)
+    }
+  }
+
   const latestConv = selectedConv
     ? (conversations.find(c => c.id === selectedConv.id) ?? selectedConv)
     : null
@@ -314,8 +336,9 @@ export default function Dashboard() {
     <div className="flex h-screen bg-surface overflow-hidden">
       <LeftRail
         activeTab={tab}
-        onTabChange={setTab}
-        convCount={all.length}
+        onTabChange={handleTabChange}
+        unassignedCount={unassigned.length}
+        convCount={mine.length + others.length}
         approvalCount={pendingCount}
         ticketCount={ticketCount}
         profile={profile}
@@ -324,7 +347,11 @@ export default function Dashboard() {
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        {tab === 'approvals' ? (
+        {tab === 'unassigned' ? (
+          <div className="flex flex-1 overflow-hidden">
+            <UnassignedView conversations={unassigned} onClaim={handleClaim} />
+          </div>
+        ) : tab === 'approvals' ? (
           <div className="flex flex-1 overflow-hidden">
             <ApprovalsView />
           </div>
@@ -334,9 +361,8 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">
-            {/* Left: Queue */}
+            {/* Left: Queue (assigned conversations only) */}
             <QueueList
-              unassigned={unassigned}
               mine={mine}
               others={others}
               agentId={profile?.id}

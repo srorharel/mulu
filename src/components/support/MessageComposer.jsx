@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { Paperclip, Send, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { validateAttachment } from '../../lib/support.js'
+import EmojiPickerButton from './EmojiPickerButton.jsx'
 
 export default function MessageComposer({ onSend, onTyping, disabled }) {
   const { t } = useTranslation()
@@ -40,6 +41,19 @@ export default function MessageComposer({ onSend, onTyping, disabled }) {
   function clearAttachment() {
     if (attachment) URL.revokeObjectURL(attachment.preview)
     setAttachment(null)
+  }
+
+  function insertEmojiAtCursor(emoji) {
+    const el = textareaRef.current
+    if (!el) { setText(prev => prev + emoji); return }
+    const start = el.selectionStart ?? el.value.length
+    const end   = el.selectionEnd   ?? el.value.length
+    const newText = text.substring(0, start) + emoji + text.substring(end)
+    setText(newText)
+    requestAnimationFrame(() => {
+      el.setSelectionRange(start + emoji.length, start + emoji.length)
+      el.focus()
+    })
   }
 
   async function handleSend() {
@@ -96,6 +110,8 @@ export default function MessageComposer({ onSend, onTyping, disabled }) {
         >
           <Paperclip className="h-5 w-5" />
         </button>
+
+        <EmojiPickerButton onEmojiSelect={insertEmojiAtCursor} disabled={disabled} />
 
         <textarea
           ref={textareaRef}

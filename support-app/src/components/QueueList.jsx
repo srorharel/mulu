@@ -25,40 +25,7 @@ function ItemList({ items, selectedId, agentId, onSelect }) {
   ))
 }
 
-// Top-level group header (Unassigned — prominent, amber accent strip)
-function UnassignedHeader({ count, collapsed, onToggle }) {
-  const { t } = useTranslation()
-  return (
-    <button
-      data-testid="group-header-unassigned"
-      onClick={onToggle}
-      className="w-full flex items-center justify-between px-[18px] py-2.5 hover:bg-surface-elevated-2/40 transition-colors relative"
-      aria-expanded={!collapsed}
-      aria-label={t('queue.unassigned', { defaultValue: 'Unassigned' })}
-    >
-      <span
-        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r"
-        style={{ width: 3, height: 20, background: 'var(--color-warning)' }}
-        aria-hidden
-      />
-      <div className="flex items-center gap-2">
-        <ChevronDown
-          size={11}
-          className="text-ink-subtle transition-transform"
-          style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
-        />
-        <span className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.06em]">
-          {t('queue.unassigned', { defaultValue: 'Unassigned' })}
-        </span>
-      </div>
-      <span className="text-[11px] font-bold" style={{ color: 'var(--color-warning)' }}>
-        {count}
-      </span>
-    </button>
-  )
-}
-
-// Parent group header (Assigned — wraps Mine + Others)
+// Group header (Assigned — wraps Mine + Others)
 function AssignedHeader({ count, collapsed, onToggle }) {
   const { t } = useTranslation()
   return (
@@ -111,20 +78,18 @@ function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId 
   )
 }
 
-export default function QueueList({ unassigned, mine, others, agentId, selectedId, onSelect, loading }) {
+export default function QueueList({ mine, others, agentId, selectedId, onSelect, loading }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState({
-    unassigned: false,
-    assigned:   false,
-    mine:       false,
-    others:     true,
+    assigned: false,
+    mine:     false,
+    others:   true,
   })
 
   const q = search.trim().toLowerCase()
-  const fUnassigned = filterConvs(unassigned, q)
-  const fMine       = filterConvs(mine, q)
-  const fOthers     = filterConvs(others, q)
+  const fMine   = filterConvs(mine, q)
+  const fOthers = filterConvs(others, q)
 
   function toggle(key) {
     setCollapsed(s => ({ ...s, [key]: !s[key] }))
@@ -170,24 +135,7 @@ export default function QueueList({ unassigned, mine, others, agentId, selectedI
           </div>
         ) : (
           <>
-            {/* ── 1. Unassigned — first, prominent ─────────────────────── */}
-            <div className="mb-1">
-              <UnassignedHeader
-                count={fUnassigned.length}
-                collapsed={collapsed.unassigned}
-                onToggle={() => toggle('unassigned')}
-              />
-              {!collapsed.unassigned && (
-                <ItemList
-                  items={fUnassigned}
-                  selectedId={selectedId}
-                  agentId={agentId}
-                  onSelect={onSelect}
-                />
-              )}
-            </div>
-
-            {/* ── 2. Assigned — second, wraps Mine + Others ────────────── */}
+            {/* Assigned — wraps Mine + Others ────────────────────────── */}
             <div>
               <AssignedHeader
                 count={fMine.length + fOthers.length}

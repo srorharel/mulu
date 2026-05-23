@@ -49,6 +49,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/unassigned"
+          element={
+            <RequireAgent>
+              <Dashboard />
+            </RequireAgent>
+          }
+        />
+        <Route
           path="/settings"
           element={
             <RequireAgent>

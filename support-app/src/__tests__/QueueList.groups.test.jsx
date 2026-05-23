@@ -12,7 +12,6 @@ i18n.use(initReactI18next).init({
     'queue.mine':       'Mine',
     'queue.others':     'Others',
     'queue.assigned':   'Assigned',
-    'queue.unassigned': 'Unassigned',
     'queue.search':     'Search name or order…',
   } } },
   lng: 'en', fallbackLng: 'en',
@@ -41,7 +40,6 @@ const wrapper = ({ children }) => (
 
 const baseProps = {
   mine:       [],
-  unassigned: [],
   others:     [],
   agentId:    'agent-1',
   selectedId: null,
@@ -49,14 +47,7 @@ const baseProps = {
   loading:    false,
 }
 
-describe('QueueList — Unassigned → Assigned(Mine, Others) groups', () => {
-  it('Unassigned header appears before Assigned header in DOM', () => {
-    render(<QueueList {...baseProps} />, { wrapper })
-    const unassigned = screen.getByTestId('group-header-unassigned')
-    const assigned   = screen.getByTestId('group-header-assigned')
-    expect(unassigned.compareDocumentPosition(assigned) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
-
+describe('QueueList — Assigned(Mine, Others) group ordering', () => {
   it('Mine sub-header appears before Others sub-header in DOM', () => {
     render(<QueueList {...baseProps} />, { wrapper })
     const mine   = screen.getByTestId('group-header-mine')
@@ -64,7 +55,7 @@ describe('QueueList — Unassigned → Assigned(Mine, Others) groups', () => {
     expect(mine.compareDocumentPosition(others) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('Others rows show assigned agent display name', () => {
+  it('Others rows show assigned agent display name (expand group first)', () => {
     const others = [
       makeConv({
         id:                'o1',
@@ -92,9 +83,19 @@ describe('QueueList — Unassigned → Assigned(Mine, Others) groups', () => {
     const mine   = [makeConv({ id: 'm1', name: 'Alice', assigned_agent_id: 'agent-1' })]
     const others = [
       makeConv({ id: 'o1', name: 'Dave', assigned_agent_id: 'agent-2' }),
-      makeConv({ id: 'o2', name: 'Eve', assigned_agent_id: 'agent-2' }),
+      makeConv({ id: 'o2', name: 'Eve',  assigned_agent_id: 'agent-2' }),
     ]
     render(<QueueList {...baseProps} mine={mine} others={others} />, { wrapper })
     expect(screen.getByTestId('group-header-assigned')).toHaveTextContent('3')
+  })
+
+  it('expanding Others group shows other-agent rows', () => {
+    const others = [makeConv({ id: 'o1', name: 'Frank', assigned_agent_id: 'agent-2' })]
+    render(<QueueList {...baseProps} others={others} />, { wrapper })
+    // Initially collapsed
+    expect(screen.queryByText('Frank')).not.toBeInTheDocument()
+    // Expand
+    fireEvent.click(screen.getByTestId('group-header-others'))
+    expect(screen.getByText('Frank')).toBeInTheDocument()
   })
 })

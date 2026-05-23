@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0",
+    "emoji-picker-react": "^4.19.1",
     "framer-motion": "^12.38.0",
     "i18next": "^26.0.9",
     "i18next-browser-languagedetector": "^8.2.1",

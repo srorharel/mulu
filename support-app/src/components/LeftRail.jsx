@@ -1,4 +1,4 @@
-import { MessageSquare, CheckSquare, Ticket, Settings, LogOut } from 'lucide-react'
+import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut } from 'lucide-react'
 
 function nameToHue(name = '') {
   let h = 0
@@ -16,17 +16,18 @@ function nameInitials(name = '') {
 }
 
 const TABS = [
-  { id: 'conv',      Icon: MessageSquare, label: 'Conversations' },
-  { id: 'approvals', Icon: CheckSquare,   label: 'Approvals' },
-  { id: 'tickets',   Icon: Ticket,        label: 'Tickets' },
+  { id: 'unassigned', Icon: Inbox,         label: 'Unassigned',   inactiveBadge: 'var(--color-warning)' },
+  { id: 'conv',       Icon: MessageSquare, label: 'Conversations', inactiveBadge: 'var(--color-danger)'  },
+  { id: 'approvals',  Icon: CheckSquare,   label: 'Approvals',     inactiveBadge: 'var(--color-danger)'  },
+  { id: 'tickets',    Icon: Ticket,        label: 'Tickets',       inactiveBadge: 'var(--color-danger)'  },
 ]
 
-function Badge({ count, active }) {
+function Badge({ count, active, inactiveBadge }) {
   if (!count) return null
   return (
     <span
       className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-surface"
-      style={{ background: active ? 'var(--color-agent)' : 'var(--color-danger)' }}
+      style={{ background: active ? 'var(--color-agent)' : inactiveBadge }}
       aria-label={`${count} items`}
     >
       {count > 99 ? '99+' : count}
@@ -37,6 +38,7 @@ function Badge({ count, active }) {
 export default function LeftRail({
   activeTab,
   onTabChange,
+  unassignedCount = 0,
   convCount = 0,
   approvalCount = 0,
   ticketCount = 0,
@@ -44,7 +46,7 @@ export default function LeftRail({
   onSettings,
   onSignOut,
 }) {
-  const counts = { conv: convCount, approvals: approvalCount, tickets: ticketCount }
+  const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount }
   const displayName = profile?.agent_display_name || profile?.full_name || ''
   const hue = nameToHue(displayName)
   const initials = nameInitials(displayName) || '?'
@@ -67,7 +69,7 @@ export default function LeftRail({
 
       {/* Tab buttons */}
       <nav className="flex flex-col gap-1.5 flex-1" aria-label="Primary">
-        {TABS.map(({ id, Icon, label }) => {
+        {TABS.map(({ id, Icon, label, inactiveBadge }) => {
           const isActive = activeTab === id
           const count    = counts[id]
           return (
@@ -88,7 +90,7 @@ export default function LeftRail({
               }}
             >
               <Icon size={20} />
-              <Badge count={count} active={isActive} />
+              <Badge count={count} active={isActive} inactiveBadge={inactiveBadge} />
               {/* Active indicator strip */}
               {isActive && (
                 <span
