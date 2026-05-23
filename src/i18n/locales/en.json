@@ -705,7 +705,9 @@
         "instruction": "Take a clear front-facing photo of your face",
         "cta": "Take selfie",
         "uploaded": "Selfie taken",
-        "retake": "Retake"
+        "retake": "Retake",
+        "checking": "Checking your photo…",
+        "noFace": "No face detected. Please take a clear front-facing photo of your face."
       },
       "sectionLicense": {
         "title": "Certificate of Licensed Dealer",
