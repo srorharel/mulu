@@ -98,7 +98,6 @@ export default function OrderHistory() {
     [orders, thisYear]
   )
   const yearCount  = yearOrders.length
-  const yearSpent  = useMemo(() => yearOrders.reduce((s, o) => s + (o.total_price || 0), 0), [yearOrders])
 
   const groups    = useMemo(() => groupOrders(orders), [orders])
   const todayStr  = t('consumer.history.today')
@@ -166,9 +165,6 @@ export default function OrderHistory() {
                       <span className="text-[30px] font-extrabold tracking-[-0.8px] leading-none">{yearCount}</span>
                       <span className="text-[13px] opacity-85">{t('consumer.history.summaryWashes')}</span>
                     </div>
-                    <p className="text-[12px] opacity-90 mt-1">
-                      {t('consumer.history.summarySpent', { amount: yearSpent.toFixed(0) })}
-                    </p>
                   </div>
                   <div className="w-[52px] h-[52px] rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
                     <Sparkles className="h-[26px] w-[26px] text-white" strokeWidth={1.5} />
