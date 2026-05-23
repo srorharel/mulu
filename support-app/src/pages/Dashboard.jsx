@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sparkles, TicketCheck } from 'lucide-react'
+import { Sparkles, TicketCheck, ShieldCheck } from 'lucide-react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useAgentQueue } from '../hooks/useAgentQueue.js'
 import { claimConversation } from '../lib/support.js'
 import { fetchPendingApprovals } from '../lib/approvals.js'
+import { fetchPendingVerifications } from '../lib/washerVerifications.js'
 import { supabase } from '../lib/supabase.js'
 import LeftRail from '../components/LeftRail.jsx'
 import QueueList from '../components/QueueList.jsx'
@@ -14,6 +15,7 @@ import ChatPane from '../components/ChatPane.jsx'
 import OrderPanel from '../components/OrderPanel.jsx'
 import UserPanel from '../components/UserPanel.jsx'
 import ApprovalRow from '../components/ApprovalRow.jsx'
+import WasherVerificationRow from '../components/WasherVerificationRow.jsx'
 import Pill from '../components/Pill.jsx'
 
 // ── Approvals view ─────────────────────────────────────────────────────────────
@@ -78,6 +80,70 @@ function ApprovalsView() {
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
       {orders.map(order => (
         <ApprovalRow key={order.id} order={order} onApproved={handleApproved} />
+      ))}
+    </div>
+  )
+}
+
+// ── Washer Verifications view ──────────────────────────────────────────────────
+
+function WasherVerificationsView() {
+  const { t } = useTranslation()
+  const [verifications, setVerifications] = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [loadError, setLoadError]         = useState(null)
+
+  const load = useCallback(async () => {
+    const { data, error } = await fetchPendingVerifications()
+    if (error) {
+      console.error('fetchPendingVerifications failed:', error)
+      setLoadError(error.message)
+    } else {
+      setLoadError(null)
+    }
+    setVerifications(data ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+    const ch = supabase
+      .channel('washer-verifications-view')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'washer_verifications' }, load)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [load])
+
+  function handleReviewed(id) {
+    setVerifications(prev => prev.filter(v => v.id !== id))
+  }
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-agent border-t-transparent" />
+    </div>
+  )
+
+  if (loadError) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+      <p className="font-semibold text-danger">{t('washerVerifications.error.title')}</p>
+      <p className="text-xs text-ink-muted font-mono">{loadError}</p>
+      <button onClick={load} className="btn-ghost text-sm">{t('washerVerifications.error.retry')}</button>
+    </div>
+  )
+
+  if (verifications.length === 0) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+      <ShieldCheck className="h-12 w-12 text-agent/40" />
+      <p className="font-semibold text-ink">{t('washerVerifications.empty.title')}</p>
+      <p className="text-sm text-ink-muted">{t('washerVerifications.empty.subtitle')}</p>
+    </div>
+  )
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      {verifications.map(v => (
+        <WasherVerificationRow key={v.id} verification={v} onReviewed={handleReviewed} />
       ))}
     </div>
   )
@@ -256,8 +322,9 @@ export default function Dashboard() {
   const [nonRouteTab, setNonRouteTab] = useState(isUnassignedPath ? 'unassigned' : 'conv')
   const tab = isUnassignedPath ? 'unassigned' : nonRouteTab
 
-  const [pendingCount, setPendingCount] = useState(0)
-  const [ticketCount,  setTicketCount]  = useState(0)
+  const [pendingCount,       setPendingCount]       = useState(0)
+  const [ticketCount,        setTicketCount]        = useState(0)
+  const [verificationCount,  setVerificationCount]  = useState(0)
 
   // Count pending approvals for tab badge
   useEffect(() => {
@@ -287,6 +354,22 @@ export default function Dashboard() {
     countTickets()
     const ch = supabase.channel('ticket-badge')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, countTickets)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [])
+
+  // Count pending washer verifications for tab badge
+  useEffect(() => {
+    async function countVerifications() {
+      const { count } = await supabase
+        .from('washer_verifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending_review')
+      setVerificationCount(count ?? 0)
+    }
+    countVerifications()
+    const ch = supabase.channel('washer-verification-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'washer_verifications' }, countVerifications)
       .subscribe()
     return () => supabase.removeChannel(ch)
   }, [])
@@ -341,6 +424,7 @@ export default function Dashboard() {
         convCount={mine.length + others.length}
         approvalCount={pendingCount}
         ticketCount={ticketCount}
+        washerVerificationCount={verificationCount}
         profile={profile}
         onSettings={() => navigate('/settings')}
         onSignOut={signOut}
@@ -358,6 +442,10 @@ export default function Dashboard() {
         ) : tab === 'tickets' ? (
           <div className="flex flex-1 overflow-hidden">
             <TicketsView />
+          </div>
+        ) : tab === 'washerVerifications' ? (
+          <div className="flex flex-1 overflow-hidden">
+            <WasherVerificationsView />
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">

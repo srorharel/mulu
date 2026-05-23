@@ -1,4 +1,4 @@
-import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut } from 'lucide-react'
+import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck } from 'lucide-react'
 
 function nameToHue(name = '') {
   let h = 0
@@ -16,10 +16,11 @@ function nameInitials(name = '') {
 }
 
 const TABS = [
-  { id: 'unassigned', Icon: Inbox,         label: 'Unassigned',   inactiveBadge: 'var(--color-warning)' },
-  { id: 'conv',       Icon: MessageSquare, label: 'Conversations', inactiveBadge: 'var(--color-danger)'  },
-  { id: 'approvals',  Icon: CheckSquare,   label: 'Approvals',     inactiveBadge: 'var(--color-danger)'  },
-  { id: 'tickets',    Icon: Ticket,        label: 'Tickets',       inactiveBadge: 'var(--color-danger)'  },
+  { id: 'unassigned',          Icon: Inbox,        label: 'Unassigned',          inactiveBadge: 'var(--color-warning)' },
+  { id: 'conv',                Icon: MessageSquare,label: 'Conversations',        inactiveBadge: 'var(--color-danger)'  },
+  { id: 'approvals',           Icon: CheckSquare,  label: 'Approvals',            inactiveBadge: 'var(--color-danger)'  },
+  { id: 'tickets',             Icon: Ticket,       label: 'Tickets',              inactiveBadge: 'var(--color-danger)'  },
+  { id: 'washerVerifications', Icon: ShieldCheck,  label: 'Washer Verifications', inactiveBadge: 'var(--color-warning)' },
 ]
 
 function Badge({ count, active, inactiveBadge }) {
@@ -42,11 +43,12 @@ export default function LeftRail({
   convCount = 0,
   approvalCount = 0,
   ticketCount = 0,
+  washerVerificationCount = 0,
   profile,
   onSettings,
   onSignOut,
 }) {
-  const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount }
+  const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount, washerVerifications: washerVerificationCount }
   const displayName = profile?.agent_display_name || profile?.full_name || ''
   const hue = nameToHue(displayName)
   const initials = nameInitials(displayName) || '?'

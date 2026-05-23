@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Waves, Eye, EyeOff, MailCheck } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Waves, Eye, EyeOff, MailCheck, X, ChevronDown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation, Trans } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
+
+const CITY_SLUGS = ['holon', 'rishon_lezion', 'bat_yam']
 
 const schema = z.object({
   fullName:        z.string().min(2),
@@ -16,9 +18,23 @@ const schema = z.object({
   password:        z.string().min(8),
   confirmPassword: z.string(),
   role:            z.enum(['consumer', 'washer']),
+  serviceAreas:    z.array(z.string()).optional(),
+  dealerNumber:    z.string().optional(),
 }).refine(d => d.password === d.confirmPassword, {
   message: 'validation.passwordsDoNotMatch',
   path: ['confirmPassword'],
+}).refine(d => {
+  if (d.role !== 'washer') return true
+  return (d.serviceAreas ?? []).length > 0
+}, {
+  message: 'washerSignup.serviceAreas.required',
+  path: ['serviceAreas'],
+}).refine(d => {
+  if (d.role !== 'washer') return true
+  return /^\d{7,9}$/.test(d.dealerNumber ?? '')
+}, {
+  message: 'washerSignup.dealerNumber.error',
+  path: ['dealerNumber'],
 })
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
@@ -42,11 +58,21 @@ export default function SignUp() {
   const [emailSent, setEmailSent]     = useState(false)
   const [sentTo, setSentTo]           = useState('')
 
+  const [areaSheetOpen, setAreaSheetOpen] = useState(false)
+
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { role: 'consumer' },
+    defaultValues: { role: 'consumer', serviceAreas: [] },
   })
-  const selectedRole = watch('role')
+  const selectedRole  = watch('role')
+  const serviceAreas  = watch('serviceAreas') ?? []
+
+  function toggleArea(slug) {
+    const next = serviceAreas.includes(slug)
+      ? serviceAreas.filter(s => s !== slug)
+      : [...serviceAreas, slug]
+    setValue('serviceAreas', next, { shouldValidate: true })
+  }
 
   async function onSubmit(data) {
     setServerError('')
@@ -55,8 +81,20 @@ export default function SignUp() {
       role:      data.role,
     })
     if (error) { setServerError(error.message); return }
+
+    if (data.role === 'washer') {
+      sessionStorage.setItem('washer_signup_areas', JSON.stringify(data.serviceAreas ?? []))
+      sessionStorage.setItem('washer_signup_dealer', data.dealerNumber ?? '')
+    }
+
     if (result?.session) {
-      navigate(data.role === 'washer' ? '/washer' : '/home')
+      if (data.role === 'washer') {
+        navigate('/signup/washer/verify', {
+          state: { serviceAreas: data.serviceAreas, dealerNumber: data.dealerNumber },
+        })
+      } else {
+        navigate('/home')
+      }
     } else {
       setSentTo(data.email)
       setEmailSent(true)
@@ -146,6 +184,107 @@ export default function SignUp() {
                   <input type="radio" value="washer"   {...register('role')} />
                 </div>
               </div>
+
+              {/* Washer-only fields */}
+              <AnimatePresence initial={false}>
+                {selectedRole === 'washer' && (
+                  <motion.div
+                    key="washer-fields"
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeInOut' }}
+                    className="overflow-hidden flex flex-col gap-4"
+                  >
+                    {/* Service areas */}
+                    <div>
+                      <label className="label">{t('washerSignup.serviceAreas.label')}</label>
+                      <button
+                        type="button"
+                        onClick={() => setAreaSheetOpen(v => !v)}
+                        className="input flex items-center justify-between text-start w-full"
+                      >
+                        <span className={serviceAreas.length === 0 ? 'text-neutral-400' : 'text-neutral-900'}>
+                          {serviceAreas.length === 0
+                            ? t('washerSignup.serviceAreas.placeholder')
+                            : serviceAreas.map(s => t(`washerSignup.serviceAreas.cities.${s}`)).join(', ')}
+                        </span>
+                        <ChevronDown className="h-4 w-4 text-neutral-400 shrink-0" />
+                      </button>
+
+                      <AnimatePresence>
+                        {areaSheetOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.15 }}
+                            className="mt-1 rounded-xl border border-neutral-200 bg-white shadow-md overflow-hidden"
+                          >
+                            {CITY_SLUGS.map(slug => {
+                              const selected = serviceAreas.includes(slug)
+                              return (
+                                <button
+                                  key={slug}
+                                  type="button"
+                                  onClick={() => toggleArea(slug)}
+                                  className={`w-full text-start px-4 py-3 text-sm font-medium flex items-center justify-between border-b last:border-0 border-neutral-100 transition-colors ${selected ? 'bg-primary-50 text-primary-700' : 'hover:bg-neutral-50 text-neutral-800'}`}
+                                >
+                                  {t(`washerSignup.serviceAreas.cities.${slug}`)}
+                                  {selected && (
+                                    <span className="h-4 w-4 rounded-full bg-primary-500 flex items-center justify-center">
+                                      <span className="block h-2 w-2 rounded-full bg-white" />
+                                    </span>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {serviceAreas.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {serviceAreas.map(slug => (
+                            <span
+                              key={slug}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-700"
+                            >
+                              {t(`washerSignup.serviceAreas.cities.${slug}`)}
+                              <button
+                                type="button"
+                                onClick={() => toggleArea(slug)}
+                                className="hover:text-primary-900"
+                                aria-label={`Remove ${slug}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {errors.serviceAreas && (
+                        <p className="field-error">{t(errors.serviceAreas.message)}</p>
+                      )}
+                    </div>
+
+                    {/* Dealer / company number */}
+                    <div>
+                      <label className="label">{t('washerSignup.dealerNumber.label')}</label>
+                      <input
+                        className="input"
+                        inputMode="numeric"
+                        placeholder={t('washerSignup.dealerNumber.placeholder')}
+                        {...register('dealerNumber')}
+                      />
+                      {errors.dealerNumber && (
+                        <p className="field-error">{t(errors.dealerNumber.message)}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Full name */}
               <div>

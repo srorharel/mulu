@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 function Spinner() {
@@ -9,8 +9,27 @@ function Spinner() {
   )
 }
 
+// Returns a redirect destination for a washer based on their verification status + current path,
+// or null if they should be allowed through.
+function washerVerificationRedirect(verStatus, pathname) {
+  const onPending = pathname.startsWith('/signup/washer/pending')
+  const onVerify  = pathname.startsWith('/signup/washer/verify')
+
+  if (onPending || onVerify) {
+    // pending_review washers must stay on /pending (not resubmit yet)
+    if (verStatus === 'pending_review' && onVerify) return '/signup/washer/pending'
+    return null // allow through for all other status+route combos
+  }
+
+  // Non-signup routes: apply hard gate
+  if (!verStatus || verStatus === 'pending_documents') return '/signup/washer/verify'
+  if (verStatus === 'pending_review' || verStatus === 'rejected') return '/signup/washer/pending'
+  return null // approved
+}
+
 export default function RoleGuard({ allowedRoles }) {
   const { user, profile, loading } = useAuth()
+  const location = useLocation()
 
   // Initial hydration — never redirect during this window (avoids hard-refresh flicker)
   if (loading) return <Spinner />
@@ -20,6 +39,12 @@ export default function RoleGuard({ allowedRoles }) {
 
   // Authenticated but profile not yet fetched (brief gap after sign-in)
   if (!profile) return <Spinner />
+
+  // Washer verification gate — runs before role check so it applies to all washer routes
+  if (profile.role === 'washer') {
+    const dest = washerVerificationRedirect(profile.washer_verification_status, location.pathname)
+    if (dest) return <Navigate to={dest} replace />
+  }
 
   // Wrong role — send each role to its correct home
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
@@ -31,3 +56,5 @@ export default function RoleGuard({ allowedRoles }) {
 
   return <Outlet />
 }
+
+export { washerVerificationRedirect }

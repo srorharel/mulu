@@ -7,11 +7,28 @@ import RoleGuard from './components/RoleGuard.jsx'
 import WasherShell from './components/ui/WasherShell.jsx'
 import WasherMapShell from './components/ui/WasherMapShell.jsx'
 
+import { lazy, Suspense } from 'react'
+
 import Landing      from './pages/Landing.jsx'
 import SignUp       from './pages/SignUp.jsx'
 import Login        from './pages/Login.jsx'
 import Profile      from './pages/Profile.jsx'
 import Support      from './pages/Support.jsx'
+
+const WasherVerify  = lazy(() => import('./pages/washer/Verify.jsx'))
+const WasherPending = lazy(() => import('./pages/washer/Pending.jsx'))
+
+function PageSuspense({ children }) {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
+      </div>
+    }>
+      {children}
+    </Suspense>
+  )
+}
 
 import ConsumerHome   from './pages/consumer/Home.jsx'
 import OrderTracking  from './pages/consumer/OrderTracking.jsx'
@@ -82,6 +99,12 @@ export function AppRouter() {
         <Route path="/"       element={<AuthRedirect><Landing /></AuthRedirect>} />
         <Route path="/signup" element={<AuthRedirect><SignUp /></AuthRedirect>} />
         <Route path="/login"  element={<AuthRedirect><Login /></AuthRedirect>} />
+
+        {/* Washer verification routes — accessible while role=washer regardless of verification status */}
+        <Route element={<RoleGuard allowedRoles={['washer']} />}>
+          <Route path="/signup/washer/verify"  element={<PageSuspense><WasherVerify /></PageSuspense>} />
+          <Route path="/signup/washer/pending" element={<PageSuspense><WasherPending /></PageSuspense>} />
+        </Route>
 
         {/* Consumer-only */}
         <Route element={<RoleGuard allowedRoles={['consumer']} />}>

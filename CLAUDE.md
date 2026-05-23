@@ -70,7 +70,13 @@ Three roles exist in `profiles.role`:
 - `/profile/vehicles` — saved vehicles management
 - `/profile/settings` — consumer settings (notifications, appearance/dark mode, language, vehicles link)
 
-**Washer routes**:
+**Washer onboarding routes** (accessible while `washer_verification_status` is not `approved`):
+- `/signup/washer/verify` — upload ID + liveness selfie (face-api.js CDN) + business license; lazy-loaded
+- `/signup/washer/pending` — waiting screen; auto-navigates to `/washer` via Realtime when approved; shows rejection reason + resubmit button if rejected
+
+**Washer route guard:** `RoleGuard` checks `profiles.washer_verification_status` before allowing washer access. `null` or `pending_documents` → `/signup/washer/verify`; `pending_review` or `rejected` → `/signup/washer/pending`; `approved` → normal routes. `washerVerificationRedirect(status, pathname)` is exported for unit-testing.
+
+**Washer routes** (require `washer_verification_status = 'approved'`):
 - `/washer` — map dashboard (inside `WasherMapShell`)
 - `/washer/job/:id` — job detail / acceptance (inside `WasherShell`)
 - `/washer/earnings` — earnings + tier ladder
@@ -102,6 +108,7 @@ Key tables:
 - `notification_preferences` — per-user push opt-in and sound preference (`enabled`, `sound`); `sound CHECK ('chirp','chime','bell','gentle')` DEFAULT `'chirp'`; has SELECT + UPDATE + INSERT RLS policies; client uses upsert (not update) so missing rows self-heal
 - `notification_log` — audit log of every push attempt (`user_id`, `event_type`, `payload`, `delivered`, `error`)
 - `order_washer_notifications` — dedup table; one row per (order_id, washer_id) pair already notified for nearby-job fan-out
+- `washer_verifications` — washer onboarding submissions; `status IN ('pending_review','approved','rejected')`; contains paths to ID document, 4 liveness frames, and business license (stored in `washer-verification` bucket); agents review and approve/reject via `review_washer_verification` RPC. Washer profile gains `washer_verification_status`, `washer_service_areas text[]`, and `washer_dealer_number` columns.
 
 Key RPC functions (security-definer, called from client unless noted):
 - `nearby_jobs(washer_lat, washer_lng, radius_km)` — spatial query returning pending orders within distance; **deliberately excludes `key_location`** until after acceptance (ADR-007)
@@ -113,8 +120,9 @@ Key RPC functions (security-definer, called from client unless noted):
 - `recompute_washer_tier(washer_id)` — recalculates `current_tier` from recent ratings
 - `set_default_vehicle(vehicle_id)` — sets one vehicle as default, clears previous default
 - `notify_send(user_id, event, data)` — internal helper called by DB triggers; fires `net.http_post` to `send-notification` Edge Function via Vault secrets
+- `review_washer_verification(p_verification_id, p_decision, p_reason?)` — agent-only RPC; sets verification status to `approved` or `rejected` and mirrors status to `profiles.washer_verification_status`
 
-Migrations live in `supabase/migrations/` (0001–0055). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
+Migrations live in `supabase/migrations/` (0001–0058). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
 
 **Bootstrap warning:** `npm run db:migrate --bootstrap` records every migration file as applied *without* executing its SQL. If a column is missing despite a migration existing for it (e.g. `profiles.locale`), run the `ALTER TABLE` directly in the Supabase SQL editor to heal the DB state — the migration runner will skip the file since it's already in `schema_migrations`.
 
@@ -123,6 +131,7 @@ Migrations live in `supabase/migrations/` (0001–0055). Run `npm run db:migrate
 - `car-photos` — consumer car photos uploaded at booking time (4 angles per order: front/back/driver/passenger). Path: `{consumer_id}/{order_id}/{angle}.jpg`. Washer can read photos for their assigned order.
 - `job-evidence` — washer arrival photos + completion photos. Signed URLs (600 s TTL) fetched client-side for display in RatingModal and support-app ApprovalRow.
 - `support-attachments` — support chat file attachments (private, 5 MB, jpg/png/webp). Create manually in Supabase dashboard; apply `supabase/storage_support.sql` for RLS.
+- `washer-verification` — private bucket for washer onboarding documents. Paths: `{user_id}/id_document.jpg`, `{user_id}/liveness_{1..4}.jpg`, `{user_id}/business_license.{ext}`. Washer can read/insert own folder; agents can read all. Storage policies are in `0058_washer_verification.sql` (apply via Supabase dashboard SQL editor).
 
 ### Order Status State Machine
 
@@ -238,6 +247,7 @@ Routes: `/login`, `/` (Dashboard), `/conversations/:conversationId`, `/settings`
   - `UserPanel` — opener profile + washer live location card
 - **Approvals tab** — `pending_approval` orders with photo review + one-click approve; live badge count
 - **Tickets tab** — `support_tickets` list/detail view; auto-created on 1★ rating or manually; `open → in_progress → resolved`; live badge of open count
+- **Washer Verifications tab** — pending `washer_verifications` rows; shows ID doc + 4 liveness frames + business license thumbnails (signed URLs from `washer-verification` bucket); Approve / Reject (with required reason) calls `review_washer_verification` RPC; live badge count
 - **Settings** (`/settings`) — agent display name + personal canned responses (create/delete)
 
 **URL-based conversation persistence:** selected conversation is reflected in the URL as `/conversations/:conversationId`. On page load/refresh the Dashboard reads this param and auto-selects the conversation once the queue loads.

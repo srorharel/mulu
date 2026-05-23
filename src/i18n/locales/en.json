@@ -674,6 +674,73 @@
       "title": "Support"
     }
   },
+  "washerSignup": {
+    "serviceAreas": {
+      "label": "Area of activity",
+      "placeholder": "Select cities…",
+      "required": "Select at least one area",
+      "cities": {
+        "holon": "Holon",
+        "rishon_lezion": "Rishon LeZion",
+        "bat_yam": "Bat Yam"
+      }
+    },
+    "dealerNumber": {
+      "label": "Licensed dealer / company number",
+      "placeholder": "Enter 7–9 digit number",
+      "error": "Must be 7–9 digits"
+    },
+    "verify": {
+      "title": "Verify your identity",
+      "subtitle": "Required to start accepting jobs",
+      "sectionId": {
+        "title": "ID / driver's license",
+        "hint": "Take a clear photo of your ID or driver's license",
+        "upload": "Upload photo",
+        "change": "Change photo",
+        "uploaded": "ID uploaded"
+      },
+      "sectionLiveness": {
+        "title": "Liveness check",
+        "hint": "Follow the on-screen prompts to confirm you're a real person",
+        "start": "Start camera check",
+        "retake": "Retake",
+        "done": "Liveness verified",
+        "loading": "Loading camera…",
+        "noCamera": "No camera found. A camera is required for this check.",
+        "faceNotFound": "No face detected. Make sure your face is visible.",
+        "prompt": {
+          "straight": "Look straight at the camera",
+          "left": "Turn your head left",
+          "right": "Turn your head right",
+          "up": "Look up"
+        },
+        "hold": "Hold…",
+        "complete": "All done!",
+        "modelLoading": "Loading face detection…"
+      },
+      "sectionLicense": {
+        "title": "Certificate of Licensed Dealer",
+        "hint": "Upload a photo or PDF of your business license (מוסך מורשה / עוסק מורשה)",
+        "upload": "Upload document",
+        "change": "Change document",
+        "uploaded": "License uploaded"
+      },
+      "submit": "Submit for review",
+      "submitting": "Submitting…",
+      "submitError": "Submission failed. Please try again."
+    },
+    "pending": {
+      "title": "Application received",
+      "body": "Our team will review your application and get back to you within 3 business days.",
+      "signOut": "Sign out",
+      "rejected": {
+        "title": "Application not approved",
+        "reason": "Reason: {{reason}}",
+        "resubmit": "Resubmit application"
+      }
+    }
+  },
   "support": {
     "title": "Support",
     "newConversation": "New conversation",
