@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCheck, RotateCcw } from 'lucide-react'
+import { CheckCheck, RotateCcw, Car } from 'lucide-react'
 import { useConversationStream } from '../hooks/useConversationStream.js'
 import { useTypingPresence } from '../hooks/useTypingPresence.js'
 import {
@@ -11,12 +11,23 @@ import { useAuth } from '../context/AuthContext.jsx'
 import MessageBubble from './MessageBubble.jsx'
 import MessageComposer from './MessageComposer.jsx'
 import TypingIndicator from './TypingIndicator.jsx'
+import Pill from './Pill.jsx'
+
+function nameToHue(name = '') {
+  let h = 0
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360
+  return h
+}
+
+function nameInitials(name = '') {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+}
 
 function DateDivider({ date }) {
   return (
     <div className="flex items-center gap-3 my-3">
       <div className="flex-1 h-px bg-edge" />
-      <span className="text-[11px] text-ink-muted/50 font-medium">
+      <span className="text-[11px] text-ink-subtle font-semibold uppercase tracking-[0.05em]">
         {new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
       </span>
       <div className="flex-1 h-px bg-edge" />
@@ -68,8 +79,8 @@ export default function ChatPane({ conversation, onConvUpdate }) {
     )
   }
 
-  const isClosed  = conversation.status === 'closed'
-  const isResolved = conversation.status === 'resolved'
+  const isClosed      = conversation.status === 'closed'
+  const isResolved    = conversation.status === 'resolved'
   const isAssignedToMe = conversation.assigned_agent_id === profile?.id
 
   async function handleSend({ body, attachment }) {
@@ -101,27 +112,70 @@ export default function ChatPane({ conversation, onConvUpdate }) {
 
   const items = groupByDate(messages)
 
-  const openerName = conversation.opener?.full_name || '—'
-  const agentName  = conversation.agent?.agent_display_name || conversation.agent?.full_name || null
+  const openerName  = conversation.opener?.full_name || '—'
+  const openerRole  = conversation.opener?.role || conversation.opener_role
+  const agentName   = conversation.agent?.agent_display_name || conversation.agent?.full_name || null
+  const hue         = nameToHue(openerName)
+  const initials    = nameInitials(openerName)
+
+  const roleColor   = openerRole === 'washer' ? '#A78BFA' : openerRole === 'consumer' ? 'var(--color-accent)' : 'var(--color-ink-muted)'
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 border-e border-edge">
+    <div className="flex-1 flex flex-col min-w-0 border-r border-edge" style={{ background: 'var(--color-surface)' }}>
       {/* Chat header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-edge shrink-0">
-        <div>
-          <p className="font-semibold text-ink text-sm">{openerName}</p>
-          <p className="text-xs text-ink-muted">
-            {agentName ? agentName : t('chat.waitingForAgent')}
+      <div className="flex items-center gap-3.5 px-[22px] py-3.5 border-b border-edge bg-surface-elevated shrink-0">
+        {/* Avatar */}
+        <div
+          className="flex items-center justify-center rounded-full text-white font-bold shrink-0"
+          style={{
+            width: 42, height: 42, fontSize: 14,
+            background: `linear-gradient(135deg, hsl(${hue} 50% 55%), hsl(${(hue + 40) % 360} 50% 35%))`,
+          }}
+        >
+          {initials || '?'}
+        </div>
+
+        {/* Name + role + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-[15px] font-bold text-ink">{openerName}</span>
+            {openerRole && (
+              <span
+                className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
+                style={{ color: roleColor, background: `${roleColor}1f`, letterSpacing: '0.04em' }}
+              >
+                {openerRole}
+              </span>
+            )}
+            {conversation.order_id && (
+              <span className="flex items-center gap-1 text-[11.5px] text-ink-subtle">
+                <Car size={12} />
+                {t('common.orderLinked', { id: conversation.order_id.slice(0, 8) })}
+              </span>
+            )}
+          </div>
+          <p className="text-[12px] text-ink-subtle mt-0.5">
+            {agentName
+              ? <span className="text-success font-semibold">{t('chat.claimedBy', { name: agentName, defaultValue: `Claimed by ${agentName}` })}</span>
+              : t('chat.waitingForAgent')
+            }
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
           {!isClosed && isAssignedToMe && (
             <>
               {!isResolved && (
                 <button
                   onClick={handleResolve}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-accent border border-accent/30 bg-accent-muted rounded-lg px-2.5 py-1.5 hover:bg-accent/20 transition-colors"
+                  className="flex items-center gap-1.5 text-[12px] font-bold text-white rounded-lg px-3 py-1.5 transition-colors"
+                  style={{
+                    background: 'var(--color-agent)',
+                    boxShadow: '0 4px 12px rgba(63,181,143,0.3)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-agent-deep)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-agent)' }}
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
                   {t('chat.resolve')}
@@ -129,7 +183,7 @@ export default function ChatPane({ conversation, onConvUpdate }) {
               )}
               <button
                 onClick={handleRelease}
-                className="flex items-center gap-1.5 text-xs font-semibold text-ink-muted border border-edge rounded-lg px-2.5 py-1.5 hover:bg-surface-elevated transition-colors"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-muted border border-edge rounded-lg px-3 py-1.5 hover:bg-surface-elevated transition-colors"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 {t('chat.release')}
@@ -140,10 +194,10 @@ export default function ChatPane({ conversation, onConvUpdate }) {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-[22px] py-5 flex flex-col gap-1">
         {loading && (
           <div className="flex items-center justify-center h-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-4 border-agent border-t-transparent" />
           </div>
         )}
 
@@ -169,8 +223,9 @@ export default function ChatPane({ conversation, onConvUpdate }) {
       </div>
 
       {sendError && (
-        <p className="px-4 py-1 text-xs text-danger-500 border-t border-edge shrink-0">{sendError}</p>
+        <p className="px-4 py-1 text-xs text-danger border-t border-edge shrink-0">{sendError}</p>
       )}
+
       {isClosed ? (
         <div className="px-4 py-3 border-t border-edge text-center shrink-0">
           <p className="text-xs text-ink-muted">{t('chat.closed')}</p>

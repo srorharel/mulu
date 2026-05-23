@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle, Clock, Play, X, User, Camera } from 'lucide-react'
+import { CheckCircle, Clock, Play, X, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { approveOrder, getSignedUrl } from '../lib/approvals.js'
 import { useReverseGeocode } from '../lib/geocode.js'
+import Pill from './Pill.jsx'
 
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
 
@@ -77,10 +78,10 @@ function VideoThumb({ label, url }) {
         onClick={() => url && setOpen(true)}
         disabled={!url}
         className={`flex flex-col items-center justify-center gap-2 rounded-xl border py-5 transition-colors ${
-          url ? 'border-edge hover:border-accent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
+          url ? 'border-edge hover:border-agent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
         } bg-surface`}
       >
-        <Play className={`h-7 w-7 ${url ? 'text-accent' : 'text-ink-muted'}`} />
+        <Play className={`h-7 w-7 ${url ? 'text-agent' : 'text-ink-muted'}`} />
         <span className="text-xs text-ink-muted font-medium">{label}</span>
       </button>
       {open && url && <VideoModal url={url} onClose={() => setOpen(false)} />}
@@ -97,7 +98,7 @@ function PhotoThumb({ label, url }) {
         onClick={() => url && setOpen(true)}
         disabled={!url}
         className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
-          url ? 'border-edge hover:border-accent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
+          url ? 'border-edge hover:border-agent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
         } bg-surface`}
       >
         {url ? (
@@ -114,7 +115,6 @@ function PhotoThumb({ label, url }) {
   )
 }
 
-// UI-only warning threshold — no enforcement.
 const SUBMISSION_DISTANCE_WARN_M = 500
 
 function haversineM(lat1, lng1, lat2, lng2) {
@@ -143,7 +143,7 @@ function LocationCard({ order }) {
 
   return (
     <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
-      <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+      <p className="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.05em]">
         {t('approvals.location.title')}
       </p>
 
@@ -162,19 +162,19 @@ function LocationCard({ order }) {
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
+              <span className="h-2.5 w-2.5 rounded-full bg-agent shrink-0" />
               <p className="text-xs text-ink leading-snug">{submittedAddress ?? '—'}</p>
             </div>
             {order.address_label && (
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 shrink-0" />
+                <span className="h-2.5 w-2.5 rounded-full bg-accent shrink-0" />
                 <p className="text-xs text-ink-muted leading-snug">{order.address_label}</p>
               </div>
             )}
           </div>
 
           {dist !== null && (
-            <p className={`text-xs font-semibold ${dist > SUBMISSION_DISTANCE_WARN_M ? 'text-danger-500' : 'text-accent'}`}>
+            <p className={`text-xs font-semibold ${dist > SUBMISSION_DISTANCE_WARN_M ? 'text-danger' : 'text-agent'}`}>
               {t('approvals.location.distance', { distance: dist })}
             </p>
           )}
@@ -191,7 +191,6 @@ function LocationCard({ order }) {
 export default function ApprovalRow({ order, onApproved }) {
   const { t } = useTranslation()
 
-  // New orders have completion_photo_* populated; legacy orders have evidence_before/after_path.
   const isNewShape = Boolean(
     order.completion_photo_front ||
     order.completion_photo_back  ||
@@ -199,8 +198,6 @@ export default function ApprovalRow({ order, onApproved }) {
     order.completion_photo_passenger
   )
 
-  // Memoize path strings so realtime updates to unrelated fields (status, GPS)
-  // don't retrigger signed-URL fetches.
   /* eslint-disable react-hooks/exhaustive-deps */
   const photoPaths = useMemo(() => {
     if (!isNewShape) return null
@@ -254,77 +251,98 @@ export default function ApprovalRow({ order, onApproved }) {
     .filter(Boolean).join(' · ')
 
   return (
-    <div className="border border-edge rounded-2xl bg-surface-elevated p-4 flex flex-col gap-4">
+    <div className="border border-edge rounded-2xl bg-surface-elevated p-4 flex flex-col gap-4" style={{ borderRadius: 14 }}>
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-1 min-w-0">
-          <p className="text-xs font-mono text-ink-muted">{order.id.slice(0, 8)}…</p>
-
-          <div className="flex items-center gap-1.5 text-sm">
-            <User className="h-3.5 w-3.5 text-ink-muted shrink-0" />
-            <span className="text-xs text-ink-muted">{t('approvals.row.customer')}:</span>
-            <span className="font-medium text-ink truncate">{order.consumer_profile?.full_name ?? '—'}</span>
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="font-mono text-[13px] font-bold text-ink">
+              {order.id?.slice(0, 8)}…
+            </span>
+            <Pill color="warning" dot>
+              {t('approvals.row.pendingApproval', { defaultValue: 'Pending approval' })}
+            </Pill>
+            <span className="text-[11.5px] text-ink-subtle flex items-center gap-1">
+              <Clock size={11} />
+              {timeAgo(order.accepted_at ?? order.created_at)}
+            </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-sm">
-            <User className="h-3.5 w-3.5 text-ink-muted shrink-0" />
-            <span className="text-xs text-ink-muted">{t('approvals.row.worker')}:</span>
-            <span className="font-medium text-ink truncate">{order.washer_profile?.full_name ?? '—'}</span>
+          <div className="flex items-center gap-1 text-[12.5px] text-ink-muted">
+            <span>{order.consumer_profile?.full_name ?? '—'}</span>
+            <span className="text-ink-subtle">→</span>
+            <span>{order.washer_profile?.full_name ?? '—'}</span>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-ink-muted">
-            <Clock className="h-3 w-3" />
-            <span>{t('approvals.row.submitted', { time: timeAgo(order.accepted_at ?? order.created_at) })}</span>
-          </div>
+          {(order.car_plate || vehicleStr) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {order.car_plate && (
+                <span className="rounded-lg bg-agent/10 border border-agent/20 px-2 py-0.5 text-[12px] font-mono font-bold text-agent tracking-wider">
+                  {formatPlate(order.car_plate)}
+                </span>
+              )}
+              {vehicleStr && <span className="text-[12px] text-ink-muted">{vehicleStr}</span>}
+            </div>
+          )}
         </div>
 
-        {/* Approve action */}
-        <div className="flex flex-col items-end gap-2 shrink-0">
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 shrink-0">
           {!confirming ? (
-            <button
-              onClick={() => setConfirming(true)}
-              disabled={approving}
-              className="btn-primary text-sm"
-            >
-              <CheckCircle className="h-4 w-4" />
-              {t('approvals.actions.approve')}
-            </button>
+            <>
+              <button
+                onClick={() => setConfirming(true)}
+                className="flex items-center gap-1.5 text-[12px] font-bold px-3 py-2 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
+              >
+                <X size={13} />
+                {t('approvals.actions.reject', { defaultValue: 'Reject' })}
+              </button>
+              <button
+                onClick={() => setConfirming(true)}
+                disabled={approving}
+                className="flex items-center gap-1.5 text-[13px] font-bold px-4 py-2 rounded-xl text-white transition-colors"
+                style={{
+                  background: 'var(--color-agent)',
+                  boxShadow: '0 4px 14px rgba(63,181,143,0.3)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-agent-deep)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-agent)' }}
+              >
+                <CheckCircle size={15} />
+                {t('approvals.actions.approve')}
+              </button>
+            </>
           ) : (
             <div className="flex flex-col items-end gap-1">
-              <p className="text-xs font-semibold text-ink">{t('approvals.actions.confirmTitle')}</p>
+              <p className="text-[12px] font-semibold text-ink">{t('approvals.actions.confirmTitle')}</p>
               <div className="flex gap-2">
-                <button onClick={() => setConfirming(false)} className="btn-ghost text-xs px-2 py-1">{t('approvals.actions.confirmNo')}</button>
-                <button onClick={doApprove} disabled={approving} className="btn-primary text-xs px-2 py-1">
+                <button onClick={() => setConfirming(false)} className="btn-ghost text-xs px-2 py-1">
+                  {t('approvals.actions.confirmNo')}
+                </button>
+                <button
+                  onClick={doApprove}
+                  disabled={approving}
+                  className="text-xs font-bold px-3 py-1 rounded-lg text-white disabled:opacity-50"
+                  style={{ background: 'var(--color-agent)' }}
+                >
                   {approving ? '…' : t('approvals.actions.confirmYes')}
                 </button>
               </div>
             </div>
           )}
-          {error && <p className="text-xs text-danger-500 max-w-[160px] text-end">{error}</p>}
+          {error && <p className="text-xs text-danger max-w-[160px] text-end">{error}</p>}
         </div>
       </div>
 
-      {/* Vehicle */}
-      {(order.car_plate || vehicleStr) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {order.car_plate && (
-            <span className="rounded-lg bg-accent/10 border border-accent/20 px-2 py-0.5 text-sm font-mono font-bold text-accent tracking-wider">
-              {formatPlate(order.car_plate)}
-            </span>
-          )}
-          {vehicleStr && <span className="text-sm text-ink">{vehicleStr}</span>}
-        </div>
-      )}
-
-      {/* Evidence — dual shape */}
+      {/* Evidence */}
       {isNewShape ? (
-        <>
+        <div className="grid grid-cols-2 gap-4">
           {/* Arrival photos */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+            <p className="text-[11.5px] font-bold text-ink-muted uppercase tracking-[0.05em]">
               {t('approvals.section.arrival')}
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {PHOTO_SLOTS.map(slot => (
                 <PhotoThumb
                   key={slot}
@@ -337,10 +355,10 @@ export default function ApprovalRow({ order, onApproved }) {
 
           {/* Completion photos */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
+            <p className="text-[11.5px] font-bold text-agent uppercase tracking-[0.05em]">
               {t('approvals.section.completion')}
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {PHOTO_SLOTS.map(slot => (
                 <PhotoThumb
                   key={slot}
@@ -350,9 +368,8 @@ export default function ApprovalRow({ order, onApproved }) {
               ))}
             </div>
           </div>
-        </>
+        </div>
       ) : (
-        /* Legacy orders: before/after videos */
         <div className="grid grid-cols-2 gap-3">
           <VideoThumb label={t('approvals.row.videoBefore')} url={beforeUrl} />
           <VideoThumb label={t('approvals.row.videoAfter')}  url={afterUrl}  />

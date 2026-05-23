@@ -49,7 +49,7 @@ export default function CannedResponseMenu({ query, onSelect, onClose }) {
           key={item.id}
           onClick={() => select(item)}
           className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-start transition-colors ${
-            i === active ? 'bg-accent-muted text-accent' : 'text-ink hover:bg-glass'
+            i === active ? 'bg-agent/16 text-agent' : 'text-ink hover:bg-glass'
           }`}
         >
           <span className="font-mono text-xs text-ink-muted shrink-0">{item.shortcut}</span>

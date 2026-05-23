@@ -115,8 +115,8 @@ export default function UserPanel({ openerId }) {
   return (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
       <div className="card flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-accent-muted flex items-center justify-center shrink-0">
-          <User className="h-5 w-5 text-accent" />
+        <div className="h-10 w-10 rounded-full bg-agent/16 flex items-center justify-center shrink-0">
+          <User className="h-5 w-5 text-agent" />
         </div>
         <div>
           <p className="font-bold text-ink">{profile.full_name || '—'}</p>

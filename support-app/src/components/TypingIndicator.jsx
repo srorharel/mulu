@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 export default function TypingIndicator({ label }) {
   return (
     <div className="flex items-center gap-2 px-1">
-      <div className="bg-glass border border-glass-border rounded-2xl rounded-bl-sm px-3 py-2 flex items-center gap-1">
+      <div className="bg-surface-elevated border border-edge rounded-2xl rounded-bl-sm px-3 py-2 flex items-center gap-1">
         {[0, 0.15, 0.3].map((delay, i) => (
           <motion.span
             key={i}

@@ -24,7 +24,8 @@ export default function MessageBubble({ message, isOwn, showSeen, seenAt }) {
   if (isSystem) {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-xs text-ink-muted/60 bg-surface px-3 py-1 rounded-full border border-edge">
+        <span className="text-[11px] text-ink-muted bg-surface-elevated border border-edge px-3 py-1 rounded-full flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
           {message.body}
         </span>
       </div>
@@ -32,21 +33,25 @@ export default function MessageBubble({ message, isOwn, showSeen, seenAt }) {
   }
 
   return (
-    <div className={`flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
+    <div className={`flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'} mt-1`}>
       {!isOwn && (
         <div className="flex items-center gap-1.5 px-1 mb-0.5">
-          <span className="text-xs font-medium text-ink-muted">{senderName}</span>
+          <span className="text-[11px] font-medium text-ink-subtle">{senderName}</span>
         </div>
       )}
 
       <div
-        className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[78%] text-[13.5px] leading-[1.45] px-3.5 py-2.5 ${
           isOwn
-            ? 'bg-indigo-600 text-white rounded-br-sm'
+            ? 'rounded-2xl rounded-br-sm text-white'
             : isAgent
-              ? 'bg-indigo-600/20 border border-indigo-500/30 text-ink rounded-bl-sm'
-              : 'bg-glass border border-glass-border text-ink rounded-bl-sm'
+              ? 'rounded-2xl rounded-bl-sm border border-agent/30 text-ink bg-agent/16'
+              : 'rounded-2xl rounded-bl-sm border border-edge text-ink bg-surface-elevated'
         }`}
+        style={isOwn ? {
+          background: `linear-gradient(135deg, var(--color-agent), var(--color-agent-deep))`,
+          boxShadow: '0 4px 14px rgba(63,181,143,0.18)',
+        } : {}}
       >
         {message.body && (
           <p className="whitespace-pre-wrap break-words">{message.body}</p>
@@ -62,9 +67,9 @@ export default function MessageBubble({ message, isOwn, showSeen, seenAt }) {
       </div>
 
       <div className={`flex items-center gap-1.5 px-1 mt-0.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
-        <span className="text-[11px] text-ink-muted/50">{formatTime(message.created_at)}</span>
+        <span className="text-[11px] text-ink-subtle">{formatTime(message.created_at)}</span>
         {isOwn && showSeen && seenAt && (
-          <span className="text-[11px] text-ink-muted/50">
+          <span className="text-[11px] text-ink-subtle">
             {t('chat.seen')} · {formatTime(seenAt)}
           </span>
         )}

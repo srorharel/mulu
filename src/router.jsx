@@ -35,7 +35,6 @@ function NotificationsInit() {
   const inited    = useRef(false)
 
   useEffect(() => {
-    console.log('[WASH-NOTIF] NotificationsInit effect fired, user=' + (user?.id ?? 'null'))
     if (!user || inited.current) return
     inited.current = true
     initNotifications({ navigate, showToast })

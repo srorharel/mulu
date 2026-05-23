@@ -1,18 +1,10 @@
+import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-const LABEL_STYLES = {
-  mine:        'text-accent bg-accent-muted border-accent/30',
-  inTreatment: 'text-ink-muted bg-surface border-edge',
-  waiting:     'text-amber-600 bg-amber-400/10 border-amber-400/20',
-  general:     'text-ink-muted bg-surface border-edge',
-}
-
-function getConversationLabel(conversation, agentId) {
-  if (conversation.assigned_agent_id === agentId) return 'mine'
-  if (conversation.status === 'assigned') return 'inTreatment'
-  if (conversation.status === 'pending_agent' || conversation.status === 'open') return 'waiting'
-  if (!conversation.order_id) return 'general'
-  return null
+function nameToHue(name = '') {
+  let h = 0
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360
+  return h
 }
 
 function formatRelative(iso) {
@@ -26,58 +18,134 @@ function formatRelative(iso) {
   return `${Math.floor(hrs / 24)}d`
 }
 
+function getConversationRole(conversation) {
+  return conversation.opener?.role || conversation.opener_role || null
+}
+
 export default function QueueItem({ conversation, agentId, isSelected, onClick }) {
   const { t } = useTranslation()
 
   const openerName = conversation.opener?.full_name || '—'
-  const unread = conversation.last_message_at && (
+  const role       = getConversationRole(conversation)
+
+  const hasUnread = conversation.last_message_at && (
     !conversation.agent_last_read_at ||
     new Date(conversation.last_message_at) > new Date(conversation.agent_last_read_at)
   )
+  const unreadCount = conversation.unread_count ?? (hasUnread ? 1 : 0)
 
-  const title = conversation.order_id
+  const preview = conversation.order_id
     ? t('common.orderLinked', { id: conversation.order_id.slice(0, 8) })
-    : (conversation.subject || t('common.general'))
+    : (conversation.subject || conversation.last_message_preview || t('common.general'))
 
-  const label = getConversationLabel(conversation, agentId)
+  const hue = nameToHue(openerName)
+  const initials = openerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('')
+
+  const roleColor = role === 'washer'
+    ? '#A78BFA'
+    : role === 'consumer'
+      ? 'var(--color-accent)'
+      : 'var(--color-ink-muted)'
 
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-start gap-3 px-4 py-3.5 text-start transition-colors border-b border-edge ${
-        isSelected ? 'bg-accent-muted' : 'hover:bg-surface-elevated/60'
-      }`}
+      className="w-full text-start relative transition-colors"
+      style={{
+        margin: '0 8px 2px',
+        width: 'calc(100% - 16px)',
+        padding: '10px 12px',
+        borderRadius: 10,
+        background: isSelected ? 'var(--color-agent-soft)' : 'transparent',
+        border: isSelected
+          ? '1px solid rgba(63,181,143,0.3)'
+          : '1px solid transparent',
+        display: 'flex',
+        gap: 11,
+        alignItems: 'flex-start',
+      }}
     >
-      <div className="shrink-0 h-9 w-9 rounded-full bg-surface flex items-center justify-center border border-edge mt-0.5">
-        <span className="text-xs font-bold text-ink-muted">
-          {openerName.slice(0, 1).toUpperCase()}
-        </span>
+      {/* Left strip on selected */}
+      {isSelected && (
+        <span
+          className="absolute rounded-r-sm"
+          style={{
+            left: -8, top: '20%', bottom: '20%',
+            width: 3, background: 'var(--color-agent)',
+          }}
+          aria-hidden
+        />
+      )}
+
+      {/* Avatar */}
+      <div
+        className="flex items-center justify-center rounded-full text-white font-bold shrink-0"
+        style={{
+          width: 36, height: 36, fontSize: 13,
+          background: `linear-gradient(135deg, hsl(${hue} 50% 55%), hsl(${(hue + 40) % 360} 50% 35%))`,
+        }}
+      >
+        {initials || '?'}
       </div>
 
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Row 1: name · label pill · timestamp */}
-        <div className="flex items-center justify-between gap-2">
-          <span className={`text-sm font-semibold truncate min-w-0 ${isSelected ? 'text-accent' : 'text-ink'}`}>
+        {/* Row 1: name + time */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] font-semibold text-ink truncate flex-1">
             {openerName}
           </span>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {label && (
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${LABEL_STYLES[label]}`}>
-                {t(`queue.label.${label}`)}
-              </span>
-            )}
-            <span className="text-[11px] text-ink-muted/50">
-              {formatRelative(conversation.last_message_at)}
-            </span>
-          </div>
+          <span className="text-[10.5px] text-ink-subtle shrink-0">
+            {formatRelative(conversation.last_message_at)}
+          </span>
         </div>
 
-        {/* Row 2: message preview */}
-        <p className="text-xs text-ink-muted truncate mt-0.5">{title}</p>
+        {/* Row 2: role pill (+ urgent) */}
+        <div className="flex items-center gap-1.5 mt-0.5">
+          {role && (
+            <span
+              className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
+              style={{
+                color: roleColor,
+                background: `${roleColor}1f`,
+                letterSpacing: '0.04em',
+              }}
+            >
+              {role}
+            </span>
+          )}
+          {conversation.urgent && (
+            <AlertTriangle
+              size={11}
+              className="text-danger shrink-0"
+              aria-label="Urgent"
+            />
+          )}
+        </div>
+
+        {/* Row 3: preview */}
+        <p className="text-[12px] text-ink-muted mt-1.5 truncate leading-none">
+          {preview}
+        </p>
       </div>
 
-      {unread && (
-        <div className="shrink-0 h-2 w-2 rounded-full bg-accent mt-2" />
+      {/* Unread badge */}
+      {unreadCount > 0 && (
+        <span
+          className="absolute bottom-2.5 right-3 flex items-center justify-center rounded-full font-bold text-[10.5px] shrink-0"
+          style={{
+            minWidth: 18, height: 18, padding: '0 5px',
+            background: isSelected ? 'var(--color-agent)' : 'var(--color-accent)',
+            color: isSelected ? '#fff' : 'var(--color-surface)',
+          }}
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
       )}
     </button>
   )

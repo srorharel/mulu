@@ -1,15 +1,69 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Package, User, Droplets, Gauge } from 'lucide-react'
+import { Car, Phone } from 'lucide-react'
 import { fetchOrderDetails } from '../lib/support.js'
 import { supabase } from '../lib/supabase.js'
+import Pill from './Pill.jsx'
 
-const CAR_LABELS = { sedan: 'Sedan', suv: 'SUV', pickup: 'Pickup', van: 'Van' }
 const TERMINAL_ORDER_STATUSES = ['completed', 'cancelled']
 const TERMINAL_CONV_STATUSES  = ['resolved', 'closed']
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleString()
+function statusPillColor(status) {
+  if (!status) return 'subtle'
+  if (status === 'completed')        return 'success'
+  if (status === 'cancelled')        return 'danger'
+  if (status === 'pending_approval') return 'warning'
+  if (['accepted', 'en_route', 'arrived', 'in_progress'].includes(status)) return 'agent'
+  return 'subtle'
+}
+
+function nameToHue(name = '') {
+  let h = 0
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360
+  return h
+}
+
+function nameInitials(name = '') {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+}
+
+function PartyRow({ roleLabel, name, phone, hue, online }) {
+  const initials = nameInitials(name || '')
+  return (
+    <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-edge bg-surface">
+      <div className="relative shrink-0">
+        <div
+          className="flex items-center justify-center rounded-full text-white font-bold"
+          style={{
+            width: 36, height: 36, fontSize: 12,
+            background: `linear-gradient(135deg, hsl(${hue} 50% 55%), hsl(${(hue + 40) % 360} 50% 35%))`,
+          }}
+        >
+          {initials || '?'}
+        </div>
+        {online && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface"
+            style={{ background: 'var(--color-success)' }}
+          />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[9.5px] text-ink-subtle font-bold uppercase tracking-[0.05em]">{roleLabel}</p>
+        <p className="text-[13px] font-semibold text-ink leading-snug truncate">{name || '—'}</p>
+      </div>
+      {phone && (
+        <a
+          href={`tel:${phone}`}
+          className="shrink-0 flex items-center justify-center rounded-lg border border-edge hover:bg-surface-elevated transition-colors"
+          style={{ width: 30, height: 30 }}
+          aria-label={`Call ${name}`}
+        >
+          <Phone size={14} className="text-ink-muted" />
+        </a>
+      )}
+    </div>
+  )
 }
 
 export default function OrderPanel({ orderId, conversationStatus }) {
@@ -18,7 +72,7 @@ export default function OrderPanel({ orderId, conversationStatus }) {
   const [loading,    setLoading]    = useState(false)
   const [confirming, setConfirming] = useState(null) // 'cancel' | 'complete' | null
   const [acting,     setActing]     = useState(false)
-  const [toast,      setToast]      = useState(null) // { type: 'success'|'error', msg }
+  const [toast,      setToast]      = useState(null)
 
   const load = useCallback(async () => {
     if (!orderId) { setOrder(null); return }
@@ -81,143 +135,158 @@ export default function OrderPanel({ orderId, conversationStatus }) {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+      <div className="h-6 w-6 animate-spin rounded-full border-4 border-agent border-t-transparent" />
     </div>
   )
 
   if (!order) return null
 
-  return (
-    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-      <h3 className="font-bold text-ink text-sm">{t('order.title')}</h3>
+  const consumerName = order.consumer?.full_name || '—'
+  const washerName   = order.washer?.full_name   || '—'
+  const plate        = order.car_plate
+  const vehicleParts = [order.car_make, order.car_model, order.car_year && String(order.car_year)].filter(Boolean)
 
-      {/* Order summary */}
-      <div className="card flex flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-ink-muted shrink-0" />
-          <span className="text-ink">
-            {CAR_LABELS[order.car_type]} — {t(`serviceLabels.${order.service_type || 'wash'}`)}
-          </span>
+  return (
+    <div className="flex-1 overflow-y-auto">
+      {/* Linked order header */}
+      <div className="px-[18px] pt-[16px] pb-3 border-b border-edge">
+        <p className="text-[10.5px] text-ink-subtle font-bold uppercase tracking-[0.05em]">
+          {t('order.title', { defaultValue: 'Linked order' })}
+        </p>
+        <div className="flex items-center justify-between mt-1">
+          <span className="font-mono text-[15px] font-bold text-ink">{order.id?.slice(0, 8)}…</span>
+          <Pill color={statusPillColor(order.status)} dot>
+            {order.status?.replace(/_/g, ' ')}
+          </Pill>
         </div>
-        <div className="flex justify-between text-ink-muted">
-          <span>{t('order.status')}</span>
-          <span className="font-medium text-ink capitalize">{order.status.replace('_', ' ')}</span>
-        </div>
-        <div className="flex justify-between text-ink-muted">
-          <span>{t('order.total')}</span>
-          <span className="font-bold text-accent">₪{order.total_price}</span>
-        </div>
-        {order.address_label && (
-          <p className="text-xs text-ink-muted pt-1 border-t border-edge">{order.address_label}</p>
+      </div>
+
+      <div className="px-[14px] py-[14px] flex flex-col gap-3">
+        {/* Vehicle */}
+        {(plate || vehicleParts.length > 0) && (
+          <div className="flex items-start gap-2.5 p-2.5 rounded-xl border border-edge bg-surface">
+            <Car size={18} className="text-ink-muted shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              {plate && (
+                <span className="font-mono text-[12px] font-bold text-ink block">{plate}</span>
+              )}
+              {vehicleParts.length > 0 && (
+                <span className="text-[12px] text-ink-muted">{vehicleParts.join(' · ')}</span>
+              )}
+              {order.car_color && (
+                <span className="text-[12px] text-ink-muted ml-1">· {order.car_color}</span>
+              )}
+            </div>
+          </div>
         )}
-        {(order.addon_wiper_fluid || order.addon_tire_pressure) && (
-          <div className="flex gap-2 pt-1 border-t border-edge">
-            {order.addon_wiper_fluid    && <span className="flex items-center gap-1 text-xs text-ink-muted"><Droplets className="h-3 w-3" />{t('order.wiperFluid')}</span>}
-            {order.addon_tire_pressure && <span className="flex items-center gap-1 text-xs text-ink-muted"><Gauge className="h-3 w-3" />{t('order.tirePressure')}</span>}
+
+        {/* Address */}
+        {order.address_label && (
+          <div>
+            <p className="text-[10.5px] text-ink-subtle font-semibold uppercase tracking-[0.04em] mb-1">Address</p>
+            <p className="text-[13px] text-ink">{order.address_label}</p>
+          </div>
+        )}
+
+        {/* Parties */}
+        <PartyRow
+          roleLabel={t('order.consumer', { defaultValue: 'Consumer' })}
+          name={consumerName}
+          phone={order.consumer?.phone}
+          hue={nameToHue(consumerName)}
+        />
+        {order.washer && (
+          <PartyRow
+            roleLabel={t('order.washer', { defaultValue: 'Washer' })}
+            name={washerName}
+            phone={order.washer?.phone}
+            hue={nameToHue(washerName)}
+            online={order.washer?.is_online}
+          />
+        )}
+
+        {/* Pricing */}
+        <div className="p-3 rounded-xl border border-edge bg-surface">
+          <p className="text-[10.5px] text-ink-subtle font-bold uppercase tracking-[0.05em] mb-2">
+            {t('order.total', { defaultValue: 'Pricing' })}
+          </p>
+          <div className="flex justify-between text-[12.5px] text-ink-muted py-0.5">
+            <span>{t('order.washer', { defaultValue: 'Washer' })}</span>
+            <span className="font-semibold text-ink">₪{order.payout_amount ?? '—'}</span>
+          </div>
+          <div className="flex justify-between text-[12.5px] border-t border-edge mt-2 pt-2">
+            <span className="text-ink-muted font-semibold">{t('order.total', { defaultValue: 'Consumer total' })}</span>
+            <span className="text-[16px] font-bold text-ink" style={{ letterSpacing: '-0.3px' }}>
+              ₪{order.total_price}
+            </span>
+          </div>
+        </div>
+
+        {/* Agent actions */}
+        {showActions && (
+          <div className="border-t border-edge pt-3 flex flex-col gap-2">
+            {confirming === 'cancel' ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-[12px] font-semibold text-ink">{t('orderActions.cancel.confirmTitle')}</p>
+                <p className="text-[12px] text-ink-muted leading-snug">{t('orderActions.cancel.confirmBody')}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirming(null)} className="btn-ghost text-xs px-2 py-1 flex-1">
+                    {t('orderActions.cancel.confirmNo')}
+                  </button>
+                  <button
+                    onClick={() => doAction('cancelled')}
+                    disabled={acting}
+                    className="flex-1 text-xs font-semibold px-2 py-1 rounded-lg border border-danger/40 text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
+                  >
+                    {acting ? '…' : t('orderActions.cancel.confirmYes')}
+                  </button>
+                </div>
+              </div>
+            ) : confirming === 'complete' ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-[12px] font-semibold text-ink">{t('orderActions.complete.confirmTitle')}</p>
+                <p className="text-[12px] text-ink-muted leading-snug">{t('orderActions.complete.confirmBody')}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirming(null)} className="btn-ghost text-xs px-2 py-1 flex-1">
+                    {t('orderActions.complete.confirmNo')}
+                  </button>
+                  <button
+                    onClick={() => doAction('completed')}
+                    disabled={acting}
+                    className="flex-1 text-xs font-bold px-2 py-1 rounded-lg text-white disabled:opacity-50"
+                    style={{ background: 'var(--color-agent)' }}
+                  >
+                    {acting ? '…' : t('orderActions.complete.confirmYes')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setConfirming('cancel')}
+                  className="text-[12px] font-bold px-3 py-2.5 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
+                >
+                  {t('orderActions.cancel.button')}
+                </button>
+                <button
+                  onClick={() => setConfirming('complete')}
+                  className="text-[12px] font-bold px-3 py-2.5 rounded-xl text-white transition-colors"
+                  style={{ background: 'var(--color-agent)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-agent-deep)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-agent)' }}
+                >
+                  {t('orderActions.complete.button')}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Consumer */}
-      {order.consumer && (
-        <div className="card flex flex-col gap-1.5 text-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <User className="h-4 w-4 text-ink-muted" />
-            <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{t('order.consumer')}</span>
-          </div>
-          <p className="font-semibold text-ink">{order.consumer.full_name || '—'}</p>
-          {order.consumer.phone && (
-            <a href={`tel:${order.consumer.phone}`} className="text-accent text-xs hover:underline">
-              {order.consumer.phone}
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* Washer */}
-      {order.washer && (
-        <div className="card flex flex-col gap-1.5 text-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <User className="h-4 w-4 text-ink-muted" />
-            <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{t('order.washer')}</span>
-          </div>
-          <p className="font-semibold text-ink">{order.washer.full_name || '—'}</p>
-          {order.washer.phone && (
-            <a href={`tel:${order.washer.phone}`} className="text-accent text-xs hover:underline">
-              {order.washer.phone}
-            </a>
-          )}
-        </div>
-      )}
-
-      <p className="text-xs text-ink-muted">{t('order.created')}: {formatDate(order.created_at)}</p>
-
-      {/* Agent order actions */}
-      {showActions && (
-        <div className="flex flex-col gap-2 pt-3 border-t border-edge">
-          {confirming === 'cancel' ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-ink">{t('orderActions.cancel.confirmTitle')}</p>
-              <p className="text-xs text-ink-muted leading-snug">{t('orderActions.cancel.confirmBody')}</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfirming(null)}
-                  className="btn-ghost text-xs px-2 py-1 flex-1"
-                >
-                  {t('orderActions.cancel.confirmNo')}
-                </button>
-                <button
-                  onClick={() => doAction('cancelled')}
-                  disabled={acting}
-                  className="flex-1 text-xs font-semibold px-2 py-1 rounded-lg border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-                >
-                  {acting ? '…' : t('orderActions.cancel.confirmYes')}
-                </button>
-              </div>
-            </div>
-          ) : confirming === 'complete' ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-ink">{t('orderActions.complete.confirmTitle')}</p>
-              <p className="text-xs text-ink-muted leading-snug">{t('orderActions.complete.confirmBody')}</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfirming(null)}
-                  className="btn-ghost text-xs px-2 py-1 flex-1"
-                >
-                  {t('orderActions.complete.confirmNo')}
-                </button>
-                <button
-                  onClick={() => doAction('completed')}
-                  disabled={acting}
-                  className="btn-primary text-xs px-2 py-1 flex-1 disabled:opacity-50"
-                >
-                  {acting ? '…' : t('orderActions.complete.confirmYes')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => setConfirming('cancel')}
-                className="w-full text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-300/60 text-red-600 hover:bg-red-50 transition-colors"
-              >
-                {t('orderActions.cancel.button')}
-              </button>
-              <button
-                onClick={() => setConfirming('complete')}
-                className="btn-primary text-xs w-full"
-              >
-                {t('orderActions.complete.button')}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       {/* Inline toast */}
       {toast && (
-        <div className={`fixed bottom-4 end-4 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg z-50 ${
-          toast.type === 'success' ? 'bg-accent text-white' : 'bg-red-500 text-white'
+        <div className={`fixed bottom-4 end-4 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg z-50 text-white ${
+          toast.type === 'success' ? 'bg-agent' : 'bg-danger'
         }`}>
           {toast.msg}
         </div>
