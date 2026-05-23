@@ -36,7 +36,6 @@ function UnassignedHeader({ count, collapsed, onToggle }) {
       aria-expanded={!collapsed}
       aria-label={t('queue.unassigned', { defaultValue: 'Unassigned' })}
     >
-      {/* Amber left accent strip */}
       <span
         className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r"
         style={{ width: 3, height: 20, background: 'var(--color-warning)' }}
@@ -59,16 +58,16 @@ function UnassignedHeader({ count, collapsed, onToggle }) {
   )
 }
 
-// Parent group header (Conversations — wraps Mine + All)
-function ConversationsHeader({ count, collapsed, onToggle }) {
+// Parent group header (Assigned — wraps Mine + Others)
+function AssignedHeader({ count, collapsed, onToggle }) {
   const { t } = useTranslation()
   return (
     <button
-      data-testid="group-header-conversations"
+      data-testid="group-header-assigned"
       onClick={onToggle}
       className="w-full flex items-center justify-between px-[18px] py-2 mt-2 hover:bg-surface-elevated-2/40 transition-colors"
       aria-expanded={!collapsed}
-      aria-label={t('queue.conversations', { defaultValue: 'Conversations' })}
+      aria-label={t('queue.assigned', { defaultValue: 'Assigned' })}
     >
       <div className="flex items-center gap-2">
         <ChevronDown
@@ -77,7 +76,7 @@ function ConversationsHeader({ count, collapsed, onToggle }) {
           style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
         />
         <span className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.06em]">
-          {t('queue.conversations', { defaultValue: 'Conversations' })}
+          {t('queue.assigned', { defaultValue: 'Assigned' })}
         </span>
       </div>
       <span className="text-[11px] font-bold text-ink-subtle">{count}</span>
@@ -85,7 +84,7 @@ function ConversationsHeader({ count, collapsed, onToggle }) {
   )
 }
 
-// Sub-group header inside Conversations (Mine / All — lower contrast)
+// Sub-group header inside Assigned (Mine / Others — lower contrast)
 function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId }) {
   return (
     <button
@@ -112,24 +111,20 @@ function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId 
   )
 }
 
-export default function QueueList({ unassigned, mine, all, agentId, selectedId, onSelect, loading }) {
+export default function QueueList({ unassigned, mine, others, agentId, selectedId, onSelect, loading }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState({
-    unassigned:    false,
-    conversations: false,
-    mine:          false,
-    all:           true,
+    unassigned: false,
+    assigned:   false,
+    mine:       false,
+    others:     true,
   })
-
-  const mineIds       = new Set(mine.map(c => c.id))
-  const unassignedIds = new Set(unassigned.map(c => c.id))
-  const allRest       = all.filter(c => !mineIds.has(c.id) && !unassignedIds.has(c.id))
 
   const q = search.trim().toLowerCase()
   const fUnassigned = filterConvs(unassigned, q)
   const fMine       = filterConvs(mine, q)
-  const fAllRest    = filterConvs(allRest, q)
+  const fOthers     = filterConvs(others, q)
 
   function toggle(key) {
     setCollapsed(s => ({ ...s, [key]: !s[key] }))
@@ -192,15 +187,15 @@ export default function QueueList({ unassigned, mine, all, agentId, selectedId, 
               )}
             </div>
 
-            {/* ── 2. Conversations — second, wraps Mine + All ──────────── */}
+            {/* ── 2. Assigned — second, wraps Mine + Others ────────────── */}
             <div>
-              <ConversationsHeader
-                count={fMine.length + fAllRest.length}
-                collapsed={collapsed.conversations}
-                onToggle={() => toggle('conversations')}
+              <AssignedHeader
+                count={fMine.length + fOthers.length}
+                collapsed={collapsed.assigned}
+                onToggle={() => toggle('assigned')}
               />
 
-              {!collapsed.conversations && (
+              {!collapsed.assigned && (
                 <>
                   {/* Mine sub-group */}
                   <SubGroupHeader
@@ -220,18 +215,18 @@ export default function QueueList({ unassigned, mine, all, agentId, selectedId, 
                     />
                   )}
 
-                  {/* All sub-group */}
+                  {/* Others sub-group */}
                   <SubGroupHeader
-                    testId="group-header-all"
-                    label={t('queue.all', { defaultValue: 'All' })}
-                    count={fAllRest.length}
+                    testId="group-header-others"
+                    label={t('queue.others', { defaultValue: 'Others' })}
+                    count={fOthers.length}
                     countColor="var(--color-ink-subtle)"
-                    collapsed={collapsed.all}
-                    onToggle={() => toggle('all')}
+                    collapsed={collapsed.others}
+                    onToggle={() => toggle('others')}
                   />
-                  {!collapsed.all && (
+                  {!collapsed.others && (
                     <ItemList
-                      items={fAllRest}
+                      items={fOthers}
                       selectedId={selectedId}
                       agentId={agentId}
                       onSelect={onSelect}

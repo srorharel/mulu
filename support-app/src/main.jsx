@@ -14,7 +14,7 @@ i18n
       he: {
         translation: {
           login: { title: 'כניסה לצוות התמיכה', subtitle: 'רק נציגי תמיכה יכולים להיכנס', email: 'אימייל', password: 'סיסמה', submit: 'כניסה', submitting: 'נכנס...', agentsOnly: 'אפליקציה זו מיועדת לנציגי תמיכה בלבד.' },
-          queue: { title: 'תור', unassigned: 'לא מוקצה', mine: 'שלי', all: 'כולם', empty: 'אין שיחות', emptyDesc: 'אין שיחות פתוחות כרגע.', label: { mine: 'שלי', inTreatment: 'בטיפול', waiting: 'ממתין', general: 'כללי' } },
+          queue: { title: 'תור', unassigned: 'לא מוקצה', mine: 'שלי', others: 'אחרים', assigned: 'מוקצה', all: 'כולם', empty: 'אין שיחות', emptyDesc: 'אין שיחות פתוחות כרגע.', label: { mine: 'שלי', inTreatment: 'בטיפול', waiting: 'ממתין', general: 'כללי' } },
           chat: { resolve: 'סגור', release: 'החזר לתור', placeholder: 'הקלד הודעה...', send: 'שלח', attach: 'צרף תמונה', typing: '{{name}} מקליד...', closed: 'שיחה זו סגורה', empty: 'בחר שיחה מהתור', seen: 'נראה', agentBadge: 'תמיכה', waitingForAgent: 'ממתין לנציג...' },
           order: { title: 'פרטי הזמנה', noOrder: 'אין הזמנה', consumer: 'לקוח', washer: 'שוטף', status: 'סטטוס', total: 'סה"כ', created: 'נוצר', address: 'כתובת', addons: 'תוספות', wiperFluid: 'נוזל מגבים', tirePressure: 'לחץ צמיגים' },
           user: { title: 'פרטי משתמש', role: 'תפקיד', consumer: 'לקוח', washer: 'שוטף', phone: 'טלפון', recentOrders: 'הזמנות אחרונות' },
@@ -53,7 +53,7 @@ i18n
       en: {
         translation: {
           login: { title: 'Support Team Login', subtitle: 'Only support agents can sign in here', email: 'Email', password: 'Password', submit: 'Sign in', submitting: 'Signing in...', agentsOnly: 'This app is for support agents only.' },
-          queue: { title: 'Queue', unassigned: 'Unassigned', mine: 'Mine', all: 'All', empty: 'No conversations', emptyDesc: 'No open conversations right now.', label: { mine: 'Mine', inTreatment: 'In treatment', waiting: 'Waiting', general: 'General' } },
+          queue: { title: 'Queue', unassigned: 'Unassigned', mine: 'Mine', others: 'Others', assigned: 'Assigned', all: 'All', empty: 'No conversations', emptyDesc: 'No open conversations right now.', label: { mine: 'Mine', inTreatment: 'In treatment', waiting: 'Waiting', general: 'General' } },
           chat: { resolve: 'Resolve', release: 'Release to queue', placeholder: 'Type a message...', send: 'Send', attach: 'Attach image', typing: '{{name}} is typing...', closed: 'This conversation is closed', empty: 'Select a conversation from the queue', seen: 'Seen', agentBadge: 'Support', waitingForAgent: 'Waiting for agent...' },
           order: { title: 'Order details', noOrder: 'No order linked', consumer: 'Customer', washer: 'Washer', status: 'Status', total: 'Total', created: 'Created', address: 'Address', addons: 'Add-ons', wiperFluid: 'Wiper fluid', tirePressure: 'Tire pressure' },
           user: { title: 'User info', role: 'Role', consumer: 'Consumer', washer: 'Washer', phone: 'Phone', recentOrders: 'Recent orders' },

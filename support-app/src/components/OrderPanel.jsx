@@ -1,9 +1,49 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Car, Phone } from 'lucide-react'
 import { fetchOrderDetails } from '../lib/support.js'
 import { supabase } from '../lib/supabase.js'
+import { useReverseGeocode } from '../lib/geocode.js'
 import Pill from './Pill.jsx'
+
+const MiniMap = lazy(() => import('./MiniMap.jsx'))
+
+function WasherLocationCard({ washerLoc }) {
+  const { t } = useTranslation()
+  const address = useReverseGeocode(washerLoc?.lat, washerLoc?.lng)
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setTick(n => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const hasLoc = washerLoc?.lat != null && washerLoc?.lng != null
+
+  return (
+    <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
+      <p className="text-[10.5px] text-ink-subtle font-bold uppercase tracking-[0.05em]">
+        {t('approvals.location.title', { defaultValue: 'Washer location' })}
+      </p>
+      {hasLoc ? (
+        <>
+          <Suspense fallback={<div className="h-[150px] rounded-lg bg-surface-elevated animate-pulse" />}>
+            <MiniMap lat={washerLoc.lat} lng={washerLoc.lng} />
+          </Suspense>
+          {address && <p className="text-xs text-ink leading-snug">{address}</p>}
+          <p className="text-xs text-ink-muted">
+            {t('approvals.location.lastSeen', { time: washerLoc.at
+              ? new Date(washerLoc.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '—'
+            })}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-ink-muted">{t('approvals.location.unavailable', { defaultValue: 'Location unavailable' })}</p>
+      )}
+    </div>
+  )
+}
 
 const TERMINAL_ORDER_STATUSES = ['completed', 'cancelled']
 const TERMINAL_CONV_STATUSES  = ['resolved', 'closed']
@@ -66,7 +106,7 @@ function PartyRow({ roleLabel, name, phone, hue, online }) {
   )
 }
 
-export default function OrderPanel({ orderId, conversationStatus }) {
+export default function OrderPanel({ orderId, conversationStatus, openerRole }) {
   const { t } = useTranslation()
   const [order,      setOrder]      = useState(null)
   const [loading,    setLoading]    = useState(false)
@@ -203,6 +243,15 @@ export default function OrderPanel({ orderId, conversationStatus }) {
             hue={nameToHue(washerName)}
             online={order.washer?.is_online}
           />
+        )}
+
+        {/* Washer live location — shown when conversation was opened by consumer */}
+        {openerRole === 'consumer' && order.washer?.last_lat != null && (
+          <WasherLocationCard washerLoc={{
+            lat: order.washer.last_lat,
+            lng: order.washer.last_lng,
+            at:  order.washer.last_location_at,
+          }} />
         )}
 
         {/* Pricing */}

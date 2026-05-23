@@ -8,14 +8,14 @@ import QueueList from '../components/QueueList.jsx'
 const i18n = i18next.createInstance()
 i18n.use(initReactI18next).init({
   resources: { en: { translation: {
-    'queue.title':         'Conversations',
-    'queue.mine':          'Mine',
-    'queue.unassigned':    'Unassigned',
-    'queue.all':           'All',
-    'queue.conversations': 'Conversations',
-    'queue.search':        'Search name or order…',
-    'common.orderLinked':  'Order {{id}}',
-    'common.general':      'General',
+    'queue.title':      'Conversations',
+    'queue.mine':       'Mine',
+    'queue.others':     'Others',
+    'queue.assigned':   'Assigned',
+    'queue.unassigned': 'Unassigned',
+    'queue.search':     'Search name or order…',
+    'common.orderLinked': 'Order {{id}}',
+    'common.general':   'General',
   } } },
   lng: 'en', fallbackLng: 'en',
 })
@@ -24,6 +24,7 @@ function makeConv(overrides = {}) {
   return {
     id:                 overrides.id  ?? 'conv-1',
     opener:             { full_name: overrides.name ?? 'Test User', role: overrides.role ?? 'consumer' },
+    agent:              overrides.agent ?? null,
     last_message_at:    null,
     agent_last_read_at: null,
     order_id:           null,
@@ -43,7 +44,7 @@ const wrapper = ({ children }) => (
 const baseProps = {
   mine:       [],
   unassigned: [],
-  all:        [],
+  others:     [],
   agentId:    'agent-1',
   selectedId: null,
   onSelect:   vi.fn(),
@@ -51,33 +52,34 @@ const baseProps = {
 }
 
 describe('QueueList', () => {
-  it('Unassigned group header appears before Conversations group header in the DOM', () => {
+  it('Unassigned group header appears before Assigned group header in the DOM', () => {
     render(<QueueList {...baseProps} />, { wrapper })
     const unassignedHeader = screen.getByTestId('group-header-unassigned')
-    const convsHeader      = screen.getByTestId('group-header-conversations')
-    // DOCUMENT_POSITION_FOLLOWING = 4 means convsHeader comes after unassignedHeader
-    expect(unassignedHeader.compareDocumentPosition(convsHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const assignedHeader   = screen.getByTestId('group-header-assigned')
+    // DOCUMENT_POSITION_FOLLOWING = 4 means assignedHeader comes after unassignedHeader
+    expect(unassignedHeader.compareDocumentPosition(assignedHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('Mine subgroup header appears before All subgroup header', () => {
+  it('Mine subgroup header appears before Others subgroup header', () => {
     render(<QueueList {...baseProps} />, { wrapper })
-    const mineHeader = screen.getByTestId('group-header-mine')
-    const allHeader  = screen.getByTestId('group-header-all')
-    expect(mineHeader.compareDocumentPosition(allHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const mineHeader   = screen.getByTestId('group-header-mine')
+    const othersHeader = screen.getByTestId('group-header-others')
+    expect(mineHeader.compareDocumentPosition(othersHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('renders Unassigned, Mine, and All group headers', () => {
+  it('renders Unassigned, Mine, and Others group headers', () => {
     render(<QueueList {...baseProps} />, { wrapper })
     expect(screen.getByTestId('group-header-unassigned')).toBeInTheDocument()
     expect(screen.getByTestId('group-header-mine')).toBeInTheDocument()
-    expect(screen.getByTestId('group-header-all')).toBeInTheDocument()
+    expect(screen.getByTestId('group-header-others')).toBeInTheDocument()
+    expect(screen.getByTestId('group-header-assigned')).toBeInTheDocument()
   })
 
   it('shows item count matching the length of each group', () => {
     const mine       = [makeConv({ id: 'c1', name: 'Alice', assigned_agent_id: 'agent-1' })]
     const unassigned = [makeConv({ id: 'c2', name: 'Bob' }), makeConv({ id: 'c3', name: 'Carol' })]
     render(
-      <QueueList {...baseProps} mine={mine} unassigned={unassigned} all={[...mine, ...unassigned]} />,
+      <QueueList {...baseProps} mine={mine} unassigned={unassigned} />,
       { wrapper }
     )
     const mineBtn = screen.getByTestId('group-header-mine')
@@ -86,16 +88,16 @@ describe('QueueList', () => {
     expect(unBtn).toHaveTextContent('2')
   })
 
-  it('collapsing Conversations hides Mine and All items', () => {
+  it('collapsing Assigned hides Mine items', () => {
     const mine = [makeConv({ id: 'm1', name: 'Alice', assigned_agent_id: 'agent-1' })]
     render(
-      <QueueList {...baseProps} mine={mine} all={mine} />,
+      <QueueList {...baseProps} mine={mine} />,
       { wrapper }
     )
     // Before collapse: Mine items should be visible (Mine is expanded by default)
     expect(screen.getByText('Alice')).toBeInTheDocument()
-    // Click the Conversations parent toggle to collapse it
-    fireEvent.click(screen.getByTestId('group-header-conversations'))
+    // Click the Assigned parent toggle to collapse it
+    fireEvent.click(screen.getByTestId('group-header-assigned'))
     // Mine items should now be hidden
     expect(screen.queryByText('Alice')).not.toBeInTheDocument()
   })
@@ -104,7 +106,7 @@ describe('QueueList', () => {
     const onSelect   = vi.fn()
     const unassigned = [makeConv({ id: 'u1', name: 'Dan' })]
     render(
-      <QueueList {...baseProps} unassigned={unassigned} all={unassigned} onSelect={onSelect} />,
+      <QueueList {...baseProps} unassigned={unassigned} onSelect={onSelect} />,
       { wrapper }
     )
     fireEvent.click(screen.getByText('Dan'))
@@ -126,7 +128,7 @@ describe('QueueList', () => {
       makeConv({ id: 'u1', name: 'Alice Smith' }),
       makeConv({ id: 'u2', name: 'Bob Jones' }),
     ]
-    render(<QueueList {...baseProps} unassigned={unassigned} all={unassigned} />, { wrapper })
+    render(<QueueList {...baseProps} unassigned={unassigned} />, { wrapper })
     const searchInput = screen.getByPlaceholderText(/search/i)
     fireEvent.change(searchInput, { target: { value: 'alice' } })
     expect(screen.getByText('Alice Smith')).toBeInTheDocument()
@@ -135,7 +137,7 @@ describe('QueueList', () => {
 
   it('urgent items are rendered within the Unassigned group', () => {
     const unassigned = [makeConv({ id: 'u1', name: 'Urgent User', urgent: true })]
-    render(<QueueList {...baseProps} unassigned={unassigned} all={unassigned} />, { wrapper })
+    render(<QueueList {...baseProps} unassigned={unassigned} />, { wrapper })
     expect(screen.getByText('Urgent User')).toBeInTheDocument()
     // AlertTriangle icon is present for urgent items
     expect(document.querySelector('[aria-label="Urgent"]')).toBeInTheDocument()

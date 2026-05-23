@@ -46,7 +46,7 @@ function groupByDate(messages) {
   return groups
 }
 
-export default function ChatPane({ conversation, onConvUpdate }) {
+export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick }) {
   const { t } = useTranslation()
   const { profile } = useAuth()
   const convId = conversation?.id || null
@@ -144,14 +144,18 @@ export default function ChatPane({ conversation, onConvUpdate }) {
                 className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
                 style={{ color: roleColor, background: `${roleColor}1f`, letterSpacing: '0.04em' }}
               >
-                {openerRole}
+                {openerRole === 'consumer' ? 'Customer' : openerRole === 'washer' ? 'Washer' : openerRole}
               </span>
             )}
             {conversation.order_id && (
-              <span className="flex items-center gap-1 text-[11.5px] text-ink-subtle">
+              <button
+                data-testid="order-chip"
+                onClick={onOrderChipClick}
+                className="flex items-center gap-1 text-[11.5px] text-ink-subtle hover:text-ink transition-colors rounded"
+              >
                 <Car size={12} />
-                {t('common.orderLinked', { id: conversation.order_id.slice(0, 8) })}
-              </span>
+                {`Order #${conversation.order_id.slice(0, 8)}`}
+              </button>
             )}
           </div>
           <p className="text-[12px] text-ink-subtle mt-0.5">

@@ -47,7 +47,7 @@ export async function fetchConversations() {
   return supabase
     .from('support_conversations')
     .select(`
-      id, status, subject, order_id, last_message_at, created_at, updated_at,
+      id, status, subject, order_id, opener_role, last_message_at, created_at, updated_at,
       opener_id, counterparty_id, assigned_agent_id,
       opener_last_read_at, counterparty_last_read_at, agent_last_read_at,
       opener:profiles!opener_id(id, full_name, role, phone),
@@ -75,8 +75,9 @@ export async function fetchOrderDetails(orderId) {
     .select(`
       id, status, car_type, service_type, base_price, total_price, created_at,
       address_label, addon_wiper_fluid, addon_tire_pressure,
+      car_plate, car_make, car_model, car_year, car_color, payout_amount,
       consumer:profiles!consumer_id(id, full_name, phone),
-      washer:profiles!washer_id(id, full_name, phone)
+      washer:profiles!washer_id(id, full_name, phone, last_lat, last_lng, last_location_at)
     `)
     .eq('id', orderId)
     .single()

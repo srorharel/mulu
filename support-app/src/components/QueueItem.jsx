@@ -1,5 +1,4 @@
 import { AlertTriangle } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 
 function nameToHue(name = '') {
   let h = 0
@@ -23,8 +22,6 @@ function getConversationRole(conversation) {
 }
 
 export default function QueueItem({ conversation, agentId, isSelected, onClick }) {
-  const { t } = useTranslation()
-
   const openerName = conversation.opener?.full_name || '—'
   const role       = getConversationRole(conversation)
 
@@ -34,9 +31,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
   )
   const unreadCount = conversation.unread_count ?? (hasUnread ? 1 : 0)
 
-  const preview = conversation.order_id
-    ? t('common.orderLinked', { id: conversation.order_id.slice(0, 8) })
-    : (conversation.subject || conversation.last_message_preview || t('common.general'))
+  const preview = conversation.last_message_preview ?? conversation.subject ?? ''
 
   const hue = nameToHue(openerName)
   const initials = openerName
@@ -45,6 +40,12 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
     .slice(0, 2)
     .map(w => w[0].toUpperCase())
     .join('')
+
+  const roleLabel = role === 'consumer' ? 'Customer' : role === 'washer' ? 'Washer' : null
+
+  const assignedAgent = conversation.assigned_agent_id && conversation.assigned_agent_id !== agentId
+    ? (conversation.agent?.agent_display_name || conversation.agent?.full_name || null)
+    : null
 
   const roleColor = role === 'washer'
     ? '#A78BFA'
@@ -107,7 +108,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
 
         {/* Row 2: role pill (+ urgent) */}
         <div className="flex items-center gap-1.5 mt-0.5">
-          {role && (
+          {roleLabel && (
             <span
               className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
               style={{
@@ -116,7 +117,12 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
                 letterSpacing: '0.04em',
               }}
             >
-              {role}
+              {roleLabel}
+            </span>
+          )}
+          {assignedAgent && (
+            <span className="text-[9.5px] text-ink-subtle truncate">
+              {assignedAgent}
             </span>
           )}
           {conversation.urgent && (

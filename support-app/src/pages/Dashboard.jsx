@@ -246,7 +246,7 @@ export default function Dashboard() {
 
   const { conversationId: urlConvId } = useParams()
 
-  const { unassigned, mine, all, loading, reload } = useAgentQueue(profile?.id)
+  const { conversations, unassigned, mine, others, all, loading, reload } = useAgentQueue(profile?.id)
   const [selectedConv, setSelectedConv] = useState(null)
   const [tab, setTab] = useState('conv') // 'conv' | 'approvals' | 'tickets'
   const [pendingCount, setPendingCount] = useState(0)
@@ -286,14 +286,14 @@ export default function Dashboard() {
 
   // Auto-select conversation from URL on page load / refresh.
   useEffect(() => {
-    if (!urlConvId || loading || selectedConv?.id === urlConvId || !all.length) return
-    const conv = all.find(c => c.id === urlConvId)
+    if (!urlConvId || loading || selectedConv?.id === urlConvId || !conversations.length) return
+    const conv = conversations.find(c => c.id === urlConvId)
     if (!conv) return
     if (!conv.assigned_agent_id) {
       claimConversation(conv.id).then(() => reload())
     }
     setSelectedConv({ ...conv, assigned_agent_id: conv.assigned_agent_id || profile?.id })
-  }, [urlConvId, loading, all]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [urlConvId, loading, conversations]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSelect(conv) {
     if (!conv.assigned_agent_id) {
@@ -305,7 +305,7 @@ export default function Dashboard() {
   }
 
   const latestConv = selectedConv
-    ? (all.find(c => c.id === selectedConv.id) ?? selectedConv)
+    ? (conversations.find(c => c.id === selectedConv.id) ?? selectedConv)
     : null
 
   const showOrderPanel = latestConv?.order_id
@@ -338,7 +338,7 @@ export default function Dashboard() {
             <QueueList
               unassigned={unassigned}
               mine={mine}
-              all={all}
+              others={others}
               agentId={profile?.id}
               selectedId={latestConv?.id}
               onSelect={handleSelect}
@@ -349,15 +349,23 @@ export default function Dashboard() {
             <ChatPane
               conversation={latestConv}
               onConvUpdate={reload}
+              onOrderChipClick={() => {
+                document.getElementById('order-panel-rail')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
             />
 
             {/* Right: Order or User context */}
             <div
+              id="order-panel-rail"
               className="flex flex-col border-l border-edge bg-surface-elevated overflow-y-auto"
               style={{ width: 360, flexShrink: 0 }}
             >
               {showOrderPanel ? (
-                <OrderPanel orderId={latestConv?.order_id} conversationStatus={latestConv?.status} />
+                <OrderPanel
+                  orderId={latestConv?.order_id}
+                  conversationStatus={latestConv?.status}
+                  openerRole={latestConv?.opener_role || latestConv?.opener?.role}
+                />
               ) : (
                 <UserPanel openerId={latestConv?.opener_id} />
               )}

@@ -30,7 +30,8 @@ export function useAgentQueue(agentId) {
 
   const unassigned = conversations.filter(c => !c.assigned_agent_id)
   const mine       = conversations.filter(c => c.assigned_agent_id === agentId)
+  const others     = conversations.filter(c => c.assigned_agent_id && c.assigned_agent_id !== agentId)
   const all        = conversations
 
-  return { conversations, unassigned, mine, all, loading, reload: load }
+  return { conversations, unassigned, mine, others, all, loading, reload: load }
 }
