@@ -5,12 +5,14 @@ import { Capacitor } from '@capacitor/core'
 import { Camera as NativeCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { supabase } from '../../lib/supabase.js'
 import { resizeToBlob, MAX_BYTES, MAX_EDGE_PX } from '../../lib/imageResize.js'
+import { useToast } from '../ui/Toast.jsx'
 
 const BUCKET = 'car-photos'
 const SLOTS  = ['front', 'back', 'driver', 'passenger']
 
 function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved }) {
   const { t }           = useTranslation()
+  const showToast       = useToast()
   const inputRef        = useRef(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr]   = useState('')
@@ -24,7 +26,9 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
     try {
       resized = await resizeToBlob(blob)
     } catch {
-      setErr(t('consumer.home.photos.uploadFailed'))
+      const msg = t('consumer.home.photos.uploadFailed')
+      setErr(msg)
+      showToast(msg, 'error')
       setBusy(false)
       return
     }
@@ -35,7 +39,12 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
       .upload(path, resized, { upsert: true, contentType: 'image/jpeg' })
 
     setBusy(false)
-    if (uploadErr) { setErr(t('consumer.home.photos.uploadFailed')); return }
+    if (uploadErr) {
+      const msg = t('consumer.home.photos.uploadFailed')
+      setErr(msg)
+      showToast(msg, 'error')
+      return
+    }
     onUploaded(slot, path, URL.createObjectURL(resized))
   }
 
@@ -57,7 +66,9 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
         }
       } catch (e) {
         if (!e?.message?.toLowerCase().includes('cancel')) {
-          setErr(t('consumer.home.photos.uploadFailed'))
+          const msg = t('consumer.home.photos.uploadFailed')
+          setErr(msg)
+          showToast(msg, 'error')
         }
       }
     } else {

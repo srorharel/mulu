@@ -192,29 +192,27 @@ export default function WasherDashboard() {
   const { position, permissionState, requestPermission } = useGeolocation({ watch: online })
   const { jobs, loading } = useNearbyJobs(position, online)
 
+  // user.id is only read inside the location-write effect; refed so the effect
+  // doesn't retrigger on profile object identity changes.
+  const userIdRef = useRef(user?.id)
+  useEffect(() => { userIdRef.current = user?.id }, [user?.id])
+
   // Write current_location (PostGIS) whenever position changes while online.
   useEffect(() => {
+    if (!userIdRef.current) return
     if (!online || !position) return
     supabase
       .from('profiles')
       .update({ current_location: `POINT(${position.lng} ${position.lat})` })
-      .eq('id', user.id)
+      .eq('id', userIdRef.current)
   }, [position?.lat, position?.lng, online]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist last-known lat/lng for agent location card — throttled to every 10s.
   useEffect(() => {
-    console.log('[location-persist] effect fired', { lat: position?.lat, lng: position?.lng, userId: user?.id })
-    if (!position || !user?.id) {
-      console.log('[location-persist] skipping — missing position or user')
-      return
-    }
+    if (!position || !user?.id) return
     const now     = Date.now()
     const elapsed = now - lastPersistedAtRef.current
-    if (elapsed < 10_000) {
-      console.log('[location-persist] throttled —', elapsed, 'ms since last write')
-      return
-    }
-    console.log('[location-persist] writing to DB', { lat: position.lat, lng: position.lng })
+    if (elapsed < 10_000) return
     lastPersistedAtRef.current = now
     supabase
       .from('profiles')
@@ -228,8 +226,6 @@ export default function WasherDashboard() {
         } else if (!data || data.length === 0) {
           console.error('[location-persist] write matched 0 rows — RLS may be blocking. user.id:', user.id)
           lastPersistedAtRef.current = 0
-        } else {
-          console.log('[location-persist] write succeeded, row:', data[0]?.id)
         }
       })
   }, [position?.lat, position?.lng, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps

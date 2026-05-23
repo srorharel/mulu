@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCheck, RotateCcw } from 'lucide-react'
 import { useConversationStream } from '../hooks/useConversationStream.js'
@@ -48,6 +48,7 @@ export default function ChatPane({ conversation, onConvUpdate }) {
   )
 
   const scrollRef = useRef(null)
+  const [sendError, setSendError] = useState(null)
 
   useEffect(() => {
     if (scrollRef.current && messages.length > 0) {
@@ -72,16 +73,18 @@ export default function ChatPane({ conversation, onConvUpdate }) {
   const isAssignedToMe = conversation.assigned_agent_id === profile?.id
 
   async function handleSend({ body, attachment }) {
+    setSendError(null)
     let attachmentPath = null
     if (attachment) {
       const { data, error } = await uploadAttachment(convId, attachment)
-      if (error) return
+      if (error) { setSendError(t('common.error')); return }
       attachmentPath = data.path
     }
     if (!isAssignedToMe && !isClosed) {
       await claimConversation(convId)
     }
-    await sendAgentMessage(convId, { body, attachmentPath, agentId: profile.id })
+    const { error: sendErr } = await sendAgentMessage(convId, { body, attachmentPath, agentId: profile.id })
+    if (sendErr) { setSendError(t('common.error')); return }
     await markAgentRead(convId).catch(() => {})
     onConvUpdate?.()
   }
@@ -165,6 +168,9 @@ export default function ChatPane({ conversation, onConvUpdate }) {
         {typingLabel && <TypingIndicator label={typingLabel} />}
       </div>
 
+      {sendError && (
+        <p className="px-4 py-1 text-xs text-danger-500 border-t border-edge shrink-0">{sendError}</p>
+      )}
       {isClosed ? (
         <div className="px-4 py-3 border-t border-edge text-center shrink-0">
           <p className="text-xs text-ink-muted">{t('chat.closed')}</p>

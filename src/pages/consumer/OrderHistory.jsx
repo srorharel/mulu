@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useToast } from '../../components/ui/Toast.jsx'
 import { HistoryRowSkeleton } from '../../components/Skeleton.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -74,6 +75,7 @@ const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 export default function OrderHistory() {
   const { user } = useAuth()
   const { t, i18n } = useTranslation()
+  const showToast = useToast()
   const [orders, setOrders]   = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -83,8 +85,12 @@ export default function OrderHistory() {
       .select('*')
       .eq('consumer_id', user.id)
       .order('created_at', { ascending: false })
-      .then(({ data }) => { setOrders(data ?? []); setLoading(false) })
-  }, [user.id])
+      .then(({ data, error }) => {
+        if (error) showToast(t('error'), 'error')
+        setOrders(data ?? [])
+        setLoading(false)
+      })
+  }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Derive year stats from already-loaded data — no extra query.
   // Cancelled orders excluded from both count and spend; everything else

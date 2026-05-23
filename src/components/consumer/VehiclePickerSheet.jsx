@@ -74,7 +74,7 @@ export default function VehiclePickerSheet({ open, vehicles, selectedId, onSelec
                     <IsraeliPlate number={formatPlate(v.plate)} />
                   </div>
                   <div className="flex-1 min-w-0" dir="auto">
-                    <p className="text-[14px] font-semibold text-ink truncate">{v.nickname}</p>
+                    <p className="text-[14px] font-semibold text-ink truncate">{v.nickname || [v.make, v.model].filter(Boolean).join(' ')}</p>
                     {(v.make || v.model) && (
                       <p className="text-[12px] text-ink-muted truncate">
                         {[v.make, v.model, v.year].filter(Boolean).join(' · ')}

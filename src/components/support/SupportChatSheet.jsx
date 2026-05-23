@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useSupportConversation } from '../../hooks/useSupportConversation.js'
 import { sendMessage, markRead, uploadAttachment } from '../../lib/support.js'
 import { supabase } from '../../lib/supabase.js'
+import { useToast } from '../ui/Toast.jsx'
 import MessageBubble from './MessageBubble.jsx'
 import MessageComposer from './MessageComposer.jsx'
 import TypingIndicator from './TypingIndicator.jsx'
@@ -42,6 +43,7 @@ function groupByDate(messages) {
 export default function SupportChatSheet({ open, convId, onClose }) {
   const { t } = useTranslation()
   const { user, profile } = useAuth()
+  const showToast = useToast()
   const { conversation, messages, loading } = useSupportConversation(open ? convId : null)
   const [typingLabel, setTypingLabel] = useState(null)
   const scrollRef = useRef(null)
@@ -114,7 +116,7 @@ export default function SupportChatSheet({ open, convId, onClose }) {
 
     if (attachment) {
       const { data, error } = await uploadAttachment(convId, attachment)
-      if (error) return
+      if (error) { showToast(t('support.errors.uploadFailed'), 'error'); return }
       attachmentPath = data.path
     }
 

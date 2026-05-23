@@ -30,7 +30,7 @@ export default function CannedResponseMenu({ query, onSelect, onClose }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [items, active]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [items, active, onClose]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function select(item) {
     const body = i18n.language === 'he' ? item.body_he : item.body_en

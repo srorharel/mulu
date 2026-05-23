@@ -12,8 +12,9 @@ export default function Settings() {
   const { profile, refreshProfile } = useAuth()
 
   const [displayName, setDisplayName] = useState(profile?.agent_display_name || '')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+  const [saveError, setSaveError] = useState(false)
 
   const [canned, setCanned] = useState([])
   const [newShortcut, setNewShortcut] = useState('')
@@ -23,6 +24,7 @@ export default function Settings() {
 
   useEffect(() => {
     if (profile) loadCanned()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing — filed separately for follow-up
   }, [profile])
 
   async function loadCanned() {
@@ -32,9 +34,11 @@ export default function Settings() {
 
   async function saveProfile() {
     setSaving(true)
-    await supabase.from('profiles').update({ agent_display_name: displayName }).eq('id', profile.id)
-    await refreshProfile()
+    setSaveError(false)
+    const { error } = await supabase.from('profiles').update({ agent_display_name: displayName }).eq('id', profile.id)
+    if (!error) await refreshProfile()
     setSaving(false)
+    if (error) { setSaveError(true); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -89,6 +93,7 @@ export default function Settings() {
           <button onClick={saveProfile} disabled={saving} className="btn-primary w-fit">
             {saved ? t('settings.saved') : saving ? t('common.loading') : t('settings.save')}
           </button>
+          {saveError && <p className="text-xs text-danger-500">{t('common.error')}</p>}
         </div>
 
         {/* Language */}

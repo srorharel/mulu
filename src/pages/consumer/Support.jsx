@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { listMyConversations, createGeneralConversation } from '../../lib/support.js'
+import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import ConversationListItem from '../../components/support/ConversationListItem.jsx'
 import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
@@ -19,6 +20,7 @@ function isUnread(conv, userId) {
 export default function ConsumerSupport() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const showToast = useToast()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeConvId, setActiveConvId] = useState(null)
@@ -26,12 +28,13 @@ export default function ConsumerSupport() {
 
   async function load() {
     setLoading(true)
-    const { data } = await listMyConversations()
-    setConversations(data)
+    const { data, error } = await listMyConversations()
+    if (error) showToast(t('error'), 'error')
+    setConversations(data ?? [])
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleNew() {
     setCreating(true)

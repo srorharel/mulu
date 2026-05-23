@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { CheckCircle, Clock, Play, X, User, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -199,6 +199,24 @@ export default function ApprovalRow({ order, onApproved }) {
     order.completion_photo_passenger
   )
 
+  // Memoize path strings so realtime updates to unrelated fields (status, GPS)
+  // don't retrigger signed-URL fetches.
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const photoPaths = useMemo(() => {
+    if (!isNewShape) return null
+    return [
+      ...PHOTO_SLOTS.map(s => ({ key: `arrival_${s}`,    path: order[`arrival_photo_${s}`]    })),
+      ...PHOTO_SLOTS.map(s => ({ key: `completion_${s}`, path: order[`completion_photo_${s}`] })),
+    ]
+  }, [
+    isNewShape,
+    order.arrival_photo_front,   order.arrival_photo_back,
+    order.arrival_photo_driver,  order.arrival_photo_passenger,
+    order.completion_photo_front, order.completion_photo_back,
+    order.completion_photo_driver, order.completion_photo_passenger,
+  ])
+  /* eslint-enable react-hooks/exhaustive-deps */
+
   const [beforeUrl,  setBeforeUrl]  = useState(null)
   const [afterUrl,   setAfterUrl]   = useState(null)
   const [photoUrls,  setPhotoUrls]  = useState({})
@@ -208,22 +226,20 @@ export default function ApprovalRow({ order, onApproved }) {
 
   useEffect(() => {
     if (isNewShape) {
-      const entries = [
-        ...PHOTO_SLOTS.map(s => ({ key: `arrival_${s}`,    path: order[`arrival_photo_${s}`]    })),
-        ...PHOTO_SLOTS.map(s => ({ key: `completion_${s}`, path: order[`completion_photo_${s}`] })),
-      ]
-      Promise.all(
-        entries.map(async ({ key, path }) => ({ key, url: await getSignedUrl(path) }))
+      Promise.allSettled(
+        photoPaths.map(async ({ key, path }) => ({ key, url: await getSignedUrl(path) }))
       ).then(results => {
         const urls = {}
-        results.forEach(({ key, url }) => { if (url) urls[key] = url })
+        results.forEach(r => {
+          if (r.status === 'fulfilled' && r.value.url) urls[r.value.key] = r.value.url
+        })
         setPhotoUrls(urls)
       })
     } else {
       getSignedUrl(order.evidence_before_path).then(setBeforeUrl)
       getSignedUrl(order.evidence_after_path).then(setAfterUrl)
     }
-  }, [order.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isNewShape, photoPaths]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function doApprove() {
     setApproving(true)
