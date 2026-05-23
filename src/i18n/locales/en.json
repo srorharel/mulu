@@ -709,8 +709,10 @@
         "captured": "Captured",
         "verified": "Selfie verified",
         "retake": "Retake",
-        "unsupported": "Face verification not supported on this device. Please try a different device.",
-        "permissionDenied": "Camera permission required",
+        "permissionDenied": "Camera access is required. Enable it in your device settings, then tap Try again.",
+        "noCameraFound": "No camera found on this device.",
+        "unsupported": "Camera not supported in this browser. Please try a different device or browser.",
+        "tryAgain": "Try again",
         "cancel": "Cancel"
       },
       "sectionLicense": {

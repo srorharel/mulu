@@ -6,8 +6,10 @@ import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────
-const { mockUpload } = vi.hoisted(() => ({
-  mockUpload: vi.fn().mockResolvedValue({ error: null }),
+const { mockUpload, mockCheckPermissions, mockRequestPermissions } = vi.hoisted(() => ({
+  mockUpload:            vi.fn().mockResolvedValue({ error: null }),
+  mockCheckPermissions:  vi.fn().mockResolvedValue({ camera: 'granted' }),
+  mockRequestPermissions: vi.fn().mockResolvedValue({ camera: 'granted' }),
 }))
 
 vi.mock('../lib/supabase.js', () => ({
@@ -16,17 +18,21 @@ vi.mock('../lib/supabase.js', () => ({
   },
 }))
 
-vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => false } }))
+// isNativePlatform is overridden per-test in the permission suite
+vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: vi.fn(() => false) } }))
 vi.mock('@capacitor/camera', () => ({
-  Camera: { requestPermissions: vi.fn().mockResolvedValue({ camera: 'granted' }) },
+  Camera: {
+    checkPermissions:  mockCheckPermissions,
+    requestPermissions: mockRequestPermissions,
+  },
 }))
 
 // ── requestAnimationFrame control ─────────────────────────────────────────
-// We store scheduled callbacks in a map so tests can drive the loop manually.
 const rafCallbacks = new Map()
 let rafIdCounter = 0
 
 beforeEach(() => {
+  vi.clearAllMocks()
   rafCallbacks.clear()
   rafIdCounter = 0
   vi.stubGlobal('requestAnimationFrame', vi.fn(cb => {
@@ -44,7 +50,6 @@ afterEach(() => {
   rafCallbacks.clear()
 })
 
-// Drive one pending rAF callback (the most-recently-added one)
 async function driveOneTick() {
   if (rafCallbacks.size === 0) return
   const [[id, cb]] = rafCallbacks.entries()
@@ -52,15 +57,11 @@ async function driveOneTick() {
   await act(async () => { await cb(performance.now()) })
 }
 
-// Drive N ticks (each schedules the next automatically due to the loop)
 async function driveFrames(n) {
-  for (let i = 0; i < n; i++) {
-    await driveOneTick()
-  }
+  for (let i = 0; i < n; i++) await driveOneTick()
 }
 
 // ── HTMLVideoElement stubs ─────────────────────────────────────────────────
-// jsdom doesn't implement camera APIs; stub the minimum needed.
 function stubVideoElement() {
   Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth',  { get: () => 640, configurable: true })
   Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get: () => 480, configurable: true })
@@ -70,36 +71,34 @@ function stubVideoElement() {
     { set: vi.fn(), get: () => null, configurable: true })
 }
 
-// ── Camera stream mock ─────────────────────────────────────────────────────
 function makeStream() {
-  const stop = vi.fn()
+  const stop  = vi.fn()
   const track = { stop, kind: 'video' }
-  const stream = { getTracks: () => [track], stop }
-  return { stream, track, stop }
+  return { stream: { getTracks: () => [track] }, track, stop }
 }
 
-// Face bounding box that passes isFaceGood for a 640×480 video:
-// centre at (320, 240), area = 220×230 / (640×480) ≈ 16.4% ≥ 15%
 const GOOD_FACE = { x: 210, y: 125, width: 220, height: 230 }
 
-// ── i18n setup ─────────────────────────────────────────────────────────────
+// ── i18n ──────────────────────────────────────────────────────────────────
 const i18n = i18next.createInstance()
 i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
-        'washerSignup.verify.sectionSelfie.title':           'Selfie verification',
-        'washerSignup.verify.sectionSelfie.hint':            "We'll verify your face using your camera",
-        'washerSignup.verify.sectionSelfie.start':           'Start verification',
-        'washerSignup.verify.sectionSelfie.positioning':     'Position your face in the frame',
-        'washerSignup.verify.sectionSelfie.hold':            'Hold still...',
-        'washerSignup.verify.sectionSelfie.captured':        'Captured',
-        'washerSignup.verify.sectionSelfie.verified':        'Selfie verified',
-        'washerSignup.verify.sectionSelfie.retake':          'Retake',
-        'washerSignup.verify.sectionSelfie.unsupported':     'Face verification not supported on this device.',
-        'washerSignup.verify.sectionSelfie.permissionDenied':'Camera permission required',
-        'washerSignup.verify.sectionSelfie.cancel':          'Cancel',
-        'washerSignup.verify.submitError':                   'Submission failed.',
+        'washerSignup.verify.sectionSelfie.title':            'Selfie verification',
+        'washerSignup.verify.sectionSelfie.hint':             "We'll verify your face using your camera",
+        'washerSignup.verify.sectionSelfie.start':            'Start verification',
+        'washerSignup.verify.sectionSelfie.positioning':      'Position your face in the frame',
+        'washerSignup.verify.sectionSelfie.hold':             'Hold still...',
+        'washerSignup.verify.sectionSelfie.captured':         'Captured',
+        'washerSignup.verify.sectionSelfie.verified':         'Selfie verified',
+        'washerSignup.verify.sectionSelfie.retake':           'Retake',
+        'washerSignup.verify.sectionSelfie.permissionDenied': 'Camera access is required. Enable it in your device settings, then tap Try again.',
+        'washerSignup.verify.sectionSelfie.noCameraFound':    'No camera found on this device.',
+        'washerSignup.verify.sectionSelfie.unsupported':      'Camera not supported in this browser.',
+        'washerSignup.verify.sectionSelfie.tryAgain':         'Try again',
+        'washerSignup.verify.sectionSelfie.cancel':           'Cancel',
+        'washerSignup.verify.submitError':                    'Submission failed.',
       },
     },
   },
@@ -111,10 +110,10 @@ const wrapper = ({ children }) => (
   <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
 )
 
-// ── Import after mocks are declared ───────────────────────────────────────
 import SelfieVerificationModal from '../components/washer/SelfieVerificationModal.jsx'
+import { Capacitor } from '@capacitor/core'
+import { Camera } from '@capacitor/camera'
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 function renderModal(props = {}) {
   const onCapture = props.onCapture ?? vi.fn()
   const onClose   = props.onClose   ?? vi.fn()
@@ -124,11 +123,12 @@ function renderModal(props = {}) {
   )}
 }
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// ── Modal lifecycle ────────────────────────────────────────────────────────
 
 describe('SelfieVerificationModal — modal lifecycle', () => {
   beforeEach(() => {
     stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
     const { stream } = makeStream()
     Object.defineProperty(window.navigator, 'mediaDevices', {
       value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
@@ -141,27 +141,25 @@ describe('SelfieVerificationModal — modal lifecycle', () => {
     renderModal()
     await waitFor(() =>
       expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith(
-        expect.objectContaining({ video: expect.objectContaining({ facingMode: 'user' }) })
+        expect.objectContaining({ video: expect.objectContaining({ facingMode: { ideal: 'user' } }) })
       )
     )
   })
 
-  it('cancel button calls stopCamera (stops all tracks) and onClose', async () => {
+  it('cancel button stops all tracks and calls onClose', async () => {
     const { stop } = makeStream()
     navigator.mediaDevices.getUserMedia = vi.fn().mockResolvedValue({
       getTracks: () => [{ stop, kind: 'video' }],
     })
     const onClose = vi.fn()
     renderModal({ onClose })
-
     await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
-
     await userEvent.setup().click(screen.getByLabelText('Cancel'))
     expect(stop).toHaveBeenCalled()
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('unmounting the component stops all camera tracks', async () => {
+  it('unmounting stops all camera tracks', async () => {
     const { stop, stream } = makeStream()
     navigator.mediaDevices.getUserMedia = vi.fn().mockResolvedValue(stream)
     const { unmount } = renderModal()
@@ -171,9 +169,148 @@ describe('SelfieVerificationModal — modal lifecycle', () => {
   })
 })
 
+// ── Permission flow (native platform) ─────────────────────────────────────
+
+describe('SelfieVerificationModal — permission flow', () => {
+  beforeEach(() => {
+    stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(true)
+    delete window.FaceDetector
+  })
+
+  it('proceeds straight to camera when checkPermissions returns granted', async () => {
+    mockCheckPermissions.mockResolvedValue({ camera: 'granted' })
+    const { stream } = makeStream()
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
+    expect(mockRequestPermissions).not.toHaveBeenCalled()
+  })
+
+  it('requests permission when checkPermissions returns prompt, then opens camera', async () => {
+    mockCheckPermissions.mockResolvedValue({ camera: 'prompt' })
+    mockRequestPermissions.mockResolvedValue({ camera: 'granted' })
+    const { stream } = makeStream()
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
+    expect(mockRequestPermissions).toHaveBeenCalledWith({ permissions: ['camera'] })
+  })
+
+  it('shows denied screen when requestPermissions returns denied', async () => {
+    mockCheckPermissions.mockResolvedValue({ camera: 'prompt' })
+    mockRequestPermissions.mockResolvedValue({ camera: 'denied' })
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn() },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() =>
+      expect(screen.getByText(/Camera access is required/i)).toBeInTheDocument()
+    )
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled()
+  })
+
+  it('shows denied screen immediately when checkPermissions returns denied', async () => {
+    mockCheckPermissions.mockResolvedValue({ camera: 'denied' })
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn() },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() =>
+      expect(screen.getByText(/Camera access is required/i)).toBeInTheDocument()
+    )
+    expect(mockRequestPermissions).not.toHaveBeenCalled()
+  })
+
+  it('"Try again" button re-runs the permission check', async () => {
+    mockCheckPermissions.mockResolvedValueOnce({ camera: 'denied' })
+    mockCheckPermissions.mockResolvedValueOnce({ camera: 'granted' })
+    const { stream } = makeStream()
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() => expect(screen.getByRole('button', { name: /Try again/i })).toBeInTheDocument())
+    await userEvent.setup().click(screen.getByRole('button', { name: /Try again/i }))
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
+  })
+})
+
+// ── getUserMedia error states ──────────────────────────────────────────────
+
+describe('SelfieVerificationModal — getUserMedia error states', () => {
+  beforeEach(() => {
+    stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    delete window.FaceDetector
+  })
+
+  function gumError(name) {
+    const err = new Error(name)
+    err.name = name
+    return err
+  }
+
+  it('shows denied screen on NotAllowedError', async () => {
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockRejectedValue(gumError('NotAllowedError')) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() =>
+      expect(screen.getByText(/Camera access is required/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows denied screen on PermissionDeniedError', async () => {
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockRejectedValue(gumError('PermissionDeniedError')) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() =>
+      expect(screen.getByText(/Camera access is required/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows no-camera screen on NotFoundError', async () => {
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockRejectedValue(gumError('NotFoundError')) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() =>
+      expect(screen.getByText(/No camera found/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows unsupported screen on NotSupportedError', async () => {
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockRejectedValue(gumError('NotSupportedError')) },
+      configurable: true,
+    })
+    renderModal()
+    await waitFor(() =>
+      expect(screen.getByText(/Camera not supported/i)).toBeInTheDocument()
+    )
+  })
+})
+
+// ── Detector fallback ──────────────────────────────────────────────────────
+
 describe('SelfieVerificationModal — detector fallback', () => {
   beforeEach(() => {
     stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
     const { stream } = makeStream()
     Object.defineProperty(window.navigator, 'mediaDevices', {
       value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
@@ -184,82 +321,67 @@ describe('SelfieVerificationModal — detector fallback', () => {
   it('uses native FaceDetector when available, without importing MediaPipe', async () => {
     const mediapipeImport = vi.fn()
     vi.doMock('@mediapipe/tasks-vision', () => { mediapipeImport(); return {} })
-
     vi.stubGlobal('FaceDetector', class {
       detect() { return Promise.resolve([]) }
     })
-
     renderModal()
     await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
-    // Give time for detector init to complete
     await waitFor(() => rafCallbacks.size > 0)
     expect(mediapipeImport).not.toHaveBeenCalled()
   })
 
-  it('shows "not supported" when both FaceDetector and MediaPipe are unavailable', async () => {
+  it('shows unsupported when both FaceDetector and MediaPipe are unavailable', async () => {
     delete window.FaceDetector
     vi.doMock('@mediapipe/tasks-vision', () => { throw new Error('not available') })
-
     renderModal()
     await waitFor(() =>
-      expect(screen.getByText(/Face verification not supported/i)).toBeInTheDocument()
+      expect(screen.getByText(/Camera not supported/i)).toBeInTheDocument()
     )
   })
 })
 
-describe('SelfieVerificationModal — detection countdown', () => {
-  let stopMock
+// ── Detection countdown ────────────────────────────────────────────────────
 
+describe('SelfieVerificationModal — detection countdown', () => {
   beforeEach(() => {
     stubVideoElement()
-    stopMock = vi.fn()
+    Capacitor.isNativePlatform.mockReturnValue(false)
     Object.defineProperty(window.navigator, 'mediaDevices', {
       value: {
-        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: stopMock, kind: 'video' }] }),
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }] }),
       },
       configurable: true,
     })
-
-    // Stub canvas toBlob so capture doesn't fail
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }))
     HTMLCanvasElement.prototype.toBlob = vi.fn((cb) => cb(new Blob(['img'], { type: 'image/jpeg' })))
     vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:test') })
   })
 
-  it('counter resets to 0 when face is lost mid-countdown', async () => {
+  it('resets counter when face is lost mid-countdown', async () => {
     let callCount = 0
     vi.stubGlobal('FaceDetector', class {
       detect() {
         callCount++
-        // Return face for 20 frames, then nothing
         return Promise.resolve(callCount <= 20 ? [{ boundingBox: GOOD_FACE }] : [])
       }
     })
-
     renderModal()
     await waitFor(() => rafCallbacks.size > 0)
-
-    // 20 frames with face → countdown shown
     await driveFrames(20)
     await waitFor(() => expect(screen.getByText(/Hold still/i)).toBeInTheDocument())
-
-    // 5 more frames with no face → reset to "Position your face"
     await driveFrames(5)
     await waitFor(() =>
       expect(screen.getByText(/Position your face in the frame/i)).toBeInTheDocument()
     )
   })
 
-  it('auto-captures and calls onCapture after FRAMES_NEEDED consecutive good frames', async () => {
+  it('auto-captures after FRAMES_NEEDED consecutive good frames', async () => {
     vi.stubGlobal('FaceDetector', class {
       detect() { return Promise.resolve([{ boundingBox: GOOD_FACE }]) }
     })
-
     const onCapture = vi.fn()
     renderModal({ onCapture })
     await waitFor(() => rafCallbacks.size > 0)
-
-    // Drive 45+ frames — should trigger capture
     await driveFrames(50)
     await waitFor(() => expect(onCapture).toHaveBeenCalled())
     expect(onCapture).toHaveBeenCalledWith('blob:test', 'uid-123/selfie.jpg')
@@ -269,19 +391,20 @@ describe('SelfieVerificationModal — detection countdown', () => {
     vi.stubGlobal('FaceDetector', class {
       detect() { return Promise.resolve([]) }
     })
-
     const onCapture = vi.fn()
     renderModal({ onCapture })
     await waitFor(() => rafCallbacks.size > 0)
-
     await driveFrames(60)
     expect(onCapture).not.toHaveBeenCalled()
   })
 })
 
+// ── Upload integration ─────────────────────────────────────────────────────
+
 describe('SelfieVerificationModal — upload integration', () => {
   beforeEach(() => {
     stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
     Object.defineProperty(window.navigator, 'mediaDevices', {
       value: {
         getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }] }),
@@ -309,7 +432,7 @@ describe('SelfieVerificationModal — upload integration', () => {
     )
   })
 
-  it('keeps modal open and shows error message when upload fails', async () => {
+  it('keeps modal open with error message when upload fails', async () => {
     mockUpload.mockResolvedValueOnce({ error: { message: 'Bucket not found' } })
     const onCapture = vi.fn()
     renderModal({ onCapture })
@@ -319,7 +442,7 @@ describe('SelfieVerificationModal — upload integration', () => {
     expect(onCapture).not.toHaveBeenCalled()
   })
 
-  it('calls onCapture with previewUrl and storagePath on successful upload', async () => {
+  it('calls onCapture with previewUrl and storagePath on success', async () => {
     const onCapture = vi.fn()
     renderModal({ onCapture })
     await waitFor(() => rafCallbacks.size > 0)

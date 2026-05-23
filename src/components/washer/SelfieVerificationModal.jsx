@@ -5,10 +5,20 @@ import { Capacitor } from '@capacitor/core'
 import { Camera } from '@capacitor/camera'
 import { supabase } from '../../lib/supabase.js'
 
-const BUCKET          = 'washer-verification'
-const FRAMES_NEEDED   = 45    // ~1.5 s at 30 fps
-const CENTER_TOL      = 0.35  // face centre ≤35% from frame centre
-const MIN_AREA_RATIO  = 0.15  // face must cover ≥15% of frame area
+const BUCKET         = 'washer-verification'
+const FRAMES_NEEDED  = 45    // ~1.5 s at 30 fps
+const CENTER_TOL     = 0.35  // face centre ≤35% from frame centre
+const MIN_AREA_RATIO = 0.15  // face must cover ≥15% of frame area
+
+// Phases:
+//  starting   → requesting permission + opening camera + loading detector
+//  detecting  → live video, no stable face yet
+//  countdown  → face stable, counting 3-2-1
+//  uploading  → frame captured, uploading blob
+//  denied     → camera permission refused (show "Try again" after going to settings)
+//  no_camera  → no camera hardware found
+//  unsupported → getUserMedia / WebRTC not available
+//  error      → upload failed (show retry)
 
 function isFaceGood(face, vw, vh) {
   const cx = face.x + face.width  / 2
@@ -20,10 +30,7 @@ function isFaceGood(face, vw, vh) {
   )
 }
 
-// Returns a normalised detector or null if nothing is available.
-// Called once when the modal opens; result is stored in a ref.
 async function buildDetector() {
-  // Priority 1: native browser FaceDetector (Chrome Android)
   if ('FaceDetector' in window) {
     try {
       const native = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
@@ -37,8 +44,6 @@ async function buildDetector() {
       }
     } catch { /* fall through */ }
   }
-
-  // Priority 2: MediaPipe Tasks Vision (lazy-loaded to avoid bundle bloat)
   try {
     const vision = await import('@mediapipe/tasks-vision')
     const fileset = await vision.FilesetResolver.forVisionTasks(
@@ -64,8 +69,28 @@ async function buildDetector() {
       },
     }
   } catch { /* fall through */ }
-
   return null
+}
+
+// Checks + requests the Android camera permission via the Capacitor Camera
+// plugin (which maps to the Android CAMERA runtime permission).
+// Returns 'granted' | 'denied'. On web, always returns 'granted' and the
+// browser's own permission prompt fires when getUserMedia is called.
+async function ensureCameraPermission() {
+  if (!Capacitor.isNativePlatform()) return 'granted'
+  try {
+    let status = await Camera.checkPermissions()
+    console.log('[selfie] checkPermissions:', status.camera)
+    if (status.camera === 'granted') return 'granted'
+    if (status.camera === 'denied')  return 'denied'
+    // 'prompt' or 'prompt-with-rationale' → show system dialog
+    status = await Camera.requestPermissions({ permissions: ['camera'] })
+    console.log('[selfie] requestPermissions result:', status.camera)
+    return status.camera === 'granted' ? 'granted' : 'denied'
+  } catch (err) {
+    console.error('[selfie] permission check error', err)
+    return 'granted' // best-effort: let getUserMedia fail with its own error if needed
+  }
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -73,8 +98,7 @@ async function buildDetector() {
 export default function SelfieVerificationModal({ userId, onCapture, onClose }) {
   const { t } = useTranslation()
 
-  const [phase, setPhase]       = useState('starting')
-  // phases: starting | detecting | countdown | uploading | error | unsupported
+  const [phase,     setPhase]     = useState('starting')
   const [countdown, setCountdown] = useState(3)
   const [errorMsg,  setErrorMsg]  = useState('')
 
@@ -91,14 +115,13 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       cancelAnimationFrame(rafRef.current)
       rafRef.current = null
     }
-    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current?.getTracks().forEach(tr => tr.stop())
     streamRef.current = null
   }, [])
 
-  // Always stop the camera when the modal unmounts
   useEffect(() => () => stopCamera(), [stopCamera])
 
-  // ── detection loop (defined before start so it can be called from start) ──
+  // ── detection loop ─────────────────────────────────────────────────────────
   const loop = useCallback(() => {
     const tick = async () => {
       if (capturedRef.current) return
@@ -107,7 +130,6 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         rafRef.current = requestAnimationFrame(tick)
         return
       }
-
       const { isAsync, run } = detectorRef.current
       let faces = []
       try {
@@ -116,14 +138,12 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         rafRef.current = requestAnimationFrame(tick)
         return
       }
-
-      const vw = video.videoWidth  || video.clientWidth  || 1
-      const vh = video.videoHeight || video.clientHeight || 1
+      const vw   = video.videoWidth  || video.clientWidth  || 1
+      const vh   = video.videoHeight || video.clientHeight || 1
       const good = faces.length > 0 && isFaceGood(faces[0], vw, vh)
-
       if (good) {
         consecutiveRef.current += 1
-        const n = consecutiveRef.current
+        const n  = consecutiveRef.current
         const cd = n < FRAMES_NEEDED / 3 ? 3 : n < (2 * FRAMES_NEEDED) / 3 ? 2 : 1
         setPhase('countdown')
         setCountdown(cd)
@@ -139,7 +159,6 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
           setPhase('detecting')
         }
       }
-
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -162,85 +181,70 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       if (upErr) throw upErr
       onCapture(URL.createObjectURL(blob), path)
     } catch (err) {
-      console.error('[washer-verify] selfie upload failed', err)
+      console.error('[selfie] upload failed', err)
       capturedRef.current = false
       setPhase('error')
       setErrorMsg(err.message || t('washerSignup.verify.submitError'))
     }
   }, [userId, onCapture, stopCamera, t])
 
-  // ── start camera + init detector ───────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false
-
-    async function start() {
-      // On Capacitor Android, request camera permission explicitly
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const perm = await Camera.requestPermissions({ permissions: ['camera'] })
-          if (perm.camera !== 'granted') {
-            if (!cancelled) {
-              setPhase('error')
-              setErrorMsg(t('washerSignup.verify.sectionSelfie.permissionDenied'))
-            }
-            return
-          }
-        } catch { /* best-effort; getUserMedia will fail if denied */ }
-      }
-
-      // Open the front camera
-      let stream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      } catch {
-        if (!cancelled) {
-          setPhase('error')
-          setErrorMsg(t('washerSignup.verify.sectionSelfie.permissionDenied'))
-        }
-        return
-      }
-      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play().catch(() => {})
-      }
-
-      // Initialise face detector (may lazy-load MediaPipe)
-      const detector = await buildDetector()
-      if (cancelled) return
-      if (!detector) { setPhase('unsupported'); return }
-      detectorRef.current = detector
-      setPhase('detecting')
-      loop()
-    }
-
-    start()
-    return () => { cancelled = true }
-  }, [loop, t])
-
-  // ── retry after upload error ───────────────────────────────────────────────
-  async function retry() {
-    setErrorMsg('')
+  // ── start (permission → camera → detector → loop) ─────────────────────────
+  const startCamera = useCallback(async () => {
+    stopCamera()
     consecutiveRef.current = 0
     capturedRef.current    = false
     setPhase('starting')
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play().catch(() => {})
-      }
-      setPhase('detecting')
-      loop()
-    } catch {
-      setPhase('error')
-      setErrorMsg(t('washerSignup.verify.sectionSelfie.permissionDenied'))
-    }
-  }
+    setErrorMsg('')
 
-  // ── status text ────────────────────────────────────────────────────────────
+    // 1. Ensure Android camera runtime permission is granted
+    const permResult = await ensureCameraPermission()
+    if (permResult === 'denied') {
+      console.error('[selfie] camera permission denied')
+      setPhase('denied')
+      return
+    }
+
+    // 2. Open the front camera with forgiving constraints
+    let stream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'user' },
+          width:      { ideal: 1280 },
+          height:     { ideal: 720 },
+        },
+        audio: false,
+      })
+    } catch (err) {
+      console.error('[selfie] getUserMedia failed', err.name, err.message)
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setPhase('denied')
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setPhase('no_camera')
+      } else {
+        setPhase('unsupported')
+      }
+      return
+    }
+
+    streamRef.current = stream
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream
+      await videoRef.current.play().catch(() => {})
+    }
+
+    // 3. Init face detector (may lazy-load MediaPipe)
+    const detector = await buildDetector()
+    if (!detector) { setPhase('unsupported'); return }
+    detectorRef.current = detector
+    setPhase('detecting')
+    loop()
+  }, [stopCamera, loop])
+
+  // Mount: start immediately
+  useEffect(() => { startCamera() }, [startCamera])
+
+  // ── derived UI ─────────────────────────────────────────────────────────────
   const statusText =
     phase === 'detecting'  ? t('washerSignup.verify.sectionSelfie.positioning')
     : phase === 'countdown' ? `${t('washerSignup.verify.sectionSelfie.hold')} ${countdown}…`
@@ -266,7 +270,6 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       {/* Live camera + oval guide */}
       {showVideo && (
         <div className="relative w-full max-w-sm aspect-[3/4] overflow-hidden" dir="ltr">
-          {/* Mirror the video horizontally so it feels like a mirror */}
           <video
             ref={videoRef}
             autoPlay
@@ -274,7 +277,6 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
             muted
             className="w-full h-full object-cover scale-x-[-1]"
           />
-          {/* SVG overlay: dim everything outside the oval */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
             viewBox="0 0 300 400"
@@ -298,39 +300,58 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         </div>
       )}
 
-      {/* Status text (detecting / countdown / uploading) */}
+      {/* Status text */}
       {statusText ? (
-        <p className="mt-6 text-white text-base font-medium text-center px-6">
-          {statusText}
-        </p>
+        <p className="mt-6 text-white text-base font-medium text-center px-6">{statusText}</p>
       ) : null}
 
-      {/* Upload success flash */}
+      {/* Upload flash */}
       {phase === 'uploading' && (
         <div className="flex items-center gap-2 mt-4 text-green-400">
           <CheckCircle className="h-6 w-6" />
         </div>
       )}
 
-      {/* Error state */}
+      {/* Permission denied */}
+      {phase === 'denied' && (
+        <div className="flex flex-col items-center gap-5 px-8 text-center">
+          <p className="text-white text-base">{t('washerSignup.verify.sectionSelfie.permissionDenied')}</p>
+          <button
+            type="button"
+            onClick={startCamera}
+            className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm"
+          >
+            {t('washerSignup.verify.sectionSelfie.tryAgain')}
+          </button>
+        </div>
+      )}
+
+      {/* No camera hardware */}
+      {phase === 'no_camera' && (
+        <p className="px-8 text-white text-base text-center">
+          {t('washerSignup.verify.sectionSelfie.noCameraFound')}
+        </p>
+      )}
+
+      {/* Unsupported browser / WebRTC unavailable */}
+      {phase === 'unsupported' && (
+        <p className="px-8 text-white text-base text-center">
+          {t('washerSignup.verify.sectionSelfie.unsupported')}
+        </p>
+      )}
+
+      {/* Upload error */}
       {phase === 'error' && (
         <div className="flex flex-col items-center gap-5 px-8 text-center">
           <p className="text-white text-base">{errorMsg}</p>
           <button
             type="button"
-            onClick={retry}
+            onClick={startCamera}
             className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm"
           >
             {t('washerSignup.verify.sectionSelfie.retake')}
           </button>
         </div>
-      )}
-
-      {/* Unsupported */}
-      {phase === 'unsupported' && (
-        <p className="px-8 text-white text-base text-center">
-          {t('washerSignup.verify.sectionSelfie.unsupported')}
-        </p>
       )}
     </div>
   )
