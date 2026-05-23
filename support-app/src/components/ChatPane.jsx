@@ -101,12 +101,14 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick 
   }
 
   async function handleResolve() {
-    await resolveConversation(convId)
+    const { error } = await resolveConversation(convId)
+    if (error) { setSendError(t('common.error')); return }
     onConvUpdate?.()
   }
 
   async function handleRelease() {
-    await releaseConversation(convId)
+    const { error } = await releaseConversation(convId)
+    if (error) { setSendError(t('common.error')); return }
     onConvUpdate?.()
   }
 

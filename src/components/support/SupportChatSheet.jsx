@@ -96,7 +96,7 @@ export default function SupportChatSheet({ open, convId, onClose }) {
       presenceChannelRef.current = null
       setTypingLabel(null)
     }
-  }, [open, convId, user, t])
+  }, [open, convId, user])
 
   function handleTyping(isTyping) {
     presenceChannelRef.current?.track({

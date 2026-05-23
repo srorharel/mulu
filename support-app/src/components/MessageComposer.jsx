@@ -22,6 +22,18 @@ export default function MessageComposer({ onSend, onTyping, disabled }) {
     el.style.height = `${Math.min(el.scrollHeight, 96)}px`
   }, [text])
 
+  // Keep a ref so the unmount cleanup can see the latest attachment value
+  const attachmentRef = useRef(null)
+  attachmentRef.current = attachment
+
+  // Clear timer + revoke object URL on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimerRef.current)
+      if (attachmentRef.current?.preview) URL.revokeObjectURL(attachmentRef.current.preview)
+    }
+  }, [])
+
   function handleTextChange(e) {
     const val = e.target.value
     setText(val)

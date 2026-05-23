@@ -9,7 +9,7 @@ function makeConv(overrides = {}) {
     opener:                { full_name: overrides.name ?? 'Test User', role: overrides.role ?? 'consumer' },
     last_message_at:       overrides.last_message_at ?? null,
     created_at:            new Date().toISOString(),
-    last_message_preview:  overrides.preview ?? null,
+    last_message_body:     overrides.preview ?? null,
     subject:               overrides.subject ?? null,
     ...overrides,
   }

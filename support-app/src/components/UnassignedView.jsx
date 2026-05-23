@@ -26,7 +26,7 @@ function UnassignedRow({ conversation, onClaim }) {
   const openerName = conversation.opener?.full_name || 'Unknown'
   const openerRole = conversation.opener?.role
   const roleLabel  = openerRole === 'consumer' ? 'Customer' : openerRole === 'washer' ? 'Washer' : null
-  const preview    = conversation.last_message_preview ?? conversation.subject ?? ''
+  const preview    = conversation.last_message_body ?? conversation.subject ?? ''
   const time       = timeAgo(conversation.last_message_at ?? conversation.created_at)
   const hue        = nameToHue(openerName)
   const initials   = nameInitials(openerName) || '?'
