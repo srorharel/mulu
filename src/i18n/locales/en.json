@@ -700,24 +700,12 @@
         "change": "Change photo",
         "uploaded": "ID uploaded"
       },
-      "sectionLiveness": {
-        "title": "Liveness check",
-        "hint": "Follow the on-screen prompts to confirm you're a real person",
-        "start": "Start camera check",
-        "retake": "Retake",
-        "done": "Liveness verified",
-        "loading": "Loading camera…",
-        "noCamera": "No camera found. A camera is required for this check.",
-        "faceNotFound": "No face detected. Make sure your face is visible.",
-        "prompt": {
-          "straight": "Look straight at the camera",
-          "left": "Turn your head left",
-          "right": "Turn your head right",
-          "up": "Look up"
-        },
-        "hold": "Hold…",
-        "complete": "All done!",
-        "modelLoading": "Loading face detection…"
+      "sectionSelfie": {
+        "title": "Selfie",
+        "instruction": "Take a clear front-facing photo of your face",
+        "cta": "Take selfie",
+        "uploaded": "Selfie taken",
+        "retake": "Retake"
       },
       "sectionLicense": {
         "title": "Certificate of Licensed Dealer",

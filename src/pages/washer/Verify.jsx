@@ -1,14 +1,14 @@
-import { useState, useRef, lazy, Suspense } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Waves, CheckCircle, Upload } from 'lucide-react'
+import { Waves, CheckCircle, Upload, Camera as CameraIcon } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { Camera as NativeCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resizeToBlob } from '../../lib/imageResize.js'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import MotionButton from '../../components/ui/MotionButton.jsx'
-
-const LivenessCapture = lazy(() => import('./LivenessCapture.jsx'))
 
 const BUCKET = 'washer-verification'
 
@@ -85,35 +85,69 @@ export default function Verify() {
 
   const [idFile, setIdFile]               = useState(null)
   const [idPreview, setIdPreview]         = useState(null)
-  const [livenessBlobs, setLivenessBlobs] = useState(null)
+  const [selfieFile, setSelfieFile]       = useState(null)
+  const [selfiePreview, setSelfiePreview] = useState(null)
   const [licenseFile, setLicenseFile]     = useState(null)
   const [licensePreview, setLicensePreview] = useState(null)
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]           = useState('')
 
-  const allDone = !!idFile && !!livenessBlobs && !!licenseFile
+  const selfieInputRef = useRef(null)
+
+  const allDone = !!idFile && !!selfieFile && !!licenseFile
+
+  async function handleSelfie() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await NativeCamera.getPhoto({
+          quality:            85,
+          allowEditing:       false,
+          resultType:         CameraResultType.DataUrl,
+          source:             CameraSource.Camera,
+          direction:          'FRONT',
+          correctOrientation: true,
+        })
+        if (result.dataUrl) {
+          const blob = await fetch(result.dataUrl).then(r => r.blob())
+          setSelfieFile(blob)
+          setSelfiePreview(result.dataUrl)
+        }
+      } catch (e) {
+        if (!e?.message?.toLowerCase().includes('cancel')) {
+          setError(t('washerSignup.verify.submitError'))
+        }
+      }
+    } else {
+      selfieInputRef.current?.click()
+    }
+  }
+
+  function handleSelfieFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setSelfieFile(file)
+    setSelfiePreview(URL.createObjectURL(file))
+  }
+
+  function retakeSelfie() {
+    setSelfieFile(null)
+    setSelfiePreview(null)
+    if (selfieInputRef.current) selfieInputRef.current.value = ''
+  }
 
   async function uploadFile(file, path) {
     let blob = file
     if (file.type.startsWith('image/')) {
       try { blob = await resizeToBlob(file) } catch { /* use original */ }
     }
-    const ext = file.name.split('.').pop().toLowerCase()
+    const ext = (file.name ?? 'file').split('.').pop().toLowerCase()
     const finalPath = path.endsWith('.jpg') ? path : `${path}.${ext}`
     const { error: err } = await supabase.storage
       .from(BUCKET)
-      .upload(finalPath, blob, { upsert: true, contentType: file.type || 'application/octet-stream' })
+      .upload(finalPath, blob, { upsert: true, contentType: file.type || 'image/jpeg' })
     if (err) throw err
     return finalPath
-  }
-
-  async function uploadBlob(blob, path) {
-    const { error: err } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-    if (err) throw err
-    return path
   }
 
   async function handleSubmit(e) {
@@ -125,13 +159,10 @@ export default function Verify() {
     try {
       const uid = user.id
 
-      const idPath = await uploadFile(idFile, `${uid}/id_document.jpg`)
+      const idPath      = await uploadFile(idFile, `${uid}/id_document.jpg`)
+      const selfiePath  = await uploadFile(selfieFile, `${uid}/selfie.jpg`)
 
-      const livenessPaths = await Promise.all(
-        livenessBlobs.map((blob, i) => uploadBlob(blob, `${uid}/liveness_${i + 1}.jpg`))
-      )
-
-      const licenseExt  = licenseFile.name.split('.').pop().toLowerCase()
+      const licenseExt  = (licenseFile.name ?? 'file').split('.').pop().toLowerCase()
       const licensePath = await uploadFile(licenseFile, `${uid}/business_license.${licenseExt}`)
 
       const { error: insertErr } = await supabase.from('washer_verifications').insert({
@@ -139,7 +170,7 @@ export default function Verify() {
         dealer_number:         dealerNumber,
         service_areas:         serviceAreas,
         id_document_path:      idPath,
-        liveness_paths:        livenessPaths,
+        selfie_path:           selfiePath,
         business_license_path: licensePath,
       })
       if (insertErr) throw insertErr
@@ -201,14 +232,42 @@ export default function Verify() {
 
             <hr className="border-neutral-100" />
 
-            {/* Section B: Liveness */}
+            {/* Section B: Selfie */}
             <div className="flex flex-col gap-3">
-              <SectionHeader number="B" title={t('washerSignup.verify.sectionLiveness.title')} done={!!livenessBlobs} />
-              <Suspense fallback={
-                <div className="text-sm text-neutral-500">{t('washerSignup.verify.sectionLiveness.modelLoading')}</div>
-              }>
-                <LivenessCapture onComplete={blobs => setLivenessBlobs(blobs || null)} />
-              </Suspense>
+              <SectionHeader number="B" title={t('washerSignup.verify.sectionSelfie.title')} done={!!selfieFile} />
+              <p className="text-sm text-neutral-600">{t('washerSignup.verify.sectionSelfie.instruction')}</p>
+              {selfieFile ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-sm text-success-600 font-medium">
+                    <CheckCircle className="h-4 w-4" />
+                    {t('washerSignup.verify.sectionSelfie.uploaded')}
+                  </div>
+                  {selfiePreview && (
+                    <img src={selfiePreview} alt="" className="h-24 w-auto rounded-lg object-cover border border-neutral-200" />
+                  )}
+                  <button type="button" onClick={retakeSelfie} className="text-xs text-neutral-500 underline" disabled={submitting}>
+                    {t('washerSignup.verify.sectionSelfie.retake')}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSelfie}
+                  disabled={submitting}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-neutral-300 text-sm text-neutral-600 hover:border-primary-400 hover:text-primary-600 transition-colors"
+                >
+                  <CameraIcon className="h-4 w-4" />
+                  {t('washerSignup.verify.sectionSelfie.cta')}
+                </button>
+              )}
+              <input
+                ref={selfieInputRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                className="sr-only"
+                onChange={handleSelfieFile}
+              />
             </div>
 
             <hr className="border-neutral-100" />

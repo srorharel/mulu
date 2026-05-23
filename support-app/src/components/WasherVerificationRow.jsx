@@ -83,8 +83,8 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
     async function loadUrls() {
       const paths = [
         { key: 'id', path: verification.id_document_path },
+        { key: 'selfie', path: verification.selfie_path },
         { key: 'license', path: verification.business_license_path },
-        ...(verification.liveness_paths ?? []).map((path, i) => ({ key: `liveness_${i}`, path })),
       ]
       const results = await Promise.allSettled(
         paths.map(async ({ key, path }) => ({ key, url: await getVerificationSignedUrl(path) }))
@@ -96,7 +96,7 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
       setUrls(urlMap)
     }
     loadUrls()
-  }, [verification.id, verification.id_document_path, verification.business_license_path]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [verification.id, verification.id_document_path, verification.selfie_path, verification.business_license_path])
 
   async function doApprove() {
     setBusy(true); setError('')
@@ -114,8 +114,6 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
     if (err) { setError(err.message); return }
     onReviewed(verification.id)
   }
-
-  const livenessCount = (verification.liveness_paths ?? []).length
 
   return (
     <div className="border border-edge rounded-2xl bg-surface-elevated p-4 flex flex-col gap-4">
@@ -233,13 +231,11 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
           </div>
         </div>
 
-        {/* Liveness frames */}
+        {/* Selfie */}
         <div className="flex flex-col gap-1.5">
-          <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">{t('washerVerifications.liveness')}</p>
-          <div className="grid grid-cols-2 gap-1">
-            {Array.from({ length: Math.max(livenessCount, 4) }, (_, i) => (
-              <DocThumb key={i} label={`${i + 1}`} url={urls[`liveness_${i}`]} icon={Camera} />
-            ))}
+          <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">{t('washerVerifications.selfie')}</p>
+          <div className="grid grid-cols-1 gap-1">
+            <DocThumb label={t('washerVerifications.selfieDoc')} url={urls.selfie} icon={Camera} />
           </div>
         </div>
 

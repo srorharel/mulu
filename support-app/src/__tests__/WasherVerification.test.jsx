@@ -31,7 +31,8 @@ i18n.use(initReactI18next).init({
         'washerVerifications.status.pending_review': 'Pending review',
         'washerVerifications.dealerNumber': 'Dealer number',
         'washerVerifications.idDoc': 'ID Document',
-        'washerVerifications.liveness': 'Liveness',
+        'washerVerifications.selfie': 'Selfie',
+        'washerVerifications.selfieDoc': 'Photo',
         'washerVerifications.license': 'Business License',
         'washerVerifications.licenseDoc': 'Document',
         'washerVerifications.rejectReason': 'Rejection reason',
@@ -62,7 +63,7 @@ function makeVerification(overrides = {}) {
     status: 'pending_review',
     submitted_at: new Date(Date.now() - 3600_000).toISOString(),
     id_document_path: 'uid1/id_document.jpg',
-    liveness_paths: ['uid1/liveness_1.jpg', 'uid1/liveness_2.jpg'],
+    selfie_path: 'uid1/selfie.jpg',
     business_license_path: 'uid1/business_license.jpg',
     washer: { id: 'uid1', full_name: 'Yossi Ploni', email: 'yossi@test.com' },
     ...overrides,
@@ -121,6 +122,14 @@ describe('WasherVerificationRow', () => {
     const confirmBtn = screen.getByText('Confirm rejection')
     expect(confirmBtn).toBeDisabled()
     expect(onReviewed).not.toHaveBeenCalled()
+  })
+
+  it('shows the Selfie section label', async () => {
+    render(
+      <WasherVerificationRow verification={makeVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    expect(screen.getByText('Selfie')).toBeInTheDocument()
   })
 
   it('calls reviewVerification with rejected + reason', async () => {
