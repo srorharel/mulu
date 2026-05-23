@@ -71,7 +71,7 @@ Three roles exist in `profiles.role`:
 - `/profile/settings` — consumer settings (notifications, appearance/dark mode, language, vehicles link)
 
 **Washer onboarding routes** (accessible while `washer_verification_status` is not `approved`):
-- `/signup/washer/verify` — upload ID + liveness selfie (face-api.js CDN) + business license; lazy-loaded
+- `/signup/washer/verify` — upload ID + live selfie face verification + business license; lazy-loaded. **Selfie flow:** tapping "Start verification" opens `SelfieVerificationModal` (live front camera + face detection loop); a face must be stable and centered for ~1.5 s (45 frames) to auto-capture; frame is uploaded to `washer-verification` bucket inside the modal before the parent form even submits. Detector priority: (1) native `window.FaceDetector` (Chrome Android), (2) MediaPipe `@mediapipe/tasks-vision` lazy-loaded from CDN wasm. If neither is available, modal shows "not supported" and blocks capture.
 - `/signup/washer/pending` — waiting screen; auto-navigates to `/washer` via Realtime when approved; shows rejection reason + resubmit button if rejected
 
 **Washer route guard:** `RoleGuard` checks `profiles.washer_verification_status` before allowing washer access. `null` or `pending_documents` → `/signup/washer/verify`; `pending_review` or `rejected` → `/signup/washer/pending`; `approved` → normal routes. `washerVerificationRedirect(status, pathname)` is exported for unit-testing.

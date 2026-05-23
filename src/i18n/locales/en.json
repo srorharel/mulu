@@ -701,14 +701,17 @@
         "uploaded": "ID uploaded"
       },
       "sectionSelfie": {
-        "title": "Selfie",
-        "instruction": "Take a clear front-facing photo of your face",
-        "cta": "Take selfie",
-        "uploaded": "Selfie taken",
+        "title": "Selfie verification",
+        "hint": "We'll verify your face using your camera",
+        "start": "Start verification",
+        "positioning": "Position your face in the frame",
+        "hold": "Hold still...",
+        "captured": "Captured",
+        "verified": "Selfie verified",
         "retake": "Retake",
-        "checking": "Checking your photo…",
-        "noFace": "No face detected. Please take a clear front-facing photo of your face.",
-        "checkUnavailable": "Could not verify face. Please try again on a different device or browser."
+        "unsupported": "Face verification not supported on this device. Please try a different device.",
+        "permissionDenied": "Camera permission required",
+        "cancel": "Cancel"
       },
       "sectionLicense": {
         "title": "Certificate of Licensed Dealer",

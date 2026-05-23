@@ -18,6 +18,11 @@ export default defineConfig(() => {
       globals: true,
       setupFiles: ['./src/test/setup.js'],
       exclude: ['support-app/**', '**/node_modules/**', '**/dist/**'],
+      alias: {
+        // Point to a minimal stub so tests don't require the real npm package.
+        // The real package is lazy-loaded only at runtime in the browser.
+        '@mediapipe/tasks-vision': new URL('./src/test/__mocks__/mediapipe-tasks-vision.js', import.meta.url).pathname,
+      },
     },
     build: {
       rollupOptions: {
