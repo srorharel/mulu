@@ -90,6 +90,7 @@ i18n.use(initReactI18next).init({
         'washerSignup.verify.sectionSelfie.hint':             "We'll verify your face using your camera",
         'washerSignup.verify.sectionSelfie.start':            'Start verification',
         'washerSignup.verify.sectionSelfie.position':         'Position your face in the oval',
+        'washerSignup.verify.sectionSelfie.fitInOval':        'Fit your whole face inside the oval',
         'washerSignup.verify.sectionSelfie.center':           'Center your face',
         'washerSignup.verify.sectionSelfie.closer':           'Move closer',
         'washerSignup.verify.sectionSelfie.farther':          'Move back',
@@ -137,12 +138,12 @@ describe('evaluateFace', () => {
     expect(evaluateFace(undefined, vw, vh)).toBe('none')
   })
 
-  it('returns "good" for a centered face of reasonable size', () => {
-    // cx=0.5, cy=0.5, area≈0.165
+  it('returns "good" for a centered face with all corners inside oval', () => {
+    // cx=0.5, cy=0.5, area≈0.165 — all 4 corners + center pass pointInOval
     expect(evaluateFace(GOOD_FACE, vw, vh)).toBe('good')
   })
 
-  it('returns "too_far" when face area < 0.08', () => {
+  it('returns "too_far" when face area < 0.06', () => {
     // Small box: 100×100 = 10000 / 307200 ≈ 0.033
     expect(evaluateFace({ x: 270, y: 190, width: 100, height: 100 }, vw, vh)).toBe('too_far')
   })
@@ -152,14 +153,19 @@ describe('evaluateFace', () => {
     expect(evaluateFace({ x: 70, y: 40, width: 500, height: 400 }, vw, vh)).toBe('too_close')
   })
 
-  it('returns "off_center" when face is off to the side', () => {
-    // cx = (10 + 150) / 640 = 0.25 → |0.25 - 0.5| = 0.25 > 0.15
+  it('returns "off_center" when face is shifted far to the side', () => {
+    // top-left corner at x1=0.016 is well outside oval (rx=0.38)
     expect(evaluateFace({ x: 10, y: 90, width: 300, height: 250 }, vw, vh)).toBe('off_center')
   })
 
-  it('returns "off_center" when face is too high', () => {
-    // cy = (5 + 115) / 480 = 0.25 → |0.25 - 0.5| = 0.25 > 0.20
+  it('returns "off_center" when face is too high (top corners outside oval)', () => {
+    // top corners at y1=0.010 are above oval top (cy-ry = 0.5-0.32 = 0.18)
     expect(evaluateFace({ x: 210, y: 5, width: 220, height: 230 }, vw, vh)).toBe('off_center')
+  })
+
+  it('returns "off_center" when one corner just exits the oval', () => {
+    // x=10 shifts top-left corner outside — containment fails even though center is near oval
+    expect(evaluateFace({ x: 10, y: 50, width: 280, height: 280 }, vw, vh)).toBe('off_center')
   })
 })
 
@@ -471,7 +477,8 @@ describe('SelfieVerificationModal — detection countdown', () => {
     vi.stubGlobal('FaceDetector', class {
       detect() {
         callCount++
-        return Promise.resolve(callCount <= 20 ? [{ boundingBox: GOOD_FACE }] : [])
+        // call 1 is the loadDetector smoke-test; loop frames start at call 2
+        return Promise.resolve(callCount <= 21 ? [{ boundingBox: GOOD_FACE }] : [])
       }
     })
     renderModal()
@@ -508,7 +515,7 @@ describe('SelfieVerificationModal — detection countdown', () => {
   })
 
   it('shows "Move closer" text when face is too far away', async () => {
-    // Small box: area ≈ 0.033 < 0.08 → too_far
+    // Small box: area ≈ 0.033 < 0.06 → too_far
     vi.stubGlobal('FaceDetector', class {
       detect() {
         return Promise.resolve([{ boundingBox: { x: 270, y: 190, width: 100, height: 100 } }])
@@ -520,8 +527,8 @@ describe('SelfieVerificationModal — detection countdown', () => {
     await waitFor(() => expect(screen.getByText(/Move closer/i)).toBeInTheDocument())
   })
 
-  it('shows "Center your face" text when face is off-center', async () => {
-    // Off to the left: cx = (10+150)/640 = 0.25
+  it('shows "Fit your whole face inside the oval" text when face is partially outside oval', async () => {
+    // Top-left corner at x=10 exits oval → off_center containment check
     vi.stubGlobal('FaceDetector', class {
       detect() {
         return Promise.resolve([{ boundingBox: { x: 10, y: 90, width: 300, height: 250 } }])
@@ -530,7 +537,36 @@ describe('SelfieVerificationModal — detection countdown', () => {
     renderModal()
     await waitFor(() => rafCallbacks.size > 0)
     await driveFrames(3)
-    await waitFor(() => expect(screen.getByText(/Center your face/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Fit your whole face inside the oval/i)).toBeInTheDocument())
+  })
+
+  it('capture fires at exactly 30 consecutive good frames', async () => {
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([{ boundingBox: GOOD_FACE }]) }
+    })
+    const onCapture = vi.fn()
+    renderModal({ onCapture })
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(29)
+    expect(onCapture).not.toHaveBeenCalled()
+    await driveFrames(1)
+    await waitFor(() => expect(onCapture).toHaveBeenCalled())
+  })
+
+  it('resets counter on a non-good frame at frame 30 and does not capture', async () => {
+    let callCount = 0
+    vi.stubGlobal('FaceDetector', class {
+      detect() {
+        callCount++
+        // Good for frames 1-29, bad at frame 30, good again 31-35
+        return Promise.resolve(callCount === 30 ? [] : [{ boundingBox: GOOD_FACE }])
+      }
+    })
+    const onCapture = vi.fn()
+    renderModal({ onCapture })
+    await waitFor(() => rafCallbacks.size > 0)
+    await driveFrames(35)
+    expect(onCapture).not.toHaveBeenCalled()
   })
 })
 
@@ -653,5 +689,31 @@ describe('SelfieVerificationModal — upload integration', () => {
     await waitFor(() => rafCallbacks.size > 0)
     await driveFrames(50)
     await waitFor(() => expect(stop).toHaveBeenCalled())
+  })
+})
+
+// ── Debug overlay gating ───────────────────────────────────────────────────
+
+describe('SelfieVerificationModal — debug overlay', () => {
+  beforeEach(() => {
+    stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }], active: true }),
+      },
+      configurable: true,
+    })
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([]) }
+    })
+  })
+
+  it('renders both debug overlays when import.meta.env.DEV is true (test env default)', async () => {
+    // Vitest runs with DEV=true by default — verify overlays are present.
+    renderModal()
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
+    expect(screen.getByText(/BUILD:/)).toBeInTheDocument()
+    expect(screen.getByText(/state:.*face:.*frames:/)).toBeInTheDocument()
   })
 })

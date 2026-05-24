@@ -705,6 +705,7 @@
         "hint": "We'll verify your face using your camera",
         "start": "Start verification",
         "position": "Position your face in the oval",
+        "fitInOval": "Fit your whole face inside the oval",
         "center": "Center your face",
         "closer": "Move closer",
         "farther": "Move back",

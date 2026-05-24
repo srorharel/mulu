@@ -1,407 +1,452 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { X, CheckCircle } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
-import { Camera } from '@capacitor/camera'
-import { supabase } from '../../lib/supabase.js'
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Capacitor } from '@capacitor/core';
+import { Camera } from '@capacitor/camera';
+import { supabase } from '../../lib/supabase.js';
 
-const BUCKET        = 'washer-verification'
-const FRAMES_NEEDED = 45   // ~1.5 s at 30 fps
+const BUCKET = 'washer-verification';
+const FRAMES_NEEDED = 30;
 
-// Detection states:
-//   none       → no face found
-//   off_center → face found but outside center zone
-//   too_far    → face too small (far away)
-//   too_close  → face too large (too close)
-//   good       → properly positioned, countdown active
-//
-// Modal phases:
-//   starting    → permission check + camera open + detector load
-//   live        → camera running; detectionState tracks sub-state
-//   uploading   → frame captured, uploading to storage
-//   denied      → camera permission refused
-//   no_camera   → no camera hardware
-//   unsupported → getUserMedia / WebRTC / detectors all unavailable
-//   error       → upload failed
+// Oval geometry — JS detection and SVG guide must stay in sync via this constant.
+const OVAL = { cx: 0.5, cy: 0.5, rx: 0.38, ry: 0.32 };
+
+const STATES = {
+  INIT: 'init',
+  PERMISSION_DENIED: 'permission_denied',
+  NO_CAMERA: 'no_camera',
+  UNSUPPORTED: 'unsupported',
+  LOADING_DETECTOR: 'loading_detector',
+  READY: 'ready',
+  CAPTURING: 'capturing',
+  UPLOADING: 'uploading',
+  DONE: 'done',
+  ERROR: 'error',
+};
 
 const OVAL_STROKE = {
-  none:       '#9ca3af',   // gray-400
-  off_center: '#facc15',   // yellow-400
+  none:       '#9ca3af',
+  off_center: '#facc15',
   too_far:    '#facc15',
   too_close:  '#facc15',
-  good:       '#22c55e',   // green-500
+  good:       '#22c55e',
+};
+
+// Debug gating — overlays visible in dev only, absent in production builds.
+const DEBUG_SELFIE = import.meta.env.DEV;
+const log  = DEBUG_SELFIE ? console.log.bind(console, '[selfie]')  : () => {};
+const warn = console.warn.bind(console, '[selfie]');
+const err  = console.error.bind(console, '[selfie]');
+
+function pointInOval(px, py) {
+  const dx = (px - OVAL.cx) / OVAL.rx;
+  const dy = (py - OVAL.cy) / OVAL.ry;
+  return (dx * dx + dy * dy) <= 1;
 }
 
 // Exported so unit tests can exercise it directly.
 export function evaluateFace(box, vw, vh) {
-  if (!box) return 'none'
-  const cx   = (box.x + box.width  / 2) / vw
-  const cy   = (box.y + box.height / 2) / vh
-  const area = (box.width * box.height) / (vw * vh)
-  if (area < 0.08) return 'too_far'
-  if (area > 0.45) return 'too_close'
-  if (Math.abs(cx - 0.5) > 0.15 || Math.abs(cy - 0.5) > 0.20) return 'off_center'
-  return 'good'
-}
+  if (!box || !vw || !vh) return 'none';
 
-async function buildDetector() {
-  if ('FaceDetector' in window) {
-    try {
-      const native = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
-      console.log('[selfie] using native FaceDetector')
-      return {
-        type: 'native',
-        isAsync: true,
-        run: (el) => native.detect(el).then(r =>
-          r.map(f => ({ x: f.boundingBox.x, y: f.boundingBox.y,
-                        width: f.boundingBox.width, height: f.boundingBox.height }))
-        ),
-      }
-    } catch { /* fall through */ }
-  }
-  console.log('[selfie] loading MediaPipe...')
-  try {
-    const vision = await import('@mediapipe/tasks-vision')
-    const fileset = await vision.FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'
-    )
-    const mp = await vision.FaceDetector.createFromOptions(fileset, {
-      baseOptions: {
-        modelAssetPath:
-          'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
-        delegate: 'GPU',
-      },
-      runningMode: 'VIDEO',
-    })
-    console.log('[selfie] MediaPipe ready')
-    return {
-      type: 'mediapipe',
-      isAsync: false,
-      run: (el) => {
-        const r = mp.detectForVideo(el, performance.now())
-        return r.detections.map(d => ({
-          x: d.boundingBox.originX, y: d.boundingBox.originY,
-          width: d.boundingBox.width, height: d.boundingBox.height,
-        }))
-      },
-    }
-  } catch (err) {
-    console.error('[selfie] MediaPipe failed to load', err)
-  }
-  return null
-}
+  const x1   = box.x / vw;
+  const y1   = box.y / vh;
+  const x2   = (box.x + box.width)  / vw;
+  const y2   = (box.y + box.height) / vh;
+  const size = (box.width * box.height) / (vw * vh);
 
-async function ensureCameraPermission() {
-  if (!Capacitor.isNativePlatform()) return 'granted'
-  try {
-    let status = await Camera.checkPermissions()
-    console.log('[selfie] checkPermissions:', status.camera)
-    if (status.camera === 'granted') return 'granted'
-    if (status.camera === 'denied')  return 'denied'
-    status = await Camera.requestPermissions({ permissions: ['camera'] })
-    console.log('[selfie] requestPermissions result:', status.camera)
-    return status.camera === 'granted' ? 'granted' : 'denied'
-  } catch (err) {
-    console.error('[selfie] permission check error', err)
-    return 'granted'
-  }
-}
+  if (size < 0.06) return 'too_far';
+  if (size > 0.45) return 'too_close';
 
-// ── Component ──────────────────────────────────────────────────────────────
+  // All 4 corners plus the center must be inside the oval.
+  const points = [
+    [x1, y1], [x2, y1], [x1, y2], [x2, y2],
+    [(x1 + x2) / 2, (y1 + y2) / 2],
+  ];
+  if (!points.every(([px, py]) => pointInOval(px, py))) return 'off_center';
+  return 'good';
+}
 
 export default function SelfieVerificationModal({ userId, onCapture, onClose }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
-  const [phase,          setPhase]          = useState('starting')
-  const [detectionState, setDetectionState] = useState('none')
-  const [countdown,      setCountdown]      = useState(3)
-  const [errorMsg,       setErrorMsg]       = useState('')
+  const videoRef      = useRef(null);
+  const streamRef     = useRef(null);
+  const detectorRef   = useRef(null);
+  const rafRef        = useRef(null);
+  const goodFramesRef = useRef(0);
+  const capturedRef   = useRef(false);
+  const startRef      = useRef(null);
 
-  const videoRef       = useRef(null)
-  const streamRef      = useRef(null)
-  const detectorRef    = useRef(null)
-  const rafRef         = useRef(null)
-  const consecutiveRef = useRef(0)
-  const capturedRef    = useRef(false)
+  const [state,     setState]     = useState(STATES.INIT);
+  const [faceState, setFaceState] = useState('none');
+  const [errorMsg,  setErrorMsg]  = useState('');
+  const [debug,     setDebug]     = useState({ frames: 0, lastDetect: null });
 
-  // ── stop camera ────────────────────────────────────────────────────────────
-  const stopCamera = useCallback(() => {
+  function stopCamera() {
     if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current)
-      rafRef.current = null
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
-    streamRef.current?.getTracks().forEach(tr => tr.stop())
-    streamRef.current = null
-  }, [])
+    streamRef.current?.getTracks().forEach(tr => {
+      log('stopping track', tr.kind);
+      tr.stop();
+    });
+    streamRef.current = null;
+  }
 
-  useEffect(() => () => stopCamera(), [stopCamera])
+  async function loadDetector() {
+    setState(STATES.LOADING_DETECTOR);
+    log('checking FaceDetector...');
 
-  // ── capture & upload ───────────────────────────────────────────────────────
-  const capture = useCallback(async (video) => {
-    stopCamera()
-    setPhase('uploading')
-    try {
-      const canvas  = document.createElement('canvas')
-      canvas.width  = video.videoWidth  || 640
-      canvas.height = video.videoHeight || 480
-      // Draw without mirroring — save the raw camera frame (un-mirrored)
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
-      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85))
-      const path = `${userId}/selfie.jpg`
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-      if (upErr) throw upErr
-      onCapture(URL.createObjectURL(blob), path)
-    } catch (err) {
-      console.error('[selfie] upload failed', err)
-      capturedRef.current = false
-      setPhase('error')
-      setErrorMsg(err.message || t('washerSignup.verify.submitError'))
-    }
-  }, [userId, onCapture, stopCamera, t])
-
-  // ── detection loop ─────────────────────────────────────────────────────────
-  const loop = useCallback(() => {
-    const tick = async () => {
-      if (capturedRef.current) return
-      const video = videoRef.current
-      if (!video || video.readyState < 2) {
-        rafRef.current = requestAnimationFrame(tick)
-        return
-      }
-      const { isAsync, run } = detectorRef.current
-      let faces = []
+    if ('FaceDetector' in window) {
       try {
-        faces = isAsync ? await run(video) : run(video)
-      } catch {
-        rafRef.current = requestAnimationFrame(tick)
-        return
+        const d = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+        await d.detect(videoRef.current);
+        detectorRef.current = {
+          type: 'native',
+          isAsync: true,
+          detect: (v) => d.detect(v),
+        };
+        log('native FaceDetector ready');
+        return;
+      } catch (e) {
+        warn('native FaceDetector failed smoke test', e);
       }
-      const vw    = video.videoWidth  || video.clientWidth  || 1
-      const vh    = video.videoHeight || video.clientHeight || 1
-      const box   = faces.length > 0 ? faces[0] : null
-      const state = evaluateFace(box, vw, vh)
+    }
 
-      console.log('[selfie] detect tick', { state, faces: faces.length, box })
+    log('falling back to MediaPipe...');
+    try {
+      const vision = await import('@mediapipe/tasks-vision');
+      const fileset = await vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'
+      );
+      const mp = await vision.FaceDetector.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath:
+            'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
+        },
+        runningMode: 'VIDEO',
+      });
+      detectorRef.current = {
+        type: 'mediapipe',
+        isAsync: false,
+        detect: (v) => {
+          const r = mp.detectForVideo(v, performance.now());
+          return r.detections.map(d => ({
+            boundingBox: {
+              x: d.boundingBox.originX,
+              y: d.boundingBox.originY,
+              width: d.boundingBox.width,
+              height: d.boundingBox.height,
+            },
+          }));
+        },
+      };
+      log('MediaPipe ready');
+    } catch (e) {
+      err('MediaPipe load failed', e);
+      setState(STATES.UNSUPPORTED);
+      throw e;
+    }
+  }
 
-      if (state === 'good') {
-        consecutiveRef.current += 1
-        const n  = consecutiveRef.current
-        const cd = n < FRAMES_NEEDED / 3 ? 3 : n < (2 * FRAMES_NEEDED) / 3 ? 2 : 1
-        setDetectionState('good')
-        setCountdown(cd)
-        if (n >= FRAMES_NEEDED) {
-          capturedRef.current = true
-          await capture(video)
-          return
+  function startLoop() {
+    log('loop starting');
+    let frameCount = 0;
+    capturedRef.current = false;
+
+    const tick = async () => {
+      if (capturedRef.current) return;
+      const video = videoRef.current;
+      if (!video || !detectorRef.current) {
+        warn('tick aborted, no video or detector');
+        return;
+      }
+
+      try {
+        const { isAsync, detect } = detectorRef.current;
+        const rawFaces = isAsync ? await detect(video) : detect(video);
+        frameCount++;
+
+        const box = rawFaces.length > 0
+          ? (rawFaces[0].boundingBox || rawFaces[0])
+          : null;
+
+        const vw = video.videoWidth  || video.clientWidth  || 1;
+        const vh = video.videoHeight || video.clientHeight || 1;
+        const evaluation = evaluateFace(box, vw, vh);
+
+        setFaceState(evaluation);
+
+        if (evaluation === 'good') {
+          goodFramesRef.current++;
+          if (goodFramesRef.current >= FRAMES_NEEDED) {
+            log('threshold reached, capturing');
+            capturedRef.current = true;
+            await capture(video);
+            return;
+          }
+        } else {
+          goodFramesRef.current = 0;
         }
+
+        if (DEBUG_SELFIE && frameCount % 10 === 0) {
+          setDebug({ frames: frameCount, lastDetect: box || null });
+        }
+      } catch (e) {
+        err('detect error', e);
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  async function capture(video) {
+    stopCamera();
+    setState(STATES.UPLOADING);
+    try {
+      const canvas   = document.createElement('canvas');
+      canvas.width   = video.videoWidth  || 640;
+      canvas.height  = video.videoHeight || 480;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+      const path = `${userId}/selfie.jpg`;
+      const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
+        contentType: 'image/jpeg', upsert: true,
+      });
+      if (error) throw error;
+      setState(STATES.DONE);
+      onCapture(URL.createObjectURL(blob), path);
+    } catch (e) {
+      err('upload failed', e);
+      capturedRef.current = false;
+      setState(STATES.ERROR);
+      setErrorMsg(e.message || t('washerSignup.verify.submitError'));
+    }
+  }
+
+  async function start() {
+    stopCamera();
+    goodFramesRef.current = 0;
+    capturedRef.current = false;
+    setState(STATES.INIT);
+    setFaceState('none');
+    setErrorMsg('');
+    setDebug({ frames: 0, lastDetect: null });
+
+    log('start, native?', Capacitor.isNativePlatform());
+
+    if (Capacitor.isNativePlatform()) {
+      let perm = await Camera.checkPermissions();
+      if (perm.camera === 'granted') {
+        // already granted — proceed
+      } else if (perm.camera === 'denied') {
+        // system has permanently denied; requesting again would be a no-op
+        setState(STATES.PERMISSION_DENIED);
+        return;
       } else {
-        if (consecutiveRef.current > 0) {
-          consecutiveRef.current = 0
-          setCountdown(3)
+        // 'prompt' or 'limited' — ask the user
+        perm = await Camera.requestPermissions({ permissions: ['camera'] });
+        if (perm.camera !== 'granted') {
+          setState(STATES.PERMISSION_DENIED);
+          return;
         }
-        setDetectionState(state)
       }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-    rafRef.current = requestAnimationFrame(tick)
-  }, [capture])
-
-  // ── start (permission → camera → detector → loop) ─────────────────────────
-  const startCamera = useCallback(async () => {
-    stopCamera()
-    consecutiveRef.current = 0
-    capturedRef.current    = false
-    setPhase('starting')
-    setDetectionState('none')
-    setErrorMsg('')
-
-    console.log('[selfie] startCamera called')
-    console.log('[selfie] FaceDetector available?', 'FaceDetector' in window)
-
-    const permResult = await ensureCameraPermission()
-    if (permResult === 'denied') {
-      console.error('[selfie] camera permission denied')
-      setPhase('denied')
-      return
     }
 
-    let stream
+    let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'user' },
-          width:      { ideal: 1280 },
-          height:     { ideal: 720 },
-        },
+        video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
-      })
-    } catch (err) {
-      console.error('[selfie] getUserMedia failed', err.name, err.message)
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setPhase('denied')
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setPhase('no_camera')
+      });
+      log('stream ok, tracks:', stream.getTracks().length);
+    } catch (e) {
+      err('camera open failed', e.name, e.message);
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        setState(STATES.PERMISSION_DENIED);
+      } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+        setState(STATES.NO_CAMERA);
       } else {
-        setPhase('unsupported')
+        setState(STATES.UNSUPPORTED);
       }
-      return
+      return;
     }
 
-    streamRef.current = stream
-    console.log('[selfie] stream active?', stream.active, 'tracks:', stream.getTracks().length)
+    streamRef.current = stream;
+    const video = videoRef.current;
+    if (!video) return;
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream
-      await videoRef.current.play().catch(() => {})
+    video.srcObject = stream;
+    await video.play().catch(() => {});
+    log('video playing, size:', video.videoWidth, 'x', video.videoHeight);
+
+    try {
+      await loadDetector();
+    } catch {
+      return;
     }
 
-    const detector = await buildDetector()
-    console.log('[selfie] detector type:', detector?.type ?? 'none')
-    if (!detector) { setPhase('unsupported'); return }
-    detectorRef.current = detector
-    setPhase('live')
+    setState(STATES.READY);
 
-    const video = videoRef.current
-    if (!video) return
-
-    const startLoop = () => {
-      console.log('[selfie] starting detection loop. dims:', video.videoWidth, 'x', video.videoHeight)
-      loop()
-    }
+    const doStart = () => {
+      log('starting detection loop, dims:', video.videoWidth, 'x', video.videoHeight);
+      startLoop();
+    };
 
     if (video.readyState >= 1) {
-      startLoop()
+      doStart();
     } else {
-      video.addEventListener('loadedmetadata', startLoop, { once: true })
+      video.addEventListener('loadedmetadata', doStart, { once: true });
     }
-  }, [stopCamera, loop])
+  }
 
-  useEffect(() => { startCamera() }, [startCamera])
+  useEffect(() => {
+    startRef.current = start;
+    start();
+    return () => stopCamera();
+  }, []);
 
-  // ── derived UI ─────────────────────────────────────────────────────────────
-  const selfieT   = useCallback((key) => t(`washerSignup.verify.sectionSelfie.${key}`), [t])
-  const showVideo = phase === 'starting' || phase === 'live' || phase === 'uploading'
+  const selfieT = (key) => t(`washerSignup.verify.sectionSelfie.${key}`);
 
-  const ovalStroke = phase === 'uploading'
+  const ovalStroke = state === STATES.UPLOADING
     ? '#16a34a'
-    : (OVAL_STROKE[detectionState] ?? '#9ca3af')
+    : (OVAL_STROKE[faceState] ?? '#9ca3af');
 
   const statusText = (() => {
-    if (phase === 'live') {
-      if (detectionState === 'good')       return `${selfieT('hold')} ${countdown}…`
-      if (detectionState === 'off_center') return selfieT('center')
-      if (detectionState === 'too_far')    return selfieT('closer')
-      if (detectionState === 'too_close')  return selfieT('farther')
-      return selfieT('position')
+    if (state === STATES.READY || state === STATES.CAPTURING) {
+      if (faceState === 'good')       return `${selfieT('hold')} ${Math.ceil((FRAMES_NEEDED - goodFramesRef.current) / 10)}…`;
+      if (faceState === 'off_center') return selfieT('fitInOval');
+      if (faceState === 'too_far')    return selfieT('closer');
+      if (faceState === 'too_close')  return selfieT('farther');
+      return selfieT('position');
     }
-    if (phase === 'uploading') return selfieT('captured')
-    return ''
-  })()
+    if (state === STATES.UPLOADING) return selfieT('captured');
+    return '';
+  })();
 
-  // ── render ─────────────────────────────────────────────────────────────────
+  const showVideo = state === STATES.INIT || state === STATES.LOADING_DETECTOR ||
+    state === STATES.READY || state === STATES.CAPTURING || state === STATES.UPLOADING;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center" role="dialog" aria-modal="true">
+    <div
+      style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+      role="dialog"
+      aria-modal="true"
+    >
+      {DEBUG_SELFIE && (
+        <div style={{ position: 'fixed', top: 0, left: 0, background: 'red', color: 'white', padding: '4px 8px', zIndex: 9999, fontSize: '10px' }}>
+          BUILD: {new Date().toISOString()} v8
+        </div>
+      )}
 
-      {/* Cancel / close button */}
-      <button
-        type="button"
-        onClick={() => { stopCamera(); onClose() }}
-        className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/40 z-10"
-        aria-label={selfieT('cancel')}
-      >
-        <X className="h-5 w-5" />
-      </button>
+      {state !== STATES.DONE && state !== STATES.UPLOADING && (
+        <button
+          type="button"
+          aria-label={selfieT('cancel')}
+          onClick={() => { stopCamera(); onClose(); }}
+          style={{ position: 'fixed', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: 20, padding: '4px 12px', fontSize: 14, zIndex: 10000 }}
+        >
+          ✕
+        </button>
+      )}
 
-      {/* Live camera + oval guide */}
       {showVideo && (
-        <div className="relative w-full max-w-sm aspect-[3/4] overflow-hidden" dir="ltr">
+        <div style={{ position: 'relative', width: '100%', maxWidth: 480, aspectRatio: '3/4', background: '#111', overflow: 'hidden' }} dir="ltr">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
-            style={{ transform: 'scaleX(-1)' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
           />
           <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 300 400"
-            preserveAspectRatio="xMidYMid slice"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
             aria-hidden="true"
           >
             <defs>
               <mask id="face-oval-mask">
-                <rect width="300" height="400" fill="white" />
-                <ellipse cx="150" cy="185" rx="95" ry="125" fill="black" />
+                <rect width="100%" height="100%" fill="white" />
+                <ellipse
+                  cx={`${OVAL.cx * 100}%`}
+                  cy={`${OVAL.cy * 100}%`}
+                  rx={`${OVAL.rx * 100}%`}
+                  ry={`${OVAL.ry * 100}%`}
+                  fill="black"
+                />
               </mask>
             </defs>
-            <rect width="300" height="400" fill="rgba(0,0,0,0.45)" mask="url(#face-oval-mask)" />
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.45)" mask="url(#face-oval-mask)" />
             <ellipse
-              cx="150" cy="185" rx="95" ry="125"
+              cx={`${OVAL.cx * 100}%`}
+              cy={`${OVAL.cy * 100}%`}
+              rx={`${OVAL.rx * 100}%`}
+              ry={`${OVAL.ry * 100}%`}
               fill="none"
               stroke={ovalStroke}
               strokeWidth="4"
               style={{ transition: 'stroke 150ms' }}
             />
           </svg>
+          {state === STATES.LOADING_DETECTOR && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: 14 }}>
+              Loading detector...
+            </div>
+          )}
         </div>
       )}
 
-      {/* Status text */}
       {statusText ? (
-        <p className="mt-6 text-white text-base font-medium text-center px-6">{statusText}</p>
+        <p style={{ marginTop: 24, color: 'white', fontSize: 16, fontWeight: 500, textAlign: 'center', padding: '0 24px' }}>
+          {statusText}
+        </p>
       ) : null}
 
-      {/* Upload flash */}
-      {phase === 'uploading' && (
-        <div className="flex items-center gap-2 mt-4 text-green-400">
-          <CheckCircle className="h-6 w-6" />
-        </div>
-      )}
-
-      {/* Permission denied */}
-      {phase === 'denied' && (
-        <div className="flex flex-col items-center gap-5 px-8 text-center">
-          <p className="text-white text-base">{selfieT('permissionDenied')}</p>
+      {state === STATES.PERMISSION_DENIED && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 32, textAlign: 'center' }}>
+          <p style={{ color: 'white', fontSize: 16 }}>{selfieT('permissionDenied')}</p>
           <button
             type="button"
-            onClick={startCamera}
-            className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm"
+            onClick={() => startRef.current?.()}
+            style={{ padding: '12px 24px', background: 'white', color: 'black', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none' }}
           >
             {selfieT('tryAgain')}
           </button>
         </div>
       )}
 
-      {/* No camera hardware */}
-      {phase === 'no_camera' && (
-        <p className="px-8 text-white text-base text-center">
+      {state === STATES.NO_CAMERA && (
+        <p style={{ color: 'white', fontSize: 16, textAlign: 'center', padding: 32 }}>
           {selfieT('noCameraFound')}
         </p>
       )}
 
-      {/* Unsupported browser / WebRTC unavailable */}
-      {phase === 'unsupported' && (
-        <p className="px-8 text-white text-base text-center">
+      {state === STATES.UNSUPPORTED && (
+        <p style={{ color: 'white', fontSize: 16, textAlign: 'center', padding: 32 }}>
           {selfieT('unsupported')}
         </p>
       )}
 
-      {/* Upload error */}
-      {phase === 'error' && (
-        <div className="flex flex-col items-center gap-5 px-8 text-center">
-          <p className="text-white text-base">{errorMsg}</p>
+      {state === STATES.ERROR && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 32, textAlign: 'center' }}>
+          <p style={{ color: 'white', fontSize: 16 }}>{errorMsg}</p>
           <button
             type="button"
-            onClick={startCamera}
-            className="px-6 py-3 bg-white text-black rounded-xl font-semibold text-sm"
+            onClick={() => startRef.current?.()}
+            style={{ padding: '12px 24px', background: 'white', color: 'black', borderRadius: 12, fontWeight: 600, fontSize: 14, border: 'none' }}
           >
             {selfieT('retake')}
           </button>
         </div>
       )}
+
+      {DEBUG_SELFIE && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: 'lime', padding: 8, fontSize: 11, fontFamily: 'monospace', zIndex: 100 }}>
+          state: {state} | face: {faceState} | frames: {debug.frames} | good: {goodFramesRef.current}
+          {debug.lastDetect && <span> | box: {JSON.stringify(debug.lastDetect)}</span>}
+        </div>
+      )}
     </div>
-  )
+  );
 }
