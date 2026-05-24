@@ -1,18 +1,7 @@
 import { supabase } from './supabase.js'
 
 export async function fetchPendingVerifications() {
-  return supabase
-    .from('washer_verifications')
-    .select(`
-      id, dealer_number, service_areas, status, rejection_reason,
-      submitted_at, reviewed_at,
-      id_document_path, liveness_paths, business_license_path,
-      washer:washer_id (
-        id, full_name, email
-      )
-    `)
-    .eq('status', 'pending_review')
-    .order('submitted_at', { ascending: true })
+  return supabase.rpc('get_washer_verifications', { p_status: 'pending_review' })
 }
 
 export async function getVerificationSignedUrl(path) {

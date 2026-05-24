@@ -97,7 +97,7 @@ function WasherVerificationsView() {
     const { data, error } = await fetchPendingVerifications()
     if (error) {
       console.error('fetchPendingVerifications failed:', error)
-      setLoadError(error.message)
+      setLoadError(true)
     } else {
       setLoadError(null)
     }
@@ -127,7 +127,6 @@ function WasherVerificationsView() {
   if (loadError) return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
       <p className="font-semibold text-danger">{t('washerVerifications.error.title')}</p>
-      <p className="text-xs text-ink-muted font-mono">{loadError}</p>
       <button onClick={load} className="btn-ghost text-sm">{t('washerVerifications.error.retry')}</button>
     </div>
   )
@@ -168,7 +167,7 @@ function TicketsView() {
       .from('support_tickets')
       .select(`
         *,
-        consumer:consumer_id ( id, full_name, email ),
+        consumer:consumer_id ( id, full_name ),
         washer:washer_id     ( id, full_name )
       `)
       .order('created_at', { ascending: false })
@@ -228,7 +227,7 @@ function TicketsView() {
               )}
             </div>
             <p className="text-xs font-semibold text-ink truncate">
-              {ticket.consumer?.full_name ?? ticket.consumer?.email ?? '—'}
+              {ticket.consumer?.full_name ?? '—'}
             </p>
             {ticket.initial_feedback && (
               <p className="text-[11px] text-ink-muted truncate mt-0.5">
@@ -248,7 +247,7 @@ function TicketsView() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-ink">
-                {selected.consumer?.full_name ?? selected.consumer?.email ?? '—'}
+                {selected.consumer?.full_name ?? '—'}
               </p>
               <p className="text-xs text-ink-muted">
                 {t(`support.tickets.reason.${selected.reason}`)} · {new Date(selected.created_at).toLocaleString()}

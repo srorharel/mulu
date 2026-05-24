@@ -55,9 +55,11 @@ const wrapper = ({ children }) => (
   <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
 )
 
+// RPC returns flat rows — no nested washer object
 function makeVerification(overrides = {}) {
   return {
     id: 'ver-001',
+    washer_id: 'uid1',
     dealer_number: '1234567',
     service_areas: ['holon', 'bat_yam'],
     status: 'pending_review',
@@ -65,7 +67,9 @@ function makeVerification(overrides = {}) {
     id_document_path: 'uid1/id_document.jpg',
     selfie_path: 'uid1/selfie.jpg',
     business_license_path: 'uid1/business_license.jpg',
-    washer: { id: 'uid1', full_name: 'Yossi Ploni', email: 'yossi@test.com' },
+    washer_name: 'Yossi Ploni',
+    washer_email: 'yossi@test.com',
+    washer_phone: null,
     ...overrides,
   }
 }
@@ -79,6 +83,37 @@ describe('WasherVerificationRow', () => {
     )
     expect(screen.getByText('Yossi Ploni')).toBeInTheDocument()
     expect(screen.getByText(/1234567/)).toBeInTheDocument()
+  })
+
+  it('renders washer email below the name', async () => {
+    render(
+      <WasherVerificationRow verification={makeVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    expect(screen.getByText('yossi@test.com')).toBeInTheDocument()
+  })
+
+  it('falls back to email in the header when washer_name is null', async () => {
+    render(
+      <WasherVerificationRow
+        verification={makeVerification({ washer_name: null })}
+        onReviewed={vi.fn()}
+      />,
+      { wrapper }
+    )
+    // email appears as the primary identifier
+    expect(screen.getAllByText('yossi@test.com').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('shows — when both washer_name and washer_email are null', async () => {
+    render(
+      <WasherVerificationRow
+        verification={makeVerification({ washer_name: null, washer_email: null })}
+        onReviewed={vi.fn()}
+      />,
+      { wrapper }
+    )
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows Approve and Reject buttons', async () => {
@@ -153,19 +188,34 @@ describe('WasherVerificationRow', () => {
   })
 })
 
-describe('WasherVerificationsView — badge count', () => {
-  it('fetching pending verifications returns rows', async () => {
+describe('fetchPendingVerifications', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns rows with flat washer_name and washer_email fields', async () => {
     fetchPendingVerifications.mockResolvedValue({
-      data: [makeVerification(), makeVerification({ id: 'ver-002', dealer_number: '9876543' })],
+      data: [
+        makeVerification(),
+        makeVerification({ id: 'ver-002', dealer_number: '9876543', washer_name: 'Dana Cohen', washer_email: 'dana@test.com' }),
+      ],
       error: null,
     })
     const { data } = await fetchPendingVerifications()
     expect(data).toHaveLength(2)
+    expect(data[0].washer_name).toBe('Yossi Ploni')
+    expect(data[0].washer_email).toBe('yossi@test.com')
+    expect(data[1].dealer_number).toBe('9876543')
   })
 
-  it('badge count is 0 when no pending verifications', async () => {
+  it('returns empty array when no pending verifications', async () => {
     fetchPendingVerifications.mockResolvedValue({ data: [], error: null })
     const { data } = await fetchPendingVerifications()
     expect(data).toHaveLength(0)
+  })
+
+  it('returns error object on failure', async () => {
+    fetchPendingVerifications.mockResolvedValue({ data: null, error: { message: 'agents only' } })
+    const { data, error } = await fetchPendingVerifications()
+    expect(data).toBeNull()
+    expect(error.message).toBe('agents only')
   })
 })

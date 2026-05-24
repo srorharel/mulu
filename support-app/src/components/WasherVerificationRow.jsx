@@ -122,7 +122,7 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-ink">
-              {verification.washer?.full_name ?? verification.washer?.email ?? '—'}
+              {verification.washer_name ?? verification.washer_email ?? '—'}
             </span>
             <Pill color="warning" dot>
               {t('washerVerifications.status.pending_review')}
@@ -134,7 +134,7 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
           </div>
 
           <div className="flex items-center gap-2 text-xs text-ink-muted flex-wrap">
-            <span className="flex items-center gap-1"><User size={11} />{verification.washer?.email ?? '—'}</span>
+            <span className="flex items-center gap-1"><User size={11} />{verification.washer_email ?? '—'}</span>
             <span className="flex items-center gap-1"><FileText size={11} />{t('washerVerifications.dealerNumber')}: {verification.dealer_number}</span>
           </div>
 
