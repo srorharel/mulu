@@ -102,6 +102,7 @@ i18n.use(initReactI18next).init({
         'washerSignup.verify.sectionSelfie.noCameraFound':    'No camera found on this device.',
         'washerSignup.verify.sectionSelfie.unsupported':      'Camera not supported in this browser.',
         'washerSignup.verify.sectionSelfie.tryAgain':         'Try again',
+        'washerSignup.verify.sectionSelfie.starting':         'Starting camera...',
         'washerSignup.verify.sectionSelfie.cancel':           'Cancel',
         'washerSignup.verify.submitError':                    'Submission failed.',
       },
@@ -387,10 +388,10 @@ describe('SelfieVerificationModal — detector fallback', () => {
   })
 })
 
-// ── Video loadedmetadata ───────────────────────────────────────────────────
+// ── Video loadeddata ───────────────────────────────────────────────────────
 
-describe('SelfieVerificationModal — video loadedmetadata', () => {
-  it('starts detection loop immediately when readyState >= 1', async () => {
+describe('SelfieVerificationModal — video loadeddata', () => {
+  it('starts detection loop immediately when readyState >= 2', async () => {
     stubVideoElement() // readyState = 4
     Capacitor.isNativePlatform.mockReturnValue(false)
     delete window.FaceDetector
@@ -403,12 +404,12 @@ describe('SelfieVerificationModal — video loadedmetadata', () => {
       configurable: true,
     })
     renderModal()
-    // Loop should start (rAF scheduled) without needing a loadedmetadata event
+    // Loop should start (rAF scheduled) without needing a loadeddata event
     await waitFor(() => expect(rafCallbacks.size).toBeGreaterThan(0))
   })
 
-  it('waits for loadedmetadata when readyState is 0', async () => {
-    // Override readyState to 0 (no metadata yet)
+  it('waits for loadeddata when readyState is 0', async () => {
+    // Override readyState to 0 (no data yet)
     Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth',  { get: () => 640, configurable: true })
     Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get: () => 480, configurable: true })
     Object.defineProperty(HTMLVideoElement.prototype, 'readyState',  { get: () => 0, configurable: true })
@@ -426,9 +427,9 @@ describe('SelfieVerificationModal — video loadedmetadata', () => {
       configurable: true,
     })
     renderModal()
-    // Wait for camera to open + detector to load (buildDetector is async)
+    // Wait for camera to open + detector to load (async)
     await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled())
-    // rAF should NOT be scheduled yet because readyState=0 and event not fired
+    // rAF should NOT be scheduled yet because readyState=0 and loadeddata not fired
     expect(rafCallbacks.size).toBe(0)
   })
 })
@@ -689,6 +690,47 @@ describe('SelfieVerificationModal — upload integration', () => {
     await waitFor(() => rafCallbacks.size > 0)
     await driveFrames(50)
     await waitFor(() => expect(stop).toHaveBeenCalled())
+  })
+})
+
+// ── Camera preview visibility ──────────────────────────────────────────────
+
+describe('SelfieVerificationModal — camera preview visibility', () => {
+  it('video starts with opacity 0 and shows spinner + starting text during INIT', async () => {
+    stubVideoElement()
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    // Block getUserMedia so modal stays in INIT state
+    let resolveGum
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn(() => new Promise(r => { resolveGum = r })) },
+      configurable: true,
+    })
+    delete window.FaceDetector
+    renderModal()
+    // In INIT state: video should be hidden, spinner + text visible
+    const video = document.querySelector('video')
+    expect(video).toBeInTheDocument()
+    expect(video.style.opacity).toBe('0')
+    expect(screen.getByText('Starting camera...')).toBeInTheDocument()
+    // unblock to avoid resource leak
+    resolveGum({ getTracks: () => [{ stop: vi.fn(), kind: 'video' }] })
+  })
+
+  it('video becomes visible (opacity 1) after reaching READY state', async () => {
+    stubVideoElement() // readyState = 4
+    Capacitor.isNativePlatform.mockReturnValue(false)
+    const { stream } = makeStream()
+    Object.defineProperty(window.navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+    vi.stubGlobal('FaceDetector', class {
+      detect() { return Promise.resolve([]) }
+    })
+    renderModal()
+    await waitFor(() => rafCallbacks.size > 0)
+    const video = document.querySelector('video')
+    expect(video.style.opacity).toBe('1')
   })
 })
 

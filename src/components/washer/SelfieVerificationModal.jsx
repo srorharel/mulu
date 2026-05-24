@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
 import { supabase } from '../../lib/supabase.js';
@@ -288,25 +289,20 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       return;
     }
 
-    setState(STATES.READY);
-
-    const doStart = () => {
-      log('starting detection loop, dims:', video.videoWidth, 'x', video.videoHeight);
-      startLoop();
-    };
-
-    if (video.readyState >= 1) {
-      doStart();
-    } else {
-      video.addEventListener('loadedmetadata', doStart, { once: true });
+    if (video.readyState < 2) {
+      await new Promise(r => video.addEventListener('loadeddata', r, { once: true }));
     }
+
+    log('starting detection loop, dims:', video.videoWidth, 'x', video.videoHeight);
+    setState(STATES.READY);
+    startLoop();
   }
 
   useEffect(() => {
     startRef.current = start;
     start();
     return () => stopCamera();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selfieT = (key) => t(`washerSignup.verify.sectionSelfie.${key}`);
 
@@ -359,39 +355,48 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
             autoPlay
             playsInline
             muted
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
+            poster=""
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)',
+              background: '#000',
+              opacity: (state === STATES.READY || state === STATES.CAPTURING || state === STATES.UPLOADING) ? 1 : 0,
+              transition: 'opacity 200ms',
+            }}
           />
-          <svg
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-            aria-hidden="true"
-          >
-            <defs>
-              <mask id="face-oval-mask">
-                <rect width="100%" height="100%" fill="white" />
-                <ellipse
-                  cx={`${OVAL.cx * 100}%`}
-                  cy={`${OVAL.cy * 100}%`}
-                  rx={`${OVAL.rx * 100}%`}
-                  ry={`${OVAL.ry * 100}%`}
-                  fill="black"
-                />
-              </mask>
-            </defs>
-            <rect width="100%" height="100%" fill="rgba(0,0,0,0.45)" mask="url(#face-oval-mask)" />
-            <ellipse
-              cx={`${OVAL.cx * 100}%`}
-              cy={`${OVAL.cy * 100}%`}
-              rx={`${OVAL.rx * 100}%`}
-              ry={`${OVAL.ry * 100}%`}
-              fill="none"
-              stroke={ovalStroke}
-              strokeWidth="4"
-              style={{ transition: 'stroke 150ms' }}
-            />
-          </svg>
-          {state === STATES.LOADING_DETECTOR && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: 14 }}>
-              Loading detector...
+          {(state === STATES.READY || state === STATES.CAPTURING) && (
+            <svg
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+              aria-hidden="true"
+            >
+              <defs>
+                <mask id="face-oval-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  <ellipse
+                    cx={`${OVAL.cx * 100}%`}
+                    cy={`${OVAL.cy * 100}%`}
+                    rx={`${OVAL.rx * 100}%`}
+                    ry={`${OVAL.ry * 100}%`}
+                    fill="black"
+                  />
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.45)" mask="url(#face-oval-mask)" />
+              <ellipse
+                cx={`${OVAL.cx * 100}%`}
+                cy={`${OVAL.cy * 100}%`}
+                rx={`${OVAL.rx * 100}%`}
+                ry={`${OVAL.ry * 100}%`}
+                fill="none"
+                stroke={ovalStroke}
+                strokeWidth="4"
+                style={{ transition: 'stroke 150ms' }}
+              />
+            </svg>
+          )}
+          {(state === STATES.INIT || state === STATES.LOADING_DETECTOR) && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: '#000' }}>
+              <Loader2 size={40} color="white" className="animate-spin" />
+              <span style={{ color: 'white', fontSize: 14 }}>{selfieT('starting')}</span>
             </div>
           )}
         </div>
