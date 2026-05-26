@@ -55,7 +55,7 @@ export default function LeftRail({
 
   return (
     <aside
-      className="flex flex-col items-center shrink-0 bg-surface border-r border-edge py-3.5"
+      className="hidden md:flex flex-col items-center shrink-0 bg-surface border-r border-edge py-3.5"
       style={{ width: 68 }}
       aria-label="Navigation"
     >

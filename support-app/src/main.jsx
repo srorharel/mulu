@@ -5,6 +5,8 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import './index.css'
 import App from './App.jsx'
+import { RootErrorBoundary } from './components/RootErrorBoundary.jsx'
+import { initCapacitor } from './lib/capacitor-init.js'
 
 i18n
   .use(LanguageDetector)
@@ -162,8 +164,12 @@ i18n
     interpolation: { escapeValue: false },
   })
 
+initCapacitor()
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <RootErrorBoundary>
+      <App />
+    </RootErrorBoundary>
   </React.StrictMode>,
 )

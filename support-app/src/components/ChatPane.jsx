@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCheck, RotateCcw, Car } from 'lucide-react'
+import { CheckCheck, RotateCcw, Car, ArrowLeft, Info } from 'lucide-react'
 import { useConversationStream } from '../hooks/useConversationStream.js'
 import { useTypingPresence } from '../hooks/useTypingPresence.js'
 import {
@@ -46,7 +46,7 @@ function groupByDate(messages) {
   return groups
 }
 
-export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick }) {
+export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick, onBack, onInfoToggle }) {
   const { t } = useTranslation()
   const { profile } = useAuth()
   const convId = conversation?.id || null
@@ -125,7 +125,13 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick 
   return (
     <div className="flex-1 flex flex-col min-w-0 border-r border-edge" style={{ background: 'var(--color-surface)' }}>
       {/* Chat header */}
-      <div className="flex items-center gap-3.5 px-[22px] py-3.5 border-b border-edge bg-surface-elevated shrink-0">
+      <div className="flex items-center gap-2 md:gap-3.5 px-3 md:px-[22px] py-3 md:py-3.5 border-b border-edge bg-surface-elevated shrink-0">
+        {/* Mobile back button */}
+        {onBack && (
+          <button onClick={onBack} className="md:hidden shrink-0 p-1.5 -ms-1 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label="Back">
+            <ArrowLeft size={20} />
+          </button>
+        )}
         {/* Avatar */}
         <div
           className="flex items-center justify-center rounded-full text-white font-bold shrink-0"
@@ -195,6 +201,11 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick 
                 {t('chat.release')}
               </button>
             </>
+          )}
+          {onInfoToggle && (
+            <button onClick={onInfoToggle} className="md:hidden shrink-0 p-1.5 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label="Info">
+              <Info size={20} />
+            </button>
           )}
         </div>
       </div>

@@ -17,6 +17,10 @@
   --color-agent-soft:         rgba(63, 181, 143, 0.16);
   --color-glass-surface:      rgba(21, 23, 31, 0.70);
   --color-glass-border:       rgba(255, 255, 255, 0.06);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-start: env(safe-area-inset-left, 0px);
+  --safe-end: env(safe-area-inset-right, 0px);
 }
 
 @tailwind base;

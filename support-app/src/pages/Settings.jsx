@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -72,7 +72,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex h-screen bg-surface overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-surface overflow-hidden">
       <LeftRail
         activeTab="settings"
         onTabChange={(tab) => navigate(tab === 'conv' ? '/' : `/${tab}`)}
@@ -82,10 +82,16 @@ export default function Settings() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-xl mx-auto p-8 flex flex-col gap-6">
-          <h1 className="text-[24px] font-extrabold text-ink" style={{ letterSpacing: '-0.5px' }}>
-            {t('settings.title')}
-          </h1>
+        <div className="max-w-xl mx-auto px-4 md:px-8 py-6 md:py-8 flex flex-col gap-6">
+          {/* Mobile back + title */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/')} className="md:hidden p-1.5 -ms-1 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label="Back">
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-xl md:text-[24px] font-extrabold text-ink" style={{ letterSpacing: '-0.5px' }}>
+              {t('settings.title')}
+            </h1>
+          </div>
 
           {/* Display name */}
           <div className="card flex flex-col gap-3">
@@ -93,13 +99,13 @@ export default function Settings() {
               {t('settings.displayName')}
             </label>
             <input
-              className="input"
+              className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
               placeholder="Your display name"
             />
             <div className="flex items-center gap-3">
-              <button onClick={saveProfile} disabled={saving} className="btn-primary w-fit">
+              <button onClick={saveProfile} disabled={saving} className="btn-primary w-fit h-12">
                 {saved ? t('settings.saved') : saving ? t('common.loading') : t('settings.save')}
               </button>
               {saveError && <p className="text-xs text-danger">{t('common.error')}</p>}
@@ -107,12 +113,20 @@ export default function Settings() {
           </div>
 
           {/* Language */}
-          <div className="card flex items-center justify-between">
+          <div className="card flex items-center justify-between min-h-[48px]">
             <span className="text-sm text-ink">{t('settings.language')}</span>
-            <button onClick={toggleLang} className="btn-ghost text-sm">
+            <button onClick={toggleLang} className="btn-ghost text-sm h-12 px-4">
               {i18n.language === 'he' ? 'English' : 'עברית'}
             </button>
           </div>
+
+          {/* Sign out — mobile only (desktop has it in LeftRail) */}
+          <button
+            onClick={signOut}
+            className="md:hidden btn-ghost text-sm text-danger h-12 justify-start"
+          >
+            {t('common.signOut')}
+          </button>
 
           {/* Canned responses */}
           <div className="card flex flex-col gap-4">
@@ -144,19 +158,19 @@ export default function Settings() {
             <div className="flex flex-col gap-2 pt-2 border-t border-edge">
               <p className="text-xs font-semibold text-ink-muted">{t('settings.addCanned')}</p>
               <input
-                className="input text-sm"
+                className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
                 placeholder={t('settings.shortcut') + ' (e.g. /eta)'}
                 value={newShortcut}
                 onChange={e => setNewShortcut(e.target.value)}
               />
               <input
-                className="input text-sm"
+                className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
                 placeholder={t('settings.bodyHe')}
                 value={newBodyHe}
                 onChange={e => setNewBodyHe(e.target.value)}
               />
               <input
-                className="input text-sm"
+                className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
                 placeholder={t('settings.bodyEn')}
                 value={newBodyEn}
                 onChange={e => setNewBodyEn(e.target.value)}
@@ -164,7 +178,7 @@ export default function Settings() {
               <button
                 onClick={handleAddCanned}
                 disabled={addingCanned || !newShortcut || !newBodyHe || !newBodyEn}
-                className="btn-primary w-fit"
+                className="btn-primary w-fit h-12"
               >
                 <Plus className="h-4 w-4" />
                 {t('settings.addCanned')}

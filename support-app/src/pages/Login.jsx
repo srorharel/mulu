@@ -6,10 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 
 function StatChip({ label, value, color }) {
   return (
-    <div
-      className="flex flex-col gap-1 px-4 py-3 rounded-xl border border-edge min-w-[100px]"
-      style={{ background: 'rgba(20,22,30,0.6)', backdropFilter: 'blur(20px)' }}
-    >
+    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl border border-edge bg-glass">
       <span className="text-[22px] font-extrabold" style={{ color, letterSpacing: '-0.4px' }}>{value}</span>
       <span className="text-[10.5px] text-ink-muted font-semibold uppercase tracking-[0.04em]">{label}</span>
     </div>
@@ -17,13 +14,15 @@ function StatChip({ label, value, color }) {
 }
 
 export default function Login() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { signIn, agentBlocked } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const isHe = i18n.language === 'he'
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -36,7 +35,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex bg-surface relative overflow-hidden">
+    <div className="min-h-screen flex flex-col md:flex-row bg-surface relative overflow-hidden">
       {/* Atmospheric gradient mesh */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -59,9 +58,26 @@ export default function Login() {
         <rect width="100%" height="100%" fill="url(#login-grid)" />
       </svg>
 
-      {/* Left brand pane */}
-      <div className="relative w-[52%] p-16 flex flex-col justify-between">
-        {/* Logo + wordmark */}
+      {/* ── Mobile header (hidden on desktop) ────────────────── */}
+      <div className="relative md:hidden shrink-0 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-2.5 py-4">
+          <img
+            src="/wash-logo.png"
+            alt="Wash"
+            className="w-9 h-9 rounded-xl object-contain"
+            onError={e => { e.currentTarget.style.display = 'none' }}
+          />
+          <span className="text-[16px] font-extrabold text-ink" style={{ letterSpacing: '-0.3px' }}>
+            wash<span style={{ color: 'var(--color-agent)' }}>/agent</span>
+          </span>
+        </div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] pb-2" style={{ color: 'var(--color-agent)' }}>
+          Internal · Agent only
+        </p>
+      </div>
+
+      {/* ── Desktop left brand pane (hidden on mobile) ────────── */}
+      <div className="relative hidden md:flex md:w-[52%] p-16 flex-col justify-between">
         <div className="flex items-center gap-2.5">
           <img
             src="/wash-logo.png"
@@ -74,13 +90,12 @@ export default function Login() {
           </span>
         </div>
 
-        {/* Headline */}
-        <div>
+        <div dir="ltr">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--color-agent)', marginBottom: 14 }}>
             Internal · Agent only
           </p>
-          <h1 className="text-[44px] font-extrabold text-ink leading-[1.05]" style={{ letterSpacing: '-1.4px', marginBottom: 12 }}>
-            Keep the queue<br />moving.
+          <h1 className="text-5xl lg:text-6xl font-extrabold text-ink leading-[1.05] max-w-[18ch]" style={{ letterSpacing: '-1.4px', marginBottom: 12, textWrap: 'balance' }}>
+            Keep the queue moving.
           </h1>
           <p className="text-[15px] text-ink-muted leading-relaxed max-w-[380px]">
             Triage conversations, approve completed jobs, and resolve
@@ -99,10 +114,11 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Right form pane */}
-      <div className="relative w-[48%] flex items-center justify-center p-8">
+      {/* ── Login form pane ──────────────────────────────────── */}
+      <div className="relative flex-1 flex items-start md:items-center justify-center px-4 py-6 md:p-8">
         <div
-          className="w-full max-w-[380px] p-[30px] rounded-[18px] border border-edge"
+          dir={isHe ? 'rtl' : 'ltr'}
+          className="w-full max-w-[400px] p-6 md:p-[30px] rounded-2xl border border-edge md:ms-auto"
           style={{
             background: 'rgba(20,22,30,0.7)',
             backdropFilter: 'blur(30px) saturate(160%)',
@@ -117,10 +133,10 @@ export default function Login() {
             </span>
           </div>
 
-          <h2 className="text-[22px] font-extrabold text-ink mb-1" style={{ letterSpacing: '-0.5px' }}>
+          <h2 className="text-xl md:text-[22px] font-extrabold text-ink mb-1" style={{ letterSpacing: '-0.5px' }}>
             {t('login.title', { defaultValue: 'Sign in to continue' })}
           </h2>
-          <p className="text-[12.5px] text-ink-muted mb-6">
+          <p className="text-xs md:text-[12.5px] text-ink-muted mb-6">
             {t('login.subtitle', { defaultValue: 'Accounts are provisioned by an admin.' })}
           </p>
 
@@ -132,7 +148,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
             <div>
-              <label className="block text-[11px] font-semibold text-ink-muted mb-1.5" style={{ letterSpacing: '0.03em' }}>
+              <label className={`block text-[11px] font-semibold text-ink-muted mb-1.5 ${isHe ? 'tracking-normal font-bold' : 'tracking-[0.03em]'}`}>
                 {t('login.email')}
               </label>
               <input
@@ -140,14 +156,14 @@ export default function Login() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="input"
+                className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
                 placeholder="agent@wash.co.il"
                 autoComplete="email"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-ink-muted mb-1.5" style={{ letterSpacing: '0.03em' }}>
+              <label className={`block text-[11px] font-semibold text-ink-muted mb-1.5 ${isHe ? 'tracking-normal font-bold' : 'tracking-[0.03em]'}`}>
                 {t('login.password')}
               </label>
               <input
@@ -155,7 +171,7 @@ export default function Login() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="input"
+                className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
                 autoComplete="current-password"
               />
             </div>
@@ -167,7 +183,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-1 h-[46px] rounded-xl border-none text-white font-bold text-[14px] flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+              className="w-full mt-1 h-12 rounded-xl border-none text-white font-bold text-[14px] flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98]"
               style={{
                 background: `linear-gradient(180deg, var(--color-agent), var(--color-agent-deep))`,
                 boxShadow: '0 8px 22px rgba(63,181,143,0.4), inset 0 1px 0 rgba(255,255,255,0.25)',
@@ -179,19 +195,20 @@ export default function Login() {
           </form>
 
           {/* Agents-only notice */}
-          <div
-            className="mt-4 px-3 py-2.5 rounded-xl flex gap-2.5 items-start border"
-            style={{
-              background: 'rgba(245,158,11,0.08)',
-              borderColor: 'rgba(245,158,11,0.2)',
-            }}
-          >
+          <div className="mt-4 px-3 py-2.5 rounded-xl flex gap-2.5 items-start border bg-warning/[0.08] border-warning/20">
             <AlertTriangle size={14} className="text-warning shrink-0 mt-0.5" />
             <span className="text-[11.5px] text-ink-muted leading-relaxed">
-              Non-agent accounts will be signed out automatically. This portal is for the support team only.
+              {t('login.agentsOnlyNotice', {
+                defaultValue: 'Non-agent accounts will be signed out automatically. This portal is for the support team only.',
+              })}
             </span>
           </div>
         </div>
+      </div>
+
+      {/* ── Mobile footer ────────────────────────────────────── */}
+      <div className="relative md:hidden text-center py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <p className="text-[11px] text-ink-subtle">© 2026 Wash · Support</p>
       </div>
     </div>
   )

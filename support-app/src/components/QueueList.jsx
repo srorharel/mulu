@@ -97,8 +97,7 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
 
   return (
     <div
-      className="flex flex-col shrink-0 border-r border-edge bg-surface-elevated h-full"
-      style={{ width: 320 }}
+      className="flex flex-col shrink-0 border-e border-edge bg-surface-elevated h-full w-full md:w-80"
     >
       {/* Column header */}
       <div className="px-[18px] pt-[18px] pb-3 border-b border-edge shrink-0">

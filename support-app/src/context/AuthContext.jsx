@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { registerAgentPush, unregisterAgentToken } from '../lib/pushInit.js'
 
 const AuthContext = createContext(null)
 
@@ -30,7 +29,9 @@ export function AuthProvider({ children }) {
 
     if (!pushRegistered.current) {
       pushRegistered.current = true
-      registerAgentPush(userId).catch(() => {})
+      import('../lib/pushInit.js')
+        .then(({ registerAgentPush }) => registerAgentPush(userId))
+        .catch(() => {})
     }
   }
 
@@ -62,7 +63,9 @@ export function AuthProvider({ children }) {
 
   async function signOut() {
     if (session) {
-      await unregisterAgentToken(session.user.id).catch(() => {})
+      await import('../lib/pushInit.js')
+        .then(({ unregisterAgentToken }) => unregisterAgentToken(session.user.id))
+        .catch(() => {})
       pushRegistered.current = false
     }
     await supabase.auth.signOut()

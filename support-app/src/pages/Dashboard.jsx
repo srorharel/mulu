@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sparkles, TicketCheck, ShieldCheck } from 'lucide-react'
+import { Sparkles, TicketCheck, ShieldCheck, ArrowLeft, X } from 'lucide-react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useAgentQueue } from '../hooks/useAgentQueue.js'
@@ -9,6 +9,7 @@ import { fetchPendingApprovals } from '../lib/approvals.js'
 import { fetchPendingVerifications } from '../lib/washerVerifications.js'
 import { supabase } from '../lib/supabase.js'
 import LeftRail from '../components/LeftRail.jsx'
+import MobileTabBar from '../components/MobileTabBar.jsx'
 import QueueList from '../components/QueueList.jsx'
 import UnassignedView from '../components/UnassignedView.jsx'
 import ChatPane from '../components/ChatPane.jsx'
@@ -206,100 +207,148 @@ function TicketsView() {
     </div>
   )
 
-  return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* Ticket list */}
-      <div className="w-80 min-w-60 border-r border-edge overflow-y-auto flex flex-col divide-y divide-edge bg-surface-elevated">
-        {tickets.map(ticket => (
-          <button
-            key={ticket.id}
-            onClick={() => setSelected(ticket)}
-            className={`text-start p-3 hover:bg-surface-elevated-2 transition-colors ${
-              selected?.id === ticket.id ? 'bg-surface-elevated-2' : ''
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Pill color={STATUS_PILL[ticket.status] ?? 'subtle'}>
-                {t(`support.tickets.status.${ticket.status}`)}
-              </Pill>
-              {ticket.reason === 'low_rating' && (
-                <span className="text-[10px] text-warning font-semibold">1★ auto</span>
-              )}
-            </div>
-            <p className="text-xs font-semibold text-ink truncate">
-              {ticket.consumer?.full_name ?? '—'}
-            </p>
-            {ticket.initial_feedback && (
-              <p className="text-[11px] text-ink-muted truncate mt-0.5">
-                {ticket.initial_feedback}
-              </p>
-            )}
-            <p className="text-[10px] text-ink-subtle mt-1">
-              {new Date(ticket.created_at).toLocaleDateString()}
-            </p>
+  // Mobile: if a ticket is selected, show detail full-screen
+  if (selected) {
+    return (
+      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+        {/* Ticket list — hidden on mobile when detail is shown */}
+        <div className="hidden md:flex w-80 min-w-60 border-e border-edge overflow-y-auto flex-col divide-y divide-edge bg-surface-elevated">
+          {tickets.map(ticket => (
+            <TicketListItem key={ticket.id} ticket={ticket} selected={selected} onSelect={setSelected} t={t} />
+          ))}
+        </div>
+
+        {/* Ticket detail */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-4">
+          <button onClick={() => setSelected(null)} className="md:hidden flex items-center gap-1.5 text-sm text-ink-muted mb-1 -ms-1">
+            <ArrowLeft size={16} /> Back
           </button>
+          <TicketDetail ticket={selected} t={t} updateStatus={updateStatus} setSelected={setSelected} />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+      {/* Ticket list — full-width on mobile */}
+      <div className="flex md:w-80 md:min-w-60 border-e border-edge overflow-y-auto flex-col divide-y divide-edge bg-surface-elevated flex-1 md:flex-none">
+        {tickets.map(ticket => (
+          <TicketListItem key={ticket.id} ticket={ticket} selected={selected} onSelect={setSelected} t={t} />
         ))}
       </div>
 
-      {/* Ticket detail */}
-      {selected ? (
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold text-ink">
-                {selected.consumer?.full_name ?? '—'}
-              </p>
-              <p className="text-xs text-ink-muted">
-                {t(`support.tickets.reason.${selected.reason}`)} · {new Date(selected.created_at).toLocaleString()}
-              </p>
-            </div>
-            <Pill color={STATUS_PILL[selected.status] ?? 'subtle'}>
-              {t(`support.tickets.status.${selected.status}`)}
-            </Pill>
-          </div>
+      {/* Placeholder — desktop only */}
+      <div className="hidden md:flex flex-1 items-center justify-center text-ink-muted text-sm">
+        Select a ticket
+      </div>
+    </div>
+  )
+}
 
-          {selected.washer && (
-            <div className="text-xs text-ink-muted">
-              Washer: <span className="font-semibold text-ink">{selected.washer.full_name}</span>
-            </div>
-          )}
+function TicketListItem({ ticket, selected, onSelect, t }) {
+  return (
+    <button
+      key={ticket.id}
+      onClick={() => onSelect(ticket)}
+      className={`text-start p-3 hover:bg-surface-elevated-2 transition-colors ${
+        selected?.id === ticket.id ? 'bg-surface-elevated-2' : ''
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <Pill color={STATUS_PILL[ticket.status] ?? 'subtle'}>
+          {t(`support.tickets.status.${ticket.status}`)}
+        </Pill>
+        {ticket.reason === 'low_rating' && (
+          <span className="text-[10px] text-warning font-semibold">1★ auto</span>
+        )}
+      </div>
+      <p className="text-xs font-semibold text-ink truncate">
+        {ticket.consumer?.full_name ?? '—'}
+      </p>
+      {ticket.initial_feedback && (
+        <p className="text-[11px] text-ink-muted truncate mt-0.5">
+          {ticket.initial_feedback}
+        </p>
+      )}
+      <p className="text-[10px] text-ink-subtle mt-1">
+        {new Date(ticket.created_at).toLocaleDateString()}
+      </p>
+    </button>
+  )
+}
 
-          {selected.initial_feedback && (
-            <div className="rounded-xl bg-surface border border-edge p-3">
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Feedback</p>
-              <p className="text-sm text-ink whitespace-pre-wrap">{selected.initial_feedback}</p>
-            </div>
-          )}
-
-          <div className="text-xs text-ink-muted">
-            Order ID: <span className="font-mono text-ink">{selected.order_id?.slice(0, 8)}…</span>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {selected.status !== 'in_progress' && selected.status !== 'resolved' && (
-              <button
-                onClick={() => { updateStatus(selected.id, 'in_progress'); setSelected(s => ({ ...s, status: 'in_progress' })) }}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-warning/40 text-warning hover:bg-warning/10 transition-colors"
-              >
-                {t('support.tickets.status.in_progress')}
-              </button>
-            )}
-            {selected.status !== 'resolved' && (
-              <button
-                onClick={() => { updateStatus(selected.id, 'resolved'); setSelected(s => ({ ...s, status: 'resolved' })) }}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-colors"
-                style={{ background: 'var(--color-agent)' }}
-              >
-                {t('support.tickets.status.resolved')}
-              </button>
-            )}
-          </div>
+function TicketDetail({ ticket, t, updateStatus, setSelected }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-ink">
+            {ticket.consumer?.full_name ?? '—'}
+          </p>
+          <p className="text-xs text-ink-muted">
+            {t(`support.tickets.reason.${ticket.reason}`)} · {new Date(ticket.created_at).toLocaleString()}
+          </p>
         </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-ink-muted text-sm">
-          Select a ticket
+        <Pill color={STATUS_PILL[ticket.status] ?? 'subtle'}>
+          {t(`support.tickets.status.${ticket.status}`)}
+        </Pill>
+      </div>
+
+      {ticket.washer && (
+        <div className="text-xs text-ink-muted">
+          Washer: <span className="font-semibold text-ink">{ticket.washer.full_name}</span>
         </div>
       )}
+
+      {ticket.initial_feedback && (
+        <div className="rounded-xl bg-surface border border-edge p-3">
+          <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Feedback</p>
+          <p className="text-sm text-ink whitespace-pre-wrap">{ticket.initial_feedback}</p>
+        </div>
+      )}
+
+      <div className="text-xs text-ink-muted">
+        Order ID: <span className="font-mono text-ink">{ticket.order_id?.slice(0, 8)}…</span>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {ticket.status !== 'in_progress' && ticket.status !== 'resolved' && (
+          <button
+            onClick={() => { updateStatus(ticket.id, 'in_progress'); setSelected(s => ({ ...s, status: 'in_progress' })) }}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-warning/40 text-warning hover:bg-warning/10 transition-colors"
+          >
+            {t('support.tickets.status.in_progress')}
+          </button>
+        )}
+        {ticket.status !== 'resolved' && (
+          <button
+            onClick={() => { updateStatus(ticket.id, 'resolved'); setSelected(s => ({ ...s, status: 'resolved' })) }}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-colors"
+            style={{ background: 'var(--color-agent)' }}
+          >
+            {t('support.tickets.status.resolved')}
+          </button>
+        )}
+      </div>
+    </>
+  )
+}
+
+// ── Mobile context drawer ─────────────────────────────────────────────────────
+
+function MobileContextDrawer({ children, onClose }) {
+  return (
+    <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-surface">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-edge shrink-0">
+        <span className="text-sm font-semibold text-ink">Details</span>
+        <button onClick={onClose} className="p-1.5 rounded-lg text-ink-muted hover:text-ink">
+          <X size={20} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {children}
+      </div>
     </div>
   )
 }
@@ -315,6 +364,7 @@ export default function Dashboard() {
 
   const { conversations, unassigned, mine, others, all, loading, fetchError, reload } = useAgentQueue(profile?.id)
   const [selectedConv, setSelectedConv] = useState(null)
+  const [showMobileInfo, setShowMobileInfo] = useState(false)
 
   // Derive active tab from URL path so /unassigned URL stays in sync
   const isUnassignedPath = location.pathname === '/unassigned'
@@ -400,6 +450,10 @@ export default function Dashboard() {
   }
 
   function handleTabChange(newTab) {
+    if (newTab === 'settings') {
+      navigate('/settings')
+      return
+    }
     if (newTab === 'unassigned') {
       navigate('/unassigned', { replace: true })
     } else {
@@ -408,14 +462,31 @@ export default function Dashboard() {
     }
   }
 
+  function handleChatBack() {
+    setSelectedConv(null)
+    navigate('/', { replace: true })
+  }
+
   const latestConv = selectedConv
     ? (conversations.find(c => c.id === selectedConv.id) ?? selectedConv)
     : null
 
   const showOrderPanel = latestConv?.order_id
 
+  const badgeCounts = {
+    unassigned: unassigned.length,
+    conv: mine.length + others.length,
+    approvals: pendingCount,
+    tickets: ticketCount,
+    washerVerifications: verificationCount,
+  }
+
+  // On mobile, when a conversation is selected, show chat full-screen
+  const mobileShowChat = !!selectedConv && tab === 'conv'
+
   return (
-    <div className="flex h-screen bg-surface overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-surface overflow-hidden">
+      {/* Desktop sidebar */}
       <LeftRail
         activeTab={tab}
         onTabChange={handleTabChange}
@@ -429,7 +500,7 @@ export default function Dashboard() {
         onSignOut={signOut}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         {tab === 'unassigned' ? (
           <div className="flex flex-1 overflow-hidden">
             <UnassignedView conversations={unassigned} onClaim={handleClaim} />
@@ -448,31 +519,41 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">
-            {/* Left: Queue (assigned conversations only) */}
-            <QueueList
-              mine={mine}
-              others={others}
-              agentId={profile?.id}
-              selectedId={latestConv?.id}
-              onSelect={handleSelect}
-              loading={loading}
-              fetchError={fetchError}
-              onRetry={reload}
-            />
+            {/* Queue list — hidden on mobile when chat is open */}
+            <div className={`${mobileShowChat ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none`}>
+              <QueueList
+                mine={mine}
+                others={others}
+                agentId={profile?.id}
+                selectedId={latestConv?.id}
+                onSelect={handleSelect}
+                loading={loading}
+                fetchError={fetchError}
+                onRetry={reload}
+              />
+            </div>
 
-            {/* Center: Chat */}
-            <ChatPane
-              conversation={latestConv}
-              onConvUpdate={reload}
-              onOrderChipClick={() => {
-                document.getElementById('order-panel-rail')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-            />
+            {/* Chat — full-screen on mobile, flex on desktop */}
+            <div className={`${mobileShowChat ? 'flex' : 'hidden md:flex'} flex-1 min-w-0`}>
+              <ChatPane
+                conversation={latestConv}
+                onConvUpdate={reload}
+                onBack={handleChatBack}
+                onInfoToggle={() => setShowMobileInfo(true)}
+                onOrderChipClick={() => {
+                  if (window.innerWidth < 768) {
+                    setShowMobileInfo(true)
+                  } else {
+                    document.getElementById('order-panel-rail')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }}
+              />
+            </div>
 
-            {/* Right: Order or User context */}
+            {/* Right rail — desktop only */}
             <div
               id="order-panel-rail"
-              className="flex flex-col border-l border-edge bg-surface-elevated overflow-y-auto"
+              className="hidden md:flex flex-col border-s border-edge bg-surface-elevated overflow-y-auto"
               style={{ width: 360, flexShrink: 0 }}
             >
               {showOrderPanel ? (
@@ -485,9 +566,27 @@ export default function Dashboard() {
                 <UserPanel openerId={latestConv?.opener_id} />
               )}
             </div>
+
+            {/* Mobile context drawer */}
+            {showMobileInfo && latestConv && (
+              <MobileContextDrawer onClose={() => setShowMobileInfo(false)}>
+                {showOrderPanel ? (
+                  <OrderPanel
+                    orderId={latestConv?.order_id}
+                    conversationStatus={latestConv?.status}
+                    openerRole={latestConv?.opener_role || latestConv?.opener?.role}
+                  />
+                ) : (
+                  <UserPanel openerId={latestConv?.opener_id} />
+                )}
+              </MobileContextDrawer>
+            )}
           </div>
         )}
       </div>
+
+      {/* Mobile bottom tab bar */}
+      <MobileTabBar activeTab={tab} onTabChange={handleTabChange} counts={badgeCounts} />
     </div>
   )
 }
