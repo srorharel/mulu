@@ -1,4 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 
 function nameToHue(name = '') {
   let h = 0
@@ -10,7 +12,7 @@ function formatRelative(iso) {
   if (!iso) return ''
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1)  return 'now'
+  if (mins < 1)  return i18n.t('time.now')
   if (mins < 60) return `${mins}m`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24)  return `${hrs}h`
@@ -22,6 +24,7 @@ function getConversationRole(conversation) {
 }
 
 export default function QueueItem({ conversation, agentId, isSelected, onClick }) {
+  const { t } = useTranslation()
   const openerName = conversation.opener?.full_name || '—'
   const role       = getConversationRole(conversation)
 
@@ -41,7 +44,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
     .map(w => w[0].toUpperCase())
     .join('')
 
-  const roleLabel = role === 'consumer' ? 'Customer' : role === 'washer' ? 'Washer' : null
+  const roleLabel = role === 'consumer' ? t('role.consumer') : role === 'washer' ? t('role.washer') : null
 
   const assignedAgent = conversation.assigned_agent_id && conversation.assigned_agent_id !== agentId
     ? (conversation.agent?.agent_display_name || conversation.agent?.full_name || null)
@@ -129,14 +132,14 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
             <AlertTriangle
               size={11}
               className="text-danger shrink-0"
-              aria-label="Urgent"
+              aria-label={t('queue.urgent')}
             />
           )}
         </div>
 
         {/* Row 3: preview */}
         <p className="text-[12px] text-ink-muted mt-1.5 truncate leading-none">
-          {preview || <span className="italic text-ink-subtle">No messages yet</span>}
+          {preview || <span className="italic text-ink-subtle">{t('queue.noMessages')}</span>}
         </p>
       </div>
 

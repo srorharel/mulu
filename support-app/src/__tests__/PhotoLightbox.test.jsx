@@ -1,15 +1,18 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-vi.mock('framer-motion', () => {
-  const React = require('react')
-  return {
-    motion: new Proxy({}, {
-      get: (_target, tag) => React.forwardRef((props, ref) => React.createElement(tag, { ...props, ref })),
-    }),
-    AnimatePresence: ({ children }) => children,
-  }
-})
+import React from 'react'
+
+vi.mock('framer-motion', () => ({
+  motion: new Proxy({}, {
+    get: (_target, tag) => {
+      const Comp = React.forwardRef((props, ref) => React.createElement(tag, { ...props, ref }))
+      Comp.displayName = `motion.${String(tag)}`
+      return Comp
+    },
+  }),
+  AnimatePresence: ({ children }) => children,
+}))
 
 import PhotoLightbox from '../components/PhotoLightbox.jsx'
 

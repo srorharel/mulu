@@ -64,7 +64,7 @@ describe('Dashboard — empty queue column', () => {
   it('renders the explicit empty state when mine and others are both empty', () => {
     renderDashboard()
     expect(screen.getByTestId('queue-empty')).toBeInTheDocument()
-    expect(screen.getByText('No conversations yet')).toBeInTheDocument()
+    expect(screen.getByText(/No conversations/)).toBeInTheDocument()
   })
 
   it('shows the helper subtitle in the empty state', () => {

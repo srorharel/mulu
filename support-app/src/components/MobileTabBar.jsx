@@ -1,12 +1,13 @@
 import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, ShieldCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const TABS = [
-  { id: 'conv',                Icon: MessageSquare, label: 'Chat' },
-  { id: 'unassigned',          Icon: Inbox,         label: 'Queue' },
-  { id: 'approvals',           Icon: CheckSquare,   label: 'Approvals' },
-  { id: 'tickets',             Icon: Ticket,        label: 'Tickets' },
-  { id: 'washerVerifications', Icon: ShieldCheck,   label: 'Verify' },
-  { id: 'settings',            Icon: Settings,      label: 'Settings' },
+  { id: 'conv',                Icon: MessageSquare, labelKey: 'nav.chat' },
+  { id: 'unassigned',          Icon: Inbox,         labelKey: 'nav.queue' },
+  { id: 'approvals',           Icon: CheckSquare,   labelKey: 'nav.approvals' },
+  { id: 'tickets',             Icon: Ticket,        labelKey: 'nav.tickets' },
+  { id: 'washerVerifications', Icon: ShieldCheck,   labelKey: 'nav.verify' },
+  { id: 'settings',            Icon: Settings,      labelKey: 'nav.settings' },
 ]
 
 function Badge({ count }) {
@@ -19,12 +20,13 @@ function Badge({ count }) {
 }
 
 export default function MobileTabBar({ activeTab, onTabChange, counts = {} }) {
+  const { t } = useTranslation()
   return (
     <nav
       className="md:hidden flex items-end justify-around border-t border-edge bg-surface-elevated shrink-0"
       style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
     >
-      {TABS.map(({ id, Icon, label }) => {
+      {TABS.map(({ id, Icon, labelKey }) => {
         const isActive = activeTab === id
         return (
           <button
@@ -37,7 +39,7 @@ export default function MobileTabBar({ activeTab, onTabChange, counts = {} }) {
               <Icon size={20} />
               <Badge count={counts[id]} />
             </div>
-            <span className="text-[10px] font-semibold">{label}</span>
+            <span className="text-[10px] font-semibold">{t(labelKey)}</span>
           </button>
         )
       })}

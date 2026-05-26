@@ -4,6 +4,7 @@ import { User } from 'lucide-react'
 import { fetchUserProfile } from '../lib/support.js'
 import { supabase } from '../lib/supabase.js'
 import { useReverseGeocode } from '../lib/geocode.js'
+import i18n from '../i18n'
 
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
 
@@ -11,7 +12,7 @@ function timeAgo(dateStr) {
   if (!dateStr) return null
   const seconds = Math.max(1, Math.round((Date.now() - new Date(dateStr)) / 1000))
   try {
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+    const rtf = new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto' })
     if (seconds < 60)    return rtf.format(-seconds, 'second')
     if (seconds < 3600)  return rtf.format(-Math.round(seconds / 60), 'minute')
     if (seconds < 86400) return rtf.format(-Math.round(seconds / 3600), 'hour')
@@ -34,8 +35,8 @@ function WasherLocationCard({ washerLoc }) {
 
   return (
     <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
-      <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide">
-        {t('approvals.location.title')}
+      <p className={`text-xs text-ink-muted ${i18n.language === 'en' ? 'font-semibold uppercase tracking-wide' : 'font-bold'}`}>
+        {t('user.location')}
       </p>
       {hasLoc ? (
         <>
@@ -44,11 +45,11 @@ function WasherLocationCard({ washerLoc }) {
           </Suspense>
           {address && <p className="text-xs text-ink leading-snug">{address}</p>}
           <p className="text-xs text-ink-muted">
-            {t('approvals.location.lastSeen', { time: timeAgo(washerLoc.at) })}
+            {t('user.lastSeen', { time: timeAgo(washerLoc.at) })}
           </p>
         </>
       ) : (
-        <p className="text-sm text-ink-muted">{t('approvals.location.unavailable')}</p>
+        <p className="text-sm text-ink-muted">{t('user.locationUnavailable')}</p>
       )}
     </div>
   )
@@ -120,7 +121,7 @@ export default function UserPanel({ openerId }) {
         </div>
         <div>
           <p className="font-bold text-ink">{profile.full_name || '—'}</p>
-          <p className="text-xs text-ink-muted capitalize">{profile.role}</p>
+          <p className="text-xs text-ink-muted capitalize">{t(`role.${profile.role}`)}</p>
           {profile.phone && (
             <a href={`tel:${profile.phone}`} className="text-xs text-accent hover:underline">
               {profile.phone}
@@ -135,14 +136,14 @@ export default function UserPanel({ openerId }) {
 
       {recentOrders.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
+          <h4 className={`text-xs text-ink-muted mb-2 ${i18n.language === 'en' ? 'font-semibold uppercase tracking-wide' : 'font-bold'}`}>
             {t('user.recentOrders')}
           </h4>
           <div className="flex flex-col gap-2">
             {recentOrders.map(order => (
               <div key={order.id} className="card text-sm flex justify-between items-center py-2">
                 <div>
-                  <p className="text-xs text-ink capitalize">{order.status.replace('_', ' ')}</p>
+                  <p className="text-xs text-ink capitalize">{t(`orderStatus.${order.status}`)}</p>
                   <p className="text-[11px] text-ink-muted">{order.car_type} · {order.service_type}</p>
                 </div>
                 <span className="text-accent font-bold text-xs">₪{order.total_price}</span>

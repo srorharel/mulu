@@ -9,7 +9,7 @@ import Pill from './Pill.jsx'
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
 
 function WasherLocationCard({ washerLoc }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const address = useReverseGeocode(washerLoc?.lat, washerLoc?.lng)
   const [, setTick] = useState(0)
 
@@ -22,8 +22,8 @@ function WasherLocationCard({ washerLoc }) {
 
   return (
     <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
-      <p className="text-[10.5px] text-ink-subtle font-bold uppercase tracking-[0.05em]">
-        {t('approvals.location.title', { defaultValue: 'Washer location' })}
+      <p className={`text-[10.5px] text-ink-subtle font-bold ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'}`}>
+        {t('user.location')}
       </p>
       {hasLoc ? (
         <>
@@ -32,14 +32,14 @@ function WasherLocationCard({ washerLoc }) {
           </Suspense>
           {address && <p className="text-xs text-ink leading-snug">{address}</p>}
           <p className="text-xs text-ink-muted">
-            {t('approvals.location.lastSeen', { time: washerLoc.at
+            {t('user.lastSeen', { time: washerLoc.at
               ? new Date(washerLoc.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               : '—'
             })}
           </p>
         </>
       ) : (
-        <p className="text-sm text-ink-muted">{t('approvals.location.unavailable', { defaultValue: 'Location unavailable' })}</p>
+        <p className="text-sm text-ink-muted">{t('user.locationUnavailable')}</p>
       )}
     </div>
   )
@@ -107,7 +107,7 @@ function PartyRow({ roleLabel, name, phone, hue, online }) {
 }
 
 export default function OrderPanel({ orderId, conversationStatus, openerRole }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [order,      setOrder]      = useState(null)
   const [loading,    setLoading]    = useState(false)
   const [confirming, setConfirming] = useState(null) // 'cancel' | 'complete' | null
@@ -190,13 +190,13 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
     <div className="flex-1 overflow-y-auto">
       {/* Linked order header */}
       <div className="px-[18px] pt-[16px] pb-3 border-b border-edge">
-        <p className="text-[10.5px] text-ink-subtle font-bold uppercase tracking-[0.05em]">
-          {t('order.title', { defaultValue: 'Linked order' })}
+        <p className={`text-[10.5px] text-ink-subtle font-bold ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'}`}>
+          {t('order.linkedOrder')}
         </p>
         <div className="flex items-center justify-between mt-1">
           <span className="font-mono text-[15px] font-bold text-ink">{order.id?.slice(0, 8)}…</span>
           <Pill color={statusPillColor(order.status)} dot>
-            {order.status?.replace(/_/g, ' ')}
+            {t(`orderStatus.${order.status}`)}
           </Pill>
         </div>
       </div>
@@ -214,7 +214,7 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
                 <span className="text-[12px] text-ink-muted">{vehicleParts.join(' · ')}</span>
               )}
               {order.car_color && (
-                <span className="text-[12px] text-ink-muted ml-1">· {order.car_color}</span>
+                <span className="text-[12px] text-ink-muted ms-1">· {order.car_color}</span>
               )}
             </div>
           </div>
@@ -223,21 +223,21 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
         {/* Address */}
         {order.address_label && (
           <div>
-            <p className="text-[10.5px] text-ink-subtle font-semibold uppercase tracking-[0.04em] mb-1">Address</p>
+            <p className="text-[10.5px] text-ink-subtle font-semibold uppercase tracking-[0.04em] mb-1">{t('order.address')}</p>
             <p className="text-[13px] text-ink">{order.address_label}</p>
           </div>
         )}
 
         {/* Parties */}
         <PartyRow
-          roleLabel={t('order.consumer', { defaultValue: 'Consumer' })}
+          roleLabel={t('order.consumer')}
           name={consumerName}
           phone={order.consumer?.phone}
           hue={nameToHue(consumerName)}
         />
         {order.washer && (
           <PartyRow
-            roleLabel={t('order.washer', { defaultValue: 'Washer' })}
+            roleLabel={t('order.washer')}
             name={washerName}
             phone={order.washer?.phone}
             hue={nameToHue(washerName)}
@@ -256,15 +256,15 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
 
         {/* Pricing */}
         <div className="p-3 rounded-xl border border-edge bg-surface">
-          <p className="text-[10.5px] text-ink-subtle font-bold uppercase tracking-[0.05em] mb-2">
-            {t('order.total', { defaultValue: 'Pricing' })}
+          <p className={`text-[10.5px] text-ink-subtle font-bold ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'} mb-2`}>
+            {t('order.pricing')}
           </p>
           <div className="flex justify-between text-[12.5px] text-ink-muted py-0.5">
-            <span>{t('order.washer', { defaultValue: 'Washer' })}</span>
+            <span>{t('order.washerPayout')}</span>
             <span className="font-semibold text-ink">₪{order.payout_amount ?? '—'}</span>
           </div>
           <div className="flex justify-between text-[12.5px] border-t border-edge mt-2 pt-2">
-            <span className="text-ink-muted font-semibold">{t('order.total', { defaultValue: 'Consumer total' })}</span>
+            <span className="text-ink-muted font-semibold">{t('order.consumerTotal')}</span>
             <span className="text-[16px] font-bold text-ink" style={{ letterSpacing: '-0.3px' }}>
               ₪{order.total_price}
             </span>

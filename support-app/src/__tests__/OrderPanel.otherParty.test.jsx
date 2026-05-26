@@ -26,14 +26,27 @@ import OrderPanel from '../components/OrderPanel.jsx'
 const i18n = i18next.createInstance()
 i18n.use(initReactI18next).init({
   resources: { en: { translation: {
-    'order.title':    'Linked order',
+    'order.title':    'Order details',
+    'order.linkedOrder': 'Linked order',
     'order.noOrder':  'No order linked',
     'order.consumer': 'Customer',
     'order.washer':   'Washer',
-    'order.total':    'Pricing',
-    'approvals.location.title':       'Washer location',
-    'approvals.location.unavailable': 'Location unavailable',
-    'approvals.location.lastSeen':    'Last seen {{time}}',
+    'order.total':    'Total',
+    'order.address':  'Address',
+    'order.pricing':  'Pricing',
+    'order.consumerTotal': 'Consumer total',
+    'order.washerPayout': 'Washer payout',
+    'user.location':           'Location',
+    'user.locationUnavailable': 'Location unavailable',
+    'user.lastSeen':            'Last seen {{time}}',
+    'orderStatus.pending': 'Pending',
+    'orderStatus.accepted': 'Accepted',
+    'orderStatus.en_route': 'En route',
+    'orderStatus.arrived': 'Arrived',
+    'orderStatus.in_progress': 'In progress',
+    'orderStatus.pending_approval': 'Pending approval',
+    'orderStatus.completed': 'Completed',
+    'orderStatus.cancelled': 'Cancelled',
     'orderActions.cancel.button':     'Cancel order',
     'orderActions.complete.button':   'Mark complete (override)',
   } } },
@@ -79,7 +92,7 @@ describe('OrderPanel — other party display', () => {
       { wrapper },
     )
     // Wait for the order to load
-    const washerLabel = await screen.findByText('Washer location')
+    const washerLabel = await screen.findByText('Location')
     expect(washerLabel).toBeInTheDocument()
   })
 
@@ -90,7 +103,7 @@ describe('OrderPanel — other party display', () => {
       { wrapper },
     )
     await screen.findByText('Bob Washer')
-    expect(screen.queryByText('Washer location')).not.toBeInTheDocument()
+    expect(screen.queryByText('Location')).not.toBeInTheDocument()
   })
 
   it('shows Customer and Washer party rows', async () => {
@@ -113,6 +126,6 @@ describe('OrderPanel — other party display', () => {
       { wrapper },
     )
     await screen.findByText('Bob Washer')
-    expect(screen.queryByText('Washer location')).not.toBeInTheDocument()
+    expect(screen.queryByText('Location')).not.toBeInTheDocument()
   })
 })

@@ -72,7 +72,7 @@ export default function Login() {
           </span>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] pb-2" style={{ color: 'var(--color-agent)' }}>
-          Internal · Agent only
+          {t('hero.internalOnly')}
         </p>
       </div>
 
@@ -92,25 +92,24 @@ export default function Login() {
 
         <div dir="ltr">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--color-agent)', marginBottom: 14 }}>
-            Internal · Agent only
+            {t('hero.internalOnly')}
           </p>
           <h1 className="text-5xl lg:text-6xl font-extrabold text-ink leading-[1.05] max-w-[18ch]" style={{ letterSpacing: '-1.4px', marginBottom: 12, textWrap: 'balance' }}>
-            Keep the queue moving.
+            {t('hero.headline')}
           </h1>
           <p className="text-[15px] text-ink-muted leading-relaxed max-w-[380px]">
-            Triage conversations, approve completed jobs, and resolve
-            tickets — all in one live, dark workspace.
+            {t('hero.description')}
           </p>
 
           <div className="flex gap-3.5 mt-7">
-            <StatChip label="Avg first reply"  value="6m"  color="var(--color-accent)" />
-            <StatChip label="CSAT this week"   value="4.7" color="var(--color-warning)" />
-            <StatChip label="Agents online"    value="4"   color="var(--color-agent)" />
+            <StatChip label={t('hero.stats.avgFirstReply')}  value="6m"  color="var(--color-accent)" />
+            <StatChip label={t('hero.stats.csatThisWeek')}   value="4.7" color="var(--color-warning)" />
+            <StatChip label={t('hero.stats.agentsOnline')}    value="4"   color="var(--color-agent)" />
           </div>
         </div>
 
         <p className="text-[11.5px] text-ink-subtle">
-          © 2026 Wash · Support platform
+          {t('hero.copyright')}
         </p>
       </div>
 
@@ -128,16 +127,16 @@ export default function Login() {
           {/* Portal label */}
           <div className="flex items-center gap-2 mb-1">
             <CheckSquare size={16} style={{ color: 'var(--color-agent)' }} />
-            <span className="text-[11px] font-bold uppercase tracking-[0.05em]" style={{ color: 'var(--color-agent)' }}>
-              Agent portal
+            <span className={`text-[11px] font-bold ${isHe ? '' : 'uppercase tracking-[0.05em]'}`} style={{ color: 'var(--color-agent)' }}>
+              {t('hero.agentPortal')}
             </span>
           </div>
 
           <h2 className="text-xl md:text-[22px] font-extrabold text-ink mb-1" style={{ letterSpacing: '-0.5px' }}>
-            {t('login.title', { defaultValue: 'Sign in to continue' })}
+            {t('login.title')}
           </h2>
           <p className="text-xs md:text-[12.5px] text-ink-muted mb-6">
-            {t('login.subtitle', { defaultValue: 'Accounts are provisioned by an admin.' })}
+            {t('login.subtitle')}
           </p>
 
           {agentBlocked && (
@@ -149,7 +148,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
             <div>
               <label className={`block text-[11px] font-semibold text-ink-muted mb-1.5 ${isHe ? 'tracking-normal font-bold' : 'tracking-[0.03em]'}`}>
-                {t('login.email')}
+                {t('login.emailLabel')}
               </label>
               <input
                 type="email"
@@ -157,14 +156,14 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 className="w-full h-12 rounded-xl border border-edge bg-surface-elevated px-4 text-sm text-ink outline-none placeholder:text-ink-subtle transition focus:border-agent focus:ring-1 focus:ring-agent/30"
-                placeholder="agent@wash.co.il"
+                placeholder={t('login.emailPlaceholder')}
                 autoComplete="email"
               />
             </div>
 
             <div>
               <label className={`block text-[11px] font-semibold text-ink-muted mb-1.5 ${isHe ? 'tracking-normal font-bold' : 'tracking-[0.03em]'}`}>
-                {t('login.password')}
+                {t('login.passwordLabel')}
               </label>
               <input
                 type="password"
@@ -189,7 +188,7 @@ export default function Login() {
                 boxShadow: '0 8px 22px rgba(63,181,143,0.4), inset 0 1px 0 rgba(255,255,255,0.25)',
               }}
             >
-              {loading ? t('login.submitting') : t('login.submit', { defaultValue: 'Continue to dashboard' })}
+              {loading ? t('login.submitting') : t('login.submit')}
               {!loading && <ChevronRight size={16} strokeWidth={3} />}
             </button>
           </form>
@@ -198,9 +197,7 @@ export default function Login() {
           <div className="mt-4 px-3 py-2.5 rounded-xl flex gap-2.5 items-start border bg-warning/[0.08] border-warning/20">
             <AlertTriangle size={14} className="text-warning shrink-0 mt-0.5" />
             <span className="text-[11.5px] text-ink-muted leading-relaxed">
-              {t('login.agentsOnlyNotice', {
-                defaultValue: 'Non-agent accounts will be signed out automatically. This portal is for the support team only.',
-              })}
+              {t('login.agentsOnlyNotice')}
             </span>
           </div>
         </div>
@@ -208,7 +205,7 @@ export default function Login() {
 
       {/* ── Mobile footer ────────────────────────────────────── */}
       <div className="relative md:hidden text-center py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <p className="text-[11px] text-ink-subtle">© 2026 Wash · Support</p>
+        <p className="text-[11px] text-ink-subtle">{t('hero.copyrightShort')}</p>
       </div>
     </div>
   )

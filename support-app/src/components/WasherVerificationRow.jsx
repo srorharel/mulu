@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom'
 import { CheckCircle, X, Clock, User, FileText, Camera, Copy, ExternalLink, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getVerificationSignedUrl, reviewVerification } from '../lib/washerVerifications.js'
+import i18n from '../i18n'
 import Pill from './Pill.jsx'
 
 function timeAgo(dateStr) {
   if (!dateStr) return '—'
   const seconds = Math.max(1, Math.round((Date.now() - new Date(dateStr)) / 1000))
   try {
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+    const rtf = new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto' })
     if (seconds < 60)    return rtf.format(-seconds, 'second')
     if (seconds < 3600)  return rtf.format(-Math.round(seconds / 60), 'minute')
     if (seconds < 86400) return rtf.format(-Math.round(seconds / 3600), 'hour')
@@ -74,7 +75,7 @@ function DocThumb({ label, url, icon: Icon = Camera }) {
 }
 
 export default function WasherVerificationRow({ verification, onReviewed }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const [urls, setUrls]             = useState({})
   const [rejectMode, setRejectMode] = useState(false)
@@ -307,19 +308,19 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
 
         {/* ID */}
         <div className="flex flex-col gap-1.5">
-          <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">{t('washerVerifications.idDoc')}</p>
-          <DocThumb label="ID" url={urls.id} icon={User} />
+          <p className={`text-[11px] font-bold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-wide' : 'font-semibold'}`}>{t('washerVerifications.idDoc')}</p>
+          <DocThumb label={t('washerVerifications.idDoc')} url={urls.id} icon={User} />
         </div>
 
         {/* Selfie */}
         <div className="flex flex-col gap-1.5">
-          <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">{t('washerVerifications.selfie')}</p>
+          <p className={`text-[11px] font-bold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-wide' : 'font-semibold'}`}>{t('washerVerifications.selfie')}</p>
           <DocThumb label={t('washerVerifications.selfieDoc')} url={urls.selfie} icon={Camera} />
         </div>
 
         {/* Business license — PDF gets open+download buttons; legacy images get thumbnail+download */}
         <div className="flex flex-col gap-1.5">
-          <p className="text-[11px] font-bold text-agent uppercase tracking-wide">{t('washerVerifications.license')}</p>
+          <p className={`text-[11px] font-bold text-agent ${i18n.language === 'en' ? 'uppercase tracking-wide' : 'font-semibold'}`}>{t('washerVerifications.license')}</p>
 
           {isPdf ? (
             <div className="rounded-xl border border-edge bg-surface p-2.5 flex flex-col gap-2">

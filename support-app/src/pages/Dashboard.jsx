@@ -214,16 +214,16 @@ function TicketsView() {
         {/* Ticket list — hidden on mobile when detail is shown */}
         <div className="hidden md:flex w-80 min-w-60 border-e border-edge overflow-y-auto flex-col divide-y divide-edge bg-surface-elevated">
           {tickets.map(ticket => (
-            <TicketListItem key={ticket.id} ticket={ticket} selected={selected} onSelect={setSelected} t={t} />
+            <TicketListItem key={ticket.id} ticket={ticket} selected={selected} onSelect={setSelected} />
           ))}
         </div>
 
         {/* Ticket detail */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-4">
           <button onClick={() => setSelected(null)} className="md:hidden flex items-center gap-1.5 text-sm text-ink-muted mb-1 -ms-1">
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {t('tickets.back')}
           </button>
-          <TicketDetail ticket={selected} t={t} updateStatus={updateStatus} setSelected={setSelected} />
+          <TicketDetail ticket={selected} updateStatus={updateStatus} setSelected={setSelected} />
         </div>
       </div>
     )
@@ -234,19 +234,20 @@ function TicketsView() {
       {/* Ticket list — full-width on mobile */}
       <div className="flex md:w-80 md:min-w-60 border-e border-edge overflow-y-auto flex-col divide-y divide-edge bg-surface-elevated flex-1 md:flex-none">
         {tickets.map(ticket => (
-          <TicketListItem key={ticket.id} ticket={ticket} selected={selected} onSelect={setSelected} t={t} />
+          <TicketListItem key={ticket.id} ticket={ticket} selected={selected} onSelect={setSelected} />
         ))}
       </div>
 
       {/* Placeholder — desktop only */}
       <div className="hidden md:flex flex-1 items-center justify-center text-ink-muted text-sm">
-        Select a ticket
+        {t('tickets.selectTicket')}
       </div>
     </div>
   )
 }
 
-function TicketListItem({ ticket, selected, onSelect, t }) {
+function TicketListItem({ ticket, selected, onSelect }) {
+  const { t } = useTranslation()
   return (
     <button
       key={ticket.id}
@@ -260,7 +261,7 @@ function TicketListItem({ ticket, selected, onSelect, t }) {
           {t(`support.tickets.status.${ticket.status}`)}
         </Pill>
         {ticket.reason === 'low_rating' && (
-          <span className="text-[10px] text-warning font-semibold">1★ auto</span>
+          <span className="text-[10px] text-warning font-semibold">{t('tickets.autoCreated')}</span>
         )}
       </div>
       <p className="text-xs font-semibold text-ink truncate">
@@ -278,7 +279,8 @@ function TicketListItem({ ticket, selected, onSelect, t }) {
   )
 }
 
-function TicketDetail({ ticket, t, updateStatus, setSelected }) {
+function TicketDetail({ ticket, updateStatus, setSelected }) {
+  const { t, i18n } = useTranslation()
   return (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -297,19 +299,19 @@ function TicketDetail({ ticket, t, updateStatus, setSelected }) {
 
       {ticket.washer && (
         <div className="text-xs text-ink-muted">
-          Washer: <span className="font-semibold text-ink">{ticket.washer.full_name}</span>
+          {t('tickets.washer')}: <span className="font-semibold text-ink">{ticket.washer.full_name}</span>
         </div>
       )}
 
       {ticket.initial_feedback && (
         <div className="rounded-xl bg-surface border border-edge p-3">
-          <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Feedback</p>
+          <p className={`text-xs font-semibold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-wide' : 'font-bold'} mb-1`}>{t('tickets.feedback')}</p>
           <p className="text-sm text-ink whitespace-pre-wrap">{ticket.initial_feedback}</p>
         </div>
       )}
 
       <div className="text-xs text-ink-muted">
-        Order ID: <span className="font-mono text-ink">{ticket.order_id?.slice(0, 8)}…</span>
+        {t('tickets.orderId')}: <span className="font-mono text-ink">{ticket.order_id?.slice(0, 8)}…</span>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -338,10 +340,11 @@ function TicketDetail({ ticket, t, updateStatus, setSelected }) {
 // ── Mobile context drawer ─────────────────────────────────────────────────────
 
 function MobileContextDrawer({ children, onClose }) {
+  const { t } = useTranslation()
   return (
     <div className="md:hidden fixed inset-0 z-40 flex flex-col bg-surface">
       <div className="flex items-center justify-between px-4 py-3 border-b border-edge shrink-0">
-        <span className="text-sm font-semibold text-ink">Details</span>
+        <span className="text-sm font-semibold text-ink">{t('common.details')}</span>
         <button onClick={onClose} className="p-1.5 rounded-lg text-ink-muted hover:text-ink">
           <X size={20} />
         </button>

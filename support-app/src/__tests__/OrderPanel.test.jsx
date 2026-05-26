@@ -40,11 +40,27 @@ import OrderPanel from '../components/OrderPanel.jsx'
 const i18n = i18next.createInstance()
 i18n.use(initReactI18next).init({
   resources: { en: { translation: {
-    'order.title': 'Linked order',
-    'order.consumer': 'Consumer',
+    'order.title': 'Order details',
+    'order.linkedOrder': 'Linked order',
+    'order.consumer': 'Customer',
     'order.washer': 'Washer',
     'order.total': 'Total',
     'order.noOrder': 'No order',
+    'order.address': 'Address',
+    'order.pricing': 'Pricing',
+    'order.consumerTotal': 'Consumer total',
+    'order.washerPayout': 'Washer payout',
+    'orderStatus.pending': 'Pending',
+    'orderStatus.accepted': 'Accepted',
+    'orderStatus.en_route': 'En route',
+    'orderStatus.arrived': 'Arrived',
+    'orderStatus.in_progress': 'In progress',
+    'orderStatus.pending_approval': 'Pending approval',
+    'orderStatus.completed': 'Completed',
+    'orderStatus.cancelled': 'Cancelled',
+    'user.location': 'Location',
+    'user.locationUnavailable': 'Location unavailable',
+    'user.lastSeen': 'Last seen {{time}}',
     'orderActions.cancel.button': 'Cancel order',
     'orderActions.complete.button': 'Mark complete',
     'orderActions.cancel.confirmTitle': 'Confirm cancel',
@@ -78,7 +94,7 @@ describe('OrderPanel', () => {
 
   it('renders status pill matching order.status', async () => {
     render(<OrderPanel orderId="order-uuid-1234" conversationStatus="open" />, { wrapper })
-    await waitFor(() => expect(screen.getByText('accepted')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Accepted')).toBeInTheDocument())
   })
 
   it('renders Cancel and Mark Complete buttons for non-terminal order/conv', async () => {

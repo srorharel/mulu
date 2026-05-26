@@ -128,7 +128,7 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
       <div className="flex items-center gap-2 md:gap-3.5 px-3 md:px-[22px] py-3 md:py-3.5 border-b border-edge bg-surface-elevated shrink-0">
         {/* Mobile back button */}
         {onBack && (
-          <button onClick={onBack} className="md:hidden shrink-0 p-1.5 -ms-1 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label="Back">
+          <button onClick={onBack} className="md:hidden shrink-0 p-1.5 -ms-1 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label={t('chat.back')}>
             <ArrowLeft size={20} />
           </button>
         )}
@@ -152,7 +152,7 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
                 className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
                 style={{ color: roleColor, background: `${roleColor}1f`, letterSpacing: '0.04em' }}
               >
-                {openerRole === 'consumer' ? 'Customer' : openerRole === 'washer' ? 'Washer' : openerRole}
+                {openerRole === 'consumer' ? t('role.consumer') : openerRole === 'washer' ? t('role.washer') : openerRole}
               </span>
             )}
             {conversation.order_id && (
@@ -162,13 +162,13 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
                 className="flex items-center gap-1 text-[11.5px] text-ink-subtle hover:text-ink transition-colors rounded"
               >
                 <Car size={12} />
-                {`Order #${conversation.order_id.slice(0, 8)}`}
+                {t('chat.orderChip', { id: conversation.order_id.slice(0, 8) })}
               </button>
             )}
           </div>
           <p className="text-[12px] text-ink-subtle mt-0.5">
             {agentName
-              ? <span className="text-success font-semibold">{t('chat.claimedBy', { name: agentName, defaultValue: `Claimed by ${agentName}` })}</span>
+              ? <span className="text-success font-semibold">{t('chat.claimedBy', { name: agentName })}</span>
               : t('chat.waitingForAgent')
             }
           </p>
@@ -203,7 +203,7 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
             </>
           )}
           {onInfoToggle && (
-            <button onClick={onInfoToggle} className="md:hidden shrink-0 p-1.5 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label="Info">
+            <button onClick={onInfoToggle} className="md:hidden shrink-0 p-1.5 rounded-lg text-ink-muted hover:text-ink transition-colors" aria-label={t('chat.info')}>
               <Info size={20} />
             </button>
           )}

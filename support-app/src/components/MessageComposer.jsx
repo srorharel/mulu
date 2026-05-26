@@ -153,7 +153,7 @@ export default function MessageComposer({ onSend, onTyping, disabled }) {
         {/* Slash hint */}
         <span className="shrink-0 flex items-center gap-1 text-[10.5px] text-ink-subtle px-1">
           <span>/</span>
-          canned
+          {t('chat.cannedHint')}
         </span>
 
         <button

@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import i18n from '../i18n'
 
 export class RootErrorBoundary extends Component {
   state = { error: null }
@@ -27,15 +28,15 @@ export class RootErrorBoundary extends Component {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0f172a] text-white">
           <div className="max-w-sm w-full bg-white/5 rounded-2xl p-6 border border-white/10">
-            <h1 className="text-lg font-semibold mb-2">משהו השתבש</h1>
+            <h1 className="text-lg font-semibold mb-2">{i18n.t('errorBoundary.title')}</h1>
             <p className="text-sm text-white/70 mb-4">
-              {this.state.error?.message || 'Unexpected error'}
+              {this.state.error?.message || i18n.t('errorBoundary.fallbackError')}
             </p>
             <button
               onClick={this.handleReset}
               className="w-full h-12 bg-[#7DD9A2] text-[#0f172a] font-semibold rounded-xl"
             >
-              איפוס וכניסה מחדש
+              {i18n.t('errorBoundary.resetButton')}
             </button>
           </div>
         </div>

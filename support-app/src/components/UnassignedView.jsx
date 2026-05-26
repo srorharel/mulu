@@ -1,4 +1,6 @@
 import { Inbox } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 import Pill from './Pill.jsx'
 
 function nameToHue(name = '') {
@@ -15,7 +17,7 @@ function timeAgo(ts) {
   if (!ts) return ''
   const diff = Date.now() - new Date(ts).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'now'
+  if (m < 1) return i18n.t('time.now')
   if (m < 60) return `${m}m`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h`
@@ -23,9 +25,10 @@ function timeAgo(ts) {
 }
 
 function UnassignedRow({ conversation, onClaim }) {
+  const { t } = useTranslation()
   const openerName = conversation.opener?.full_name || 'Unknown'
   const openerRole = conversation.opener?.role
-  const roleLabel  = openerRole === 'consumer' ? 'Customer' : openerRole === 'washer' ? 'Washer' : null
+  const roleLabel  = openerRole === 'consumer' ? t('role.consumer') : openerRole === 'washer' ? t('role.washer') : null
   const preview    = conversation.last_message_body ?? conversation.subject ?? ''
   const time       = timeAgo(conversation.last_message_at ?? conversation.created_at)
   const hue        = nameToHue(openerName)
@@ -54,7 +57,7 @@ function UnassignedRow({ conversation, onClaim }) {
               {roleLabel}
             </Pill>
           )}
-          <span className="text-[10.5px] text-ink-subtle ml-auto shrink-0">{time}</span>
+          <span className="text-[10.5px] text-ink-subtle ms-auto shrink-0">{time}</span>
         </div>
         {preview ? (
           <p className="text-[12px] text-ink-muted truncate mt-0.5">{preview}</p>
@@ -69,13 +72,14 @@ function UnassignedRow({ conversation, onClaim }) {
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(63,181,143,0.1)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
       >
-        Claim
+        {t('unassigned.claim')}
       </button>
     </div>
   )
 }
 
 export default function UnassignedView({ conversations, onClaim }) {
+  const { t } = useTranslation()
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-6 py-5 border-b border-edge shrink-0">
@@ -84,7 +88,7 @@ export default function UnassignedView({ conversations, onClaim }) {
             className="text-[17px] font-bold text-ink"
             style={{ letterSpacing: '-0.3px' }}
           >
-            Unassigned conversations
+            {t('unassigned.title')}
           </h1>
           <span
             className="text-[11px] font-bold px-2 py-0.5 rounded-full"
@@ -94,7 +98,7 @@ export default function UnassignedView({ conversations, onClaim }) {
           </span>
         </div>
         <p className="text-[12px] text-ink-muted mt-1">
-          Claim a conversation to start handling it
+          {t('unassigned.subtitle')}
         </p>
       </div>
 
@@ -102,8 +106,8 @@ export default function UnassignedView({ conversations, onClaim }) {
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center px-6">
             <Inbox className="h-10 w-10 text-agent/40" />
-            <p className="font-semibold text-ink">No unassigned conversations</p>
-            <p className="text-sm text-ink-muted">Everything is claimed!</p>
+            <p className="font-semibold text-ink">{t('unassigned.empty')}</p>
+            <p className="text-sm text-ink-muted">{t('unassigned.emptySubtitle')}</p>
           </div>
         ) : (
           conversations.map(conv => (

@@ -27,14 +27,14 @@ function ItemList({ items, selectedId, agentId, onSelect }) {
 
 // Group header (Assigned — wraps Mine + Others)
 function AssignedHeader({ count, collapsed, onToggle }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   return (
     <button
       data-testid="group-header-assigned"
       onClick={onToggle}
       className="w-full flex items-center justify-between px-[18px] py-2 mt-2 hover:bg-surface-elevated-2/40 transition-colors"
       aria-expanded={!collapsed}
-      aria-label={t('queue.assigned', { defaultValue: 'Assigned' })}
+      aria-label={t('queue.assigned')}
     >
       <div className="flex items-center gap-2">
         <ChevronDown
@@ -42,8 +42,8 @@ function AssignedHeader({ count, collapsed, onToggle }) {
           className="text-ink-subtle transition-transform"
           style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
         />
-        <span className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.06em]">
-          {t('queue.assigned', { defaultValue: 'Assigned' })}
+        <span className={`text-[11px] font-bold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-[0.06em]' : 'font-semibold'}`}>
+          {t('queue.assigned')}
         </span>
       </div>
       <span className="text-[11px] font-bold text-ink-subtle">{count}</span>
@@ -53,6 +53,7 @@ function AssignedHeader({ count, collapsed, onToggle }) {
 
 // Sub-group header inside Assigned (Mine / Others — lower contrast)
 function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId }) {
+  const { i18n } = useTranslation()
   return (
     <button
       data-testid={testId}
@@ -67,7 +68,7 @@ function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId 
           className="text-ink-subtle transition-transform"
           style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
         />
-        <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-[0.06em]">
+        <span className={`text-[10px] font-bold text-ink-subtle ${i18n.language === 'en' ? 'uppercase tracking-[0.06em]' : 'font-semibold'}`}>
           {label}
         </span>
       </div>
@@ -79,7 +80,7 @@ function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId 
 }
 
 export default function QueueList({ mine, others, agentId, selectedId, onSelect, loading, fetchError, onRetry }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState({
     assigned: false,
@@ -103,9 +104,9 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
       <div className="px-[18px] pt-[18px] pb-3 border-b border-edge shrink-0">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[17px] font-bold text-ink" style={{ letterSpacing: '-0.3px' }}>
-            {t('queue.title', { defaultValue: 'Conversations' })}
+            {t('queue.title')}
           </h2>
-          <Pill color="agent" dot>Live</Pill>
+          <Pill color="agent" dot>{t('queue.live')}</Pill>
         </div>
 
         <div
@@ -117,7 +118,7 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={t('queue.search', { defaultValue: 'Search name or order…' })}
+            placeholder={t('queue.searchPlaceholder')}
             className="flex-1 bg-transparent text-[12px] text-ink placeholder:text-ink-subtle outline-none"
           />
           <kbd className="shrink-0 text-[10px] text-ink-muted bg-surface-high border border-edge rounded px-1 py-px font-mono">
@@ -135,22 +136,22 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
         ) : fetchError ? (
           <div className="flex flex-col items-center justify-center gap-3 h-48 px-6 text-center" data-testid="queue-error">
             <AlertCircle className="h-8 w-8 text-danger/60" />
-            <p className="text-sm font-semibold text-danger">Failed to load conversations</p>
+            <p className="text-sm font-semibold text-danger">{t('queue.errorLoading')}</p>
             <p className="text-xs text-ink-muted font-mono break-all">{fetchError}</p>
             {onRetry && (
               <button
                 onClick={onRetry}
                 className="text-xs font-semibold text-agent hover:underline"
               >
-                Retry
+                {t('common.retry')}
               </button>
             )}
           </div>
         ) : mine.length === 0 && others.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 h-48 px-6 text-center" data-testid="queue-empty">
             <MessageSquareOff className="h-8 w-8 text-ink-subtle/50" />
-            <p className="text-sm font-semibold text-ink">No conversations yet</p>
-            <p className="text-xs text-ink-muted">Assigned conversations will appear here</p>
+            <p className="text-sm font-semibold text-ink">{t('queue.empty')}</p>
+            <p className="text-xs text-ink-muted">{t('queue.emptySubtitle')}</p>
           </div>
         ) : (
           <>
@@ -167,7 +168,7 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
                   {/* Mine sub-group */}
                   <SubGroupHeader
                     testId="group-header-mine"
-                    label={t('queue.mine', { defaultValue: 'Mine' })}
+                    label={t('queue.mine')}
                     count={fMine.length}
                     countColor="var(--color-agent)"
                     collapsed={collapsed.mine}
@@ -185,7 +186,7 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
                   {/* Others sub-group */}
                   <SubGroupHeader
                     testId="group-header-others"
-                    label={t('queue.others', { defaultValue: 'Others' })}
+                    label={t('queue.others')}
                     count={fOthers.length}
                     countColor="var(--color-ink-subtle)"
                     collapsed={collapsed.others}

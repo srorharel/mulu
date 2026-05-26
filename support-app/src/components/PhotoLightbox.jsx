@@ -2,8 +2,10 @@ import { useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function PhotoLightbox({ photos, index, onClose, onNavigate }) {
+  const { t } = useTranslation()
   const isOpen = index !== null && index !== undefined
   const current = isOpen ? photos[index] : null
 
@@ -59,7 +61,7 @@ export default function PhotoLightbox({ photos, index, onClose, onNavigate }) {
           onClick={(e) => { e.stopPropagation(); onClose() }}
           className="absolute top-4 end-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
           style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
-          aria-label="Close"
+          aria-label={t('lightbox.close')}
         >
           <X className="w-5 h-5" />
         </button>
@@ -82,7 +84,7 @@ export default function PhotoLightbox({ photos, index, onClose, onNavigate }) {
               disabled={index === 0}
               onClick={(e) => { e.stopPropagation(); onNavigate(index - 1) }}
               className="absolute start-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center disabled:opacity-30"
-              aria-label="Previous photo"
+              aria-label={t('lightbox.previous')}
             >
               <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
             </button>
@@ -91,7 +93,7 @@ export default function PhotoLightbox({ photos, index, onClose, onNavigate }) {
               disabled={index === photos.length - 1}
               onClick={(e) => { e.stopPropagation(); onNavigate(index + 1) }}
               className="absolute end-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center disabled:opacity-30"
-              aria-label="Next photo"
+              aria-label={t('lightbox.next')}
             >
               <ChevronRight className="w-5 h-5 rtl:rotate-180" />
             </button>

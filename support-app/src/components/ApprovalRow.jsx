@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { CheckCircle, Clock, Play, X, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { approveOrder, getSignedUrl } from '../lib/approvals.js'
+import i18n from '../i18n'
 import { useReverseGeocode } from '../lib/geocode.js'
 import Pill from './Pill.jsx'
 import PhotoLightbox from './PhotoLightbox.jsx'
@@ -22,7 +23,7 @@ function timeAgo(dateStr) {
   if (!dateStr) return '—'
   const seconds = Math.max(1, Math.round((Date.now() - new Date(dateStr)) / 1000))
   try {
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+    const rtf = new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto' })
     if (seconds < 60)    return rtf.format(-seconds, 'second')
     if (seconds < 3600)  return rtf.format(-Math.round(seconds / 60), 'minute')
     if (seconds < 86400) return rtf.format(-Math.round(seconds / 3600), 'hour')
@@ -106,7 +107,7 @@ function haversineM(lat1, lng1, lat2, lng2) {
 }
 
 function LocationCard({ order }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const hasSubmitted = order.submitted_lat != null && order.submitted_lng != null
   const hasOrderLoc  = order.lat != null && order.lng != null
 
@@ -121,7 +122,7 @@ function LocationCard({ order }) {
 
   return (
     <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2">
-      <p className="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.05em]">
+      <p className={`text-[10.5px] font-bold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'}`}>
         {t('approvals.location.title')}
       </p>
 
@@ -167,7 +168,7 @@ function LocationCard({ order }) {
 }
 
 export default function ApprovalRow({ order, onApproved }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const isNewShape = Boolean(
     order.completion_photo_front ||
@@ -247,7 +248,7 @@ export default function ApprovalRow({ order, onApproved }) {
               {order.id?.slice(0, 8)}…
             </span>
             <Pill color="warning" dot>
-              {t('approvals.row.pendingApproval', { defaultValue: 'Pending approval' })}
+              {t('approvals.row.pendingApproval')}
             </Pill>
             <span className="text-[11.5px] text-ink-subtle flex items-center gap-1">
               <Clock size={11} />
@@ -282,7 +283,7 @@ export default function ApprovalRow({ order, onApproved }) {
                 className="flex items-center gap-1.5 text-[12px] font-bold px-3 py-2 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
               >
                 <X size={13} />
-                {t('approvals.actions.reject', { defaultValue: 'Reject' })}
+                {t('approvals.actions.reject')}
               </button>
               <button
                 onClick={() => setConfirming(true)}
@@ -327,7 +328,7 @@ export default function ApprovalRow({ order, onApproved }) {
           <div className="grid grid-cols-2 gap-4">
             {/* Arrival photos */}
             <div className="flex flex-col gap-2">
-              <p className="text-[11.5px] font-bold text-ink-muted uppercase tracking-[0.05em]">
+              <p className={`text-[11.5px] font-bold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'}`}>
                 {t('approvals.section.arrival')}
               </p>
               <div className="grid grid-cols-4 gap-1.5">
@@ -350,7 +351,7 @@ export default function ApprovalRow({ order, onApproved }) {
 
             {/* Completion photos */}
             <div className="flex flex-col gap-2">
-              <p className="text-[11.5px] font-bold text-agent uppercase tracking-[0.05em]">
+              <p className={`text-[11.5px] font-bold text-agent ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'}`}>
                 {t('approvals.section.completion')}
               </p>
               <div className="grid grid-cols-4 gap-1.5">

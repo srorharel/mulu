@@ -1,4 +1,5 @@
 import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 function nameToHue(name = '') {
   let h = 0
@@ -16,20 +17,20 @@ function nameInitials(name = '') {
 }
 
 const TABS = [
-  { id: 'unassigned',          Icon: Inbox,        label: 'Unassigned',          inactiveBadge: 'var(--color-warning)' },
-  { id: 'conv',                Icon: MessageSquare,label: 'Conversations',        inactiveBadge: 'var(--color-danger)'  },
-  { id: 'approvals',           Icon: CheckSquare,  label: 'Approvals',            inactiveBadge: 'var(--color-danger)'  },
-  { id: 'tickets',             Icon: Ticket,       label: 'Tickets',              inactiveBadge: 'var(--color-danger)'  },
-  { id: 'washerVerifications', Icon: ShieldCheck,  label: 'Washer Verifications', inactiveBadge: 'var(--color-warning)' },
+  { id: 'unassigned',          Icon: Inbox,        labelKey: 'nav.unassigned',          inactiveBadge: 'var(--color-warning)' },
+  { id: 'conv',                Icon: MessageSquare, labelKey: 'nav.conversations',       inactiveBadge: 'var(--color-danger)'  },
+  { id: 'approvals',           Icon: CheckSquare,  labelKey: 'nav.approvals',            inactiveBadge: 'var(--color-danger)'  },
+  { id: 'tickets',             Icon: Ticket,       labelKey: 'nav.tickets',              inactiveBadge: 'var(--color-danger)'  },
+  { id: 'washerVerifications', Icon: ShieldCheck,  labelKey: 'nav.washerVerifications',  inactiveBadge: 'var(--color-warning)' },
 ]
 
-function Badge({ count, active, inactiveBadge }) {
+function Badge({ count, active, inactiveBadge, t }) {
   if (!count) return null
   return (
     <span
       className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-surface"
       style={{ background: active ? 'var(--color-agent)' : inactiveBadge }}
-      aria-label={`${count} items`}
+      aria-label={t('nav.badgeItems', { count })}
     >
       {count > 99 ? '99+' : count}
     </span>
@@ -48,6 +49,7 @@ export default function LeftRail({
   onSettings,
   onSignOut,
 }) {
+  const { t } = useTranslation()
   const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount, washerVerifications: washerVerificationCount }
   const displayName = profile?.agent_display_name || profile?.full_name || ''
   const hue = nameToHue(displayName)
@@ -71,15 +73,15 @@ export default function LeftRail({
 
       {/* Tab buttons */}
       <nav className="flex flex-col gap-1.5 flex-1" aria-label="Primary">
-        {TABS.map(({ id, Icon, label, inactiveBadge }) => {
+        {TABS.map(({ id, Icon, labelKey, inactiveBadge }) => {
           const isActive = activeTab === id
           const count    = counts[id]
           return (
             <button
               key={id}
               onClick={() => onTabChange(id)}
-              title={label}
-              aria-label={label}
+              title={t(labelKey)}
+              aria-label={t(labelKey)}
               aria-current={isActive ? 'page' : undefined}
               className="relative flex items-center justify-center rounded-xl transition-colors"
               style={{
@@ -92,7 +94,7 @@ export default function LeftRail({
               }}
             >
               <Icon size={20} />
-              <Badge count={count} active={isActive} inactiveBadge={inactiveBadge} />
+              <Badge count={count} active={isActive} inactiveBadge={inactiveBadge} t={t} />
               {/* Active indicator strip */}
               {isActive && (
                 <span
@@ -114,8 +116,8 @@ export default function LeftRail({
       <div className="flex flex-col items-center gap-3 mt-auto">
         <button
           onClick={onSettings}
-          title="Settings"
-          aria-label="Settings"
+          title={t('nav.settings')}
+          aria-label={t('nav.settings')}
           className="flex items-center justify-center rounded-xl transition-colors hover:bg-surface-elevated"
           style={{
             width: 36, height: 36,
@@ -128,8 +130,8 @@ export default function LeftRail({
         {onSignOut && (
           <button
             onClick={onSignOut}
-            title="Sign out"
-            aria-label="Sign out"
+            title={t('common.signOut')}
+            aria-label={t('common.signOut')}
             className="flex items-center justify-center rounded-xl transition-colors hover:bg-surface-elevated"
             style={{ width: 36, height: 36, color: 'var(--color-ink-subtle)' }}
           >
@@ -138,7 +140,7 @@ export default function LeftRail({
         )}
 
         {/* Agent avatar with online dot */}
-        <div className="relative" title={displayName || 'Agent'}>
+        <div className="relative" title={displayName || t('role.agent')}>
           <div
             className="flex items-center justify-center rounded-full text-white font-bold shrink-0 border-2 border-surface"
             style={{
