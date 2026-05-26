@@ -25,6 +25,7 @@ npm run android:sync   # Build web + sync to Android Studio (Capacitor)
 npm run android:open   # Open Android Studio
 
 ./update.ps1 "msg"     # Deploy: git commit → push (Vercel auto-deploys) → optional APK build
+./update.ps1 "msg" -Support  # Same + builds support-app APK → wash-support-latest.apk
 ```
 
 **Note:** On Windows, some npm script chains break. Use `node ./node_modules/vite/bin/vite.js` directly if `npm run dev` fails (see ADR-005 in DECISIONS.md).
@@ -303,6 +304,27 @@ Supabase Realtime channels drive live UX:
 ### Mobile (Capacitor)
 
 `capacitor.config.json` wraps the `dist/` web build as `com.sparklego.app`. `src/hooks/useGeolocation.js` falls back to Capacitor's native geolocation API when the browser API is unavailable. Build APK via `update.ps1` or Android Studio; output is `wash-latest.apk` in the project root.
+
+### Support App Deployment
+
+The support-app deploys **two ways**: Vercel (web) and Capacitor (Android APK). Both are independent from the main app.
+
+**Vercel (web):**
+- Separate Vercel project pointing at the same GitHub repo, with **Root Directory = `support-app`**
+- `support-app/vercel.json` configures build command, output dir, and SPA rewrites
+- Env vars: same `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as main app
+- Auth isolation: Supabase client uses `storageKey: 'wash-support-auth'` to prevent token collisions
+- A push to `main` triggers both Vercel projects in parallel; no interference
+- See `support-app/README.md` for one-time Vercel dashboard setup steps
+
+**Capacitor (Android):**
+- **appId:** `com.sparklego.support` (main app is `com.sparklego.app`)
+- All artifacts live in `support-app/`: config at `support-app/capacitor.config.json`, Android project at `support-app/android/`
+- **Build:** `cd support-app && npm run android:sync` then `cd android && gradlew assembleDebug`
+- **Output:** `support-app/android/app/build/outputs/apk/debug/app-debug.apk`
+- **Deploy shortcut:** `.\update.ps1 "msg" -Support` builds both main and support APKs; copies to `wash-support-latest.apk` in repo root
+- Does NOT share `android/` with the main app — never modify root `android/` for support-app changes
+- Push notifications: scaffolded in `support-app/src/lib/pushInit.js` but not fully wired — needs `google-services.json` and Firebase project setup
 
 ### Dark Mode
 

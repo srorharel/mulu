@@ -1,0 +1,15 @@
+{
+  "appId": "com.sparklego.support",
+  "appName": "Wash Support",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0f172a",
+      "showSpinner": false
+    }
+  }
+}

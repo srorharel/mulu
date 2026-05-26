@@ -20,7 +20,7 @@ vi.mock('../lib/supabase.js', () => ({
   },
 }))
 
-import { fetchPendingVerifications, reviewVerification } from '../lib/washerVerifications.js'
+import { fetchPendingVerifications, getVerificationSignedUrl, reviewVerification } from '../lib/washerVerifications.js'
 import WasherVerificationRow from '../components/WasherVerificationRow.jsx'
 
 const i18n = i18next.createInstance()
@@ -30,6 +30,13 @@ i18n.use(initReactI18next).init({
       translation: {
         'washerVerifications.status.pending_review': 'Pending review',
         'washerVerifications.dealerNumber': 'Dealer number',
+        'washerVerifications.washerName': 'Name',
+        'washerVerifications.washerPhone': 'Phone',
+        'washerVerifications.serviceAreas': 'Service areas',
+        'washerVerifications.submittedAt': 'Submitted',
+        'washerVerifications.businessLicense': 'Business license',
+        'washerVerifications.openFailed': 'Could not open document',
+        'washerVerifications.downloadFailed': 'Download failed',
         'washerVerifications.idDoc': 'ID Document',
         'washerVerifications.selfie': 'Selfie',
         'washerVerifications.selfieDoc': 'Photo',
@@ -44,6 +51,11 @@ i18n.use(initReactI18next).init({
         'washerVerifications.actions.cancel': 'Cancel',
         'washerVerifications.actions.yes': 'Yes, approve',
         'washerVerifications.actions.no': 'Not yet',
+        'common.copy': 'Copy',
+        'common.open': 'Open',
+        'common.download': 'Download',
+        'cities.holon': 'Holon',
+        'cities.bat_yam': 'Bat Yam',
       },
     },
   },
@@ -81,7 +93,7 @@ describe('WasherVerificationRow', () => {
       <WasherVerificationRow verification={makeVerification()} onReviewed={onReviewed} />,
       { wrapper }
     )
-    expect(screen.getByText('Yossi Ploni')).toBeInTheDocument()
+    expect(screen.getAllByText('Yossi Ploni').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(/1234567/)).toBeInTheDocument()
   })
 
@@ -217,5 +229,139 @@ describe('fetchPendingVerifications', () => {
     const { data, error } = await fetchPendingVerifications()
     expect(data).toBeNull()
     expect(error.message).toBe('agents only')
+  })
+})
+
+describe('WasherVerificationRow — metadata card', () => {
+  it('shows dealer number, name, and translated service areas', () => {
+    render(
+      <WasherVerificationRow verification={makeVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    expect(screen.getAllByText('1234567').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Yossi Ploni').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Holon/)).toBeInTheDocument()
+    expect(screen.getByText(/Bat Yam/)).toBeInTheDocument()
+  })
+})
+
+describe('WasherVerificationRow — copy button', () => {
+  let writeText
+
+  beforeEach(() => {
+    writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    })
+  })
+
+  it('calls navigator.clipboard.writeText with the dealer number', async () => {
+    render(
+      <WasherVerificationRow verification={makeVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }))
+    expect(writeText).toHaveBeenCalledWith('1234567')
+  })
+})
+
+describe('WasherVerificationRow — PDF license', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getVerificationSignedUrl.mockImplementation((path) =>
+      path ? Promise.resolve(`https://cdn.example.com/${path}`) : Promise.resolve(null)
+    )
+    window.open = vi.fn()
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      blob: () => Promise.resolve(new Blob(['pdf'], { type: 'application/pdf' })),
+    })
+    URL.createObjectURL = vi.fn(() => 'blob:fake-pdf')
+    URL.revokeObjectURL = vi.fn()
+  })
+
+  function makePdfVerification(overrides = {}) {
+    return makeVerification({ business_license_path: 'uid1/business_license.pdf', ...overrides })
+  }
+
+  it('shows Open and Download buttons for a .pdf license path', () => {
+    render(
+      <WasherVerificationRow verification={makePdfVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    expect(screen.getByRole('button', { name: /open/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /download/i }).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('calls window.open with the signed URL and _blank on Open click', async () => {
+    const user = userEvent.setup()
+    render(
+      <WasherVerificationRow verification={makePdfVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    await user.click(screen.getByRole('button', { name: /open/i }))
+    await waitFor(() => {
+      expect(window.open).toHaveBeenCalledWith(
+        'https://cdn.example.com/uid1/business_license.pdf',
+        '_blank',
+        'noopener,noreferrer'
+      )
+    })
+  })
+
+  it('calls fetch and revokes the object URL after download', async () => {
+    const user = userEvent.setup()
+    render(
+      <WasherVerificationRow verification={makePdfVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    const [firstDownloadBtn] = screen.getAllByRole('button', { name: /download/i })
+    await user.click(firstDownloadBtn)
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://cdn.example.com/uid1/business_license.pdf'
+      )
+      expect(URL.createObjectURL).toHaveBeenCalled()
+      expect(URL.revokeObjectURL).toHaveBeenCalled()
+    })
+  })
+
+  it('shows openFailed error when signed URL is null on Open click', async () => {
+    // Return null for all calls in this test (useEffect + the Open click itself)
+    getVerificationSignedUrl.mockResolvedValue(null)
+    const user = userEvent.setup()
+    render(
+      <WasherVerificationRow verification={makePdfVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    await user.click(screen.getByRole('button', { name: /open/i }))
+    await waitFor(() => {
+      expect(screen.getByText('Could not open document')).toBeInTheDocument()
+    })
+  })
+
+  it('shows downloadFailed error when signed URL is null on Download click', async () => {
+    getVerificationSignedUrl.mockResolvedValue(null)
+    const user = userEvent.setup()
+    render(
+      <WasherVerificationRow verification={makePdfVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    const [firstDownloadBtn] = screen.getAllByRole('button', { name: /download/i })
+    await user.click(firstDownloadBtn)
+    await waitFor(() => {
+      expect(screen.getByText('Download failed')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('WasherVerificationRow — image license', () => {
+  it('does not show an Open button for an image license path', () => {
+    render(
+      <WasherVerificationRow verification={makeVerification()} onReviewed={vi.fn()} />,
+      { wrapper }
+    )
+    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument()
   })
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -60,12 +60,38 @@ export default function SignUp() {
 
   const [areaSheetOpen, setAreaSheetOpen] = useState(false)
 
+  const savedDraft = (() => {
+    try { return JSON.parse(sessionStorage.getItem('washer_signup_draft') ?? 'null') } catch { return null }
+  })()
+
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { role: 'consumer', serviceAreas: [] },
+    defaultValues: {
+      role:         savedDraft?.role ?? 'consumer',
+      fullName:     savedDraft?.fullName ?? '',
+      email:        savedDraft?.email ?? '',
+      password:     '',
+      confirmPassword: '',
+      serviceAreas: savedDraft?.serviceAreas ?? [],
+      dealerNumber: savedDraft?.dealerNumber ?? '',
+    },
   })
   const selectedRole  = watch('role')
-  const serviceAreas  = watch('serviceAreas') ?? []
+  const rawAreas      = watch('serviceAreas')
+  const serviceAreas  = rawAreas ?? []
+  const watchedName   = watch('fullName')
+  const watchedEmail  = watch('email')
+  const watchedDealer = watch('dealerNumber')
+
+  useEffect(() => {
+    sessionStorage.setItem('washer_signup_draft', JSON.stringify({
+      role: selectedRole,
+      fullName: watchedName,
+      email: watchedEmail,
+      serviceAreas: rawAreas ?? [],
+      dealerNumber: watchedDealer,
+    }))
+  }, [selectedRole, watchedName, watchedEmail, rawAreas, watchedDealer])
 
   function toggleArea(slug) {
     const next = serviceAreas.includes(slug)
@@ -86,6 +112,8 @@ export default function SignUp() {
       sessionStorage.setItem('washer_signup_areas', JSON.stringify(data.serviceAreas ?? []))
       sessionStorage.setItem('washer_signup_dealer', data.dealerNumber ?? '')
     }
+
+    sessionStorage.removeItem('washer_signup_draft')
 
     if (result?.session) {
       if (data.role === 'washer') {

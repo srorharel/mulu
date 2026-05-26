@@ -1,7 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Waves, CheckCircle, Upload } from 'lucide-react'
+import { Waves, CheckCircle, Upload, ArrowLeft } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resizeToBlob } from '../../lib/imageResize.js'
@@ -75,7 +77,7 @@ function FileUploadSlot({ label, hint, accept, onUploaded, uploaded, busy, chang
 
 export default function Verify() {
   const { t } = useTranslation()
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile, signOut } = useAuth()
   const navigate  = useNavigate()
   const location  = useLocation()
 
@@ -93,7 +95,6 @@ export default function Verify() {
   const [selfieModalOpen, setSelfieModalOpen]     = useState(false)
 
   const [licenseFile, setLicenseFile]       = useState(null)
-  const [licensePreview, setLicensePreview] = useState(null)
   const [licenseError, setLicenseError]     = useState('')
 
   const [submitting, setSubmitting]   = useState(false)
@@ -101,6 +102,29 @@ export default function Verify() {
 
   const selfieComplete = !!selfieStoragePath
   const allDone = !!idFile && selfieComplete && !!licenseFile
+
+  // ── Back navigation ───────────────────────────────────────────────────────
+
+  const handleBack = useCallback(async () => {
+    const hasUploads = selfieStoragePath
+    if (hasUploads) {
+      const confirmed = window.confirm(t('washerSignup.verify.discardWarning'))
+      if (!confirmed) return
+      try {
+        await supabase.storage.from(BUCKET).remove([selfieStoragePath].filter(Boolean))
+      } catch (e) {
+        console.warn('[verify] cleanup failed', e)
+      }
+    }
+    await signOut()
+    navigate('/signup', { replace: true })
+  }, [selfieStoragePath, t, signOut, navigate])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    const listener = App.addListener('backButton', () => { handleBack() })
+    return () => { listener.then(l => l.remove()) }
+  }, [handleBack])
 
   // ── Upload helper ─────────────────────────────────────────────────────────
 
@@ -110,7 +134,7 @@ export default function Verify() {
       try { blob = await resizeToBlob(file) } catch { /* use original */ }
     }
     const ext = (file.name ?? 'file').split('.').pop().toLowerCase()
-    const finalPath = path.endsWith('.jpg') ? path : `${path}.${ext}`
+    const finalPath = /\.[a-z]{2,5}$/i.test(path) ? path : `${path}.${ext}`
     const { error: err } = await supabase.storage
       .from(BUCKET)
       .upload(finalPath, blob, { upsert: true, contentType: file.type || 'image/jpeg' })
@@ -133,9 +157,8 @@ export default function Verify() {
       try { idPath = await uploadFile(idFile, `${uid}/id_document.jpg`) }
       catch (err) { console.error('[washer-verify] upload failed', { section: 'id', error: err }); setIdError(err.message || t('washerSignup.verify.submitError')); return }
 
-      const licenseExt = (licenseFile.name ?? 'file').split('.').pop().toLowerCase()
       let licensePath
-      try { licensePath = await uploadFile(licenseFile, `${uid}/business_license.${licenseExt}`) }
+      try { licensePath = await uploadFile(licenseFile, `${uid}/business_license.pdf`) }
       catch (err) { console.error('[washer-verify] upload failed', { section: 'license', error: err }); setLicenseError(err.message || t('washerSignup.verify.submitError')); return }
 
       // selfie already uploaded inside SelfieVerificationModal — use path directly
@@ -177,12 +200,24 @@ export default function Verify() {
     <>
       <div className="bg-mesh flex flex-col min-h-full px-5 py-10 overflow-y-auto">
         <div className="flex flex-col gap-6 max-w-sm mx-auto w-full">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="rounded-xl bg-primary-500 p-2">
-              <Waves className="h-5 w-5 text-white" />
+          {/* Header with back + logo */}
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="flex items-center gap-2 text-neutral-600 text-sm -ms-1"
+              aria-label={t('common.back')}
+            >
+              <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+              {t('common.back')}
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="rounded-xl bg-primary-500 p-2">
+                <Waves className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-primary-600">Wash</span>
             </div>
-            <span className="text-xl font-bold text-primary-600">Wash</span>
+            <div className="w-16" />
           </div>
 
           <GlassCard className="p-6 flex flex-col gap-6">
@@ -261,15 +296,16 @@ export default function Verify() {
                   label={licenseFile ? t('washerSignup.verify.sectionLicense.uploaded') : t('washerSignup.verify.sectionLicense.upload')}
                   hint={t('washerSignup.verify.sectionLicense.hint')}
                   changeLabel={t('washerSignup.verify.sectionLicense.change')}
-                  accept="image/*,application/pdf"
-                  onUploaded={(file, preview) => { setLicenseFile(file); setLicensePreview(preview); setLicenseError('') }}
+                  accept="application/pdf"
+                  onUploaded={(file) => {
+                    if (file.type !== 'application/pdf') { setLicenseError(t('washerSignup.verify.sectionLicense.pdfOnly')); return }
+                    setLicenseFile(file)
+                    setLicenseError('')
+                  }}
                   uploaded={!!licenseFile}
                   busy={submitting}
                 />
-                {licensePreview && licenseFile?.type?.startsWith('image/') && (
-                  <img src={licensePreview} alt="" className="h-24 w-auto rounded-lg object-cover border border-neutral-200" />
-                )}
-                {licenseFile && !licenseFile.type?.startsWith('image/') && (
+                {licenseFile && (
                   <p className="text-xs text-neutral-500">{licenseFile.name}</p>
                 )}
                 <SectionError message={licenseError} />

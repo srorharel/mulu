@@ -11,3 +11,10 @@ dist
 # Firebase — never commit; contains API keys and project identifiers
 android/app/google-services.json
 ios/App/App/GoogleService-Info.plist
+
+# Support-app build artifacts
+support-app/dist/
+support-app/android/app/build/
+support-app/android/.gradle/
+support-app/android/app/release/
+support-app/android/app/google-services.json

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle, X, Clock, User, FileText, Camera } from 'lucide-react'
+import { CheckCircle, X, Clock, User, FileText, Camera, Copy, ExternalLink, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getVerificationSignedUrl, reviewVerification } from '../lib/washerVerifications.js'
 import Pill from './Pill.jsx'
@@ -15,6 +15,16 @@ function timeAgo(dateStr) {
     if (seconds < 86400) return rtf.format(-Math.round(seconds / 3600), 'hour')
     return rtf.format(-Math.round(seconds / 86400), 'day')
   } catch { return `${Math.round(seconds / 60)}m ago` }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  try {
+    return new Date(dateStr).toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    })
+  } catch { return dateStr }
 }
 
 function ImageModal({ url, onClose }) {
@@ -63,12 +73,6 @@ function DocThumb({ label, url, icon: Icon = Camera }) {
   )
 }
 
-const CITY_LABELS = {
-  holon:         'Holon / חולון',
-  rishon_lezion: 'Rishon LeZion / ראשון לציון',
-  bat_yam:       'Bat Yam / בת ים',
-}
-
 export default function WasherVerificationRow({ verification, onReviewed }) {
   const { t } = useTranslation()
 
@@ -78,6 +82,10 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy]             = useState(false)
   const [error, setError]           = useState('')
+  const [copied, setCopied]         = useState(false)
+  const [licenseActionError, setLicenseActionError] = useState('')
+
+  const isPdf = (verification.business_license_path ?? '').toLowerCase().endsWith('.pdf')
 
   useEffect(() => {
     async function loadUrls() {
@@ -98,6 +106,39 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
     loadUrls()
   }, [verification.id, verification.id_document_path, verification.selfie_path, verification.business_license_path])
 
+  function handleCopy() {
+    navigator.clipboard.writeText(verification.dealer_number ?? '')
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+      .catch(() => {})
+  }
+
+  async function openLicense() {
+    setLicenseActionError('')
+    const url = await getVerificationSignedUrl(verification.business_license_path)
+    if (!url) { setLicenseActionError(t('washerVerifications.openFailed')); return }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  async function downloadLicense() {
+    setLicenseActionError('')
+    const url = await getVerificationSignedUrl(verification.business_license_path)
+    if (!url) { setLicenseActionError(t('washerVerifications.downloadFailed')); return }
+    try {
+      const resp = await fetch(url)
+      const blob = await resp.blob()
+      const filename = `license_${verification.dealer_number ?? 'washer'}.pdf`
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(a.href)
+    } catch {
+      setLicenseActionError(t('washerVerifications.downloadFailed'))
+    }
+  }
+
   async function doApprove() {
     setBusy(true); setError('')
     const { error: err } = await reviewVerification(verification.id, 'approved')
@@ -117,6 +158,7 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
 
   return (
     <div className="border border-edge rounded-2xl bg-surface-elevated p-4 flex flex-col gap-4">
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5 min-w-0">
@@ -132,24 +174,13 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
               {timeAgo(verification.submitted_at)}
             </span>
           </div>
-
-          <div className="flex items-center gap-2 text-xs text-ink-muted flex-wrap">
-            <span className="flex items-center gap-1"><User size={11} />{verification.washer_email ?? '—'}</span>
-            <span className="flex items-center gap-1"><FileText size={11} />{t('washerVerifications.dealerNumber')}: {verification.dealer_number}</span>
+          <div className="flex items-center gap-1 text-xs text-ink-muted">
+            <User size={11} />
+            {verification.washer_email ?? '—'}
           </div>
-
-          {(verification.service_areas ?? []).length > 0 && (
-            <div className="flex gap-1 flex-wrap">
-              {verification.service_areas.map(area => (
-                <span key={area} className="text-[11px] px-2 py-0.5 rounded-full bg-agent/10 text-agent border border-agent/20 font-medium">
-                  {CITY_LABELS[area] ?? area}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Action area */}
+        {/* Action buttons */}
         {!confirming && !rejectMode && (
           <div className="flex gap-2 shrink-0">
             <button
@@ -221,31 +252,120 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
 
       {error && <p className="text-xs text-danger">{error}</p>}
 
+      {/* Metadata card — agents use this to cross-check against tax authority records */}
+      <div className="rounded-xl border border-edge bg-surface p-3 flex flex-col gap-2.5">
+        {/* Dealer number — prominent + copyable */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-ink-muted shrink-0">{t('washerVerifications.dealerNumber')}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono font-bold text-sm text-ink tracking-wider">
+              {verification.dealer_number ?? '—'}
+            </span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label={t('common.copy')}
+              className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md text-agent hover:bg-agent/10 transition-colors"
+            >
+              <Copy size={10} />
+              {copied ? '✓' : t('common.copy')}
+            </button>
+          </div>
+        </div>
+
+        {/* Name */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-ink-muted shrink-0">{t('washerVerifications.washerName')}</span>
+          <span className="text-xs text-ink">{verification.washer_name ?? '—'}</span>
+        </div>
+
+        {/* Phone */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-ink-muted shrink-0">{t('washerVerifications.washerPhone')}</span>
+          <span className="text-xs text-ink" dir="ltr">{verification.washer_phone ?? '—'}</span>
+        </div>
+
+        {/* Service areas */}
+        {(verification.service_areas ?? []).length > 0 && (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-ink-muted shrink-0">{t('washerVerifications.serviceAreas')}</span>
+            <span className="text-xs text-ink text-right">
+              {verification.service_areas.map(a => t(`cities.${a}`, a)).join(', ')}
+            </span>
+          </div>
+        )}
+
+        {/* Submitted at */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-ink-muted shrink-0">{t('washerVerifications.submittedAt')}</span>
+          <span className="text-xs text-ink">{formatDate(verification.submitted_at)}</span>
+        </div>
+      </div>
+
       {/* Documents */}
       <div className="grid grid-cols-3 gap-3">
+
         {/* ID */}
         <div className="flex flex-col gap-1.5">
           <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">{t('washerVerifications.idDoc')}</p>
-          <div className="grid grid-cols-1 gap-1">
-            <DocThumb label="ID" url={urls.id} icon={User} />
-          </div>
+          <DocThumb label="ID" url={urls.id} icon={User} />
         </div>
 
         {/* Selfie */}
         <div className="flex flex-col gap-1.5">
           <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">{t('washerVerifications.selfie')}</p>
-          <div className="grid grid-cols-1 gap-1">
-            <DocThumb label={t('washerVerifications.selfieDoc')} url={urls.selfie} icon={Camera} />
-          </div>
+          <DocThumb label={t('washerVerifications.selfieDoc')} url={urls.selfie} icon={Camera} />
         </div>
 
-        {/* Business license */}
+        {/* Business license — PDF gets open+download buttons; legacy images get thumbnail+download */}
         <div className="flex flex-col gap-1.5">
           <p className="text-[11px] font-bold text-agent uppercase tracking-wide">{t('washerVerifications.license')}</p>
-          <div className="grid grid-cols-1 gap-1">
-            <DocThumb label={t('washerVerifications.licenseDoc')} url={urls.license} icon={FileText} />
-          </div>
+
+          {isPdf ? (
+            <div className="rounded-xl border border-edge bg-surface p-2.5 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-ink-muted">{t('washerVerifications.businessLicense')}</span>
+                <span className="text-[10px] font-bold text-ink-muted bg-surface-elevated px-1.5 py-0.5 rounded">PDF</span>
+              </div>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={openLicense}
+                  className="flex flex-1 items-center justify-center gap-1 text-[11px] font-bold px-2 py-1.5 rounded-lg text-white"
+                  style={{ background: 'var(--color-agent)' }}
+                >
+                  <ExternalLink size={10} />
+                  {t('common.open')}
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadLicense}
+                  className="flex flex-1 items-center justify-center gap-1 text-[11px] font-bold px-2 py-1.5 rounded-lg border border-edge text-ink hover:bg-surface-elevated-2 transition-colors"
+                >
+                  <Download size={10} />
+                  {t('common.download')}
+                </button>
+              </div>
+              {licenseActionError && <p className="text-[11px] text-danger">{licenseActionError}</p>}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <DocThumb label={t('washerVerifications.licenseDoc')} url={urls.license} icon={FileText} />
+              {urls.license && (
+                <button
+                  type="button"
+                  onClick={downloadLicense}
+                  className="flex items-center justify-center gap-1 text-[11px] text-agent hover:text-agent-deep transition-colors py-0.5"
+                >
+                  <Download size={10} />
+                  {t('common.download')}
+                </button>
+              )}
+              {licenseActionError && <p className="text-[11px] text-danger">{licenseActionError}</p>}
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   )

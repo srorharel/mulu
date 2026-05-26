@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Clock, CheckCircle, XCircle, Waves } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -14,6 +16,13 @@ export default function Pending() {
 
   const status         = profile?.washer_verification_status
   const [reason, setReason] = useState(null)
+
+  // Block Android hardware back — pending screen is terminal
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    const listener = App.addListener('backButton', () => {})
+    return () => { listener.then(l => l.remove()) }
+  }, [])
 
   // Fetch rejection reason from latest verification row
   useEffect(() => {

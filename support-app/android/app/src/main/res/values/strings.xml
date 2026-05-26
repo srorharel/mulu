@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Wash Support</string>
+    <string name="title_activity_main">Wash Support</string>
+    <string name="package_name">com.sparklego.support</string>
+    <string name="custom_url_scheme">com.sparklego.support</string>
+</resources>

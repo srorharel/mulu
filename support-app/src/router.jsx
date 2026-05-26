@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
+import { initBackButton } from './lib/backButton.js'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Settings from './pages/Settings.jsx'
@@ -28,6 +30,8 @@ function RequireAgent({ children }) {
 }
 
 export function AppRouter() {
+  useEffect(() => { initBackButton() }, [])
+
   return (
     <BrowserRouter>
       <Routes>

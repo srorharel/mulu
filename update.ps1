@@ -1,8 +1,10 @@
 ﻿# update.ps1 — Wash one-command deploy script
 # Usage: .\update.ps1 "my commit message"
-#        .\update.ps1          (auto-generates timestamp message)
+#        .\update.ps1 -Support          (also builds support-app APK)
+#        .\update.ps1 "msg" -Support    (commit + support APK)
 param(
-    [string]$CommitMessage = ""
+    [string]$CommitMessage = "",
+    [switch]$Support
 )
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -19,8 +21,10 @@ function Write-Fail ($msg) {
 # Always run from the script's directory, regardless of where it was invoked
 Set-Location $PSScriptRoot
 
+$totalSteps = if ($Support) { 5 } else { 4 }
+
 # ── Step 1: Sanity checks ─────────────────────────────────────────────────────
-Write-Step 1 4 "Sanity checks"
+Write-Step 1 $totalSteps "Sanity checks"
 
 if (-not (Test-Path "package.json") -or -not (Test-Path "capacitor.config.json")) {
     Write-Fail "Missing package.json or capacitor.config.json — are you in the right project?"
@@ -49,7 +53,7 @@ if ($branch -ne "main") {
 Write-OK "All checks passed  (branch: $branch, git: $gitVersion)"
 
 # ── Step 2: Web / Vercel deploy ───────────────────────────────────────────────
-Write-Step 2 4 "Pushing to GitHub → Vercel"
+Write-Step 2 $totalSteps "Pushing to GitHub → Vercel"
 
 if ($CommitMessage -eq "") {
     $CommitMessage = "update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
@@ -89,7 +93,7 @@ if ($LASTEXITCODE -ne 0) { Write-Fail "git push failed." }
 Write-OK "Pushed to GitHub  (HEAD: $commitHash)"
 
 # ── Step 3: Android APK ───────────────────────────────────────────────────────
-Write-Step 3 4 "Android APK"
+Write-Step 3 $totalSteps "Android APK"
 
 $buildApk = Read-Host "  Rebuild Android APK? [y/N]"
 $apkBuilt  = $false
@@ -132,8 +136,44 @@ if ($buildApk -match '^[Yy]$') {
     Write-Warn "APK rebuild skipped (web-only update)."
 }
 
-# ── Step 4: Summary ───────────────────────────────────────────────────────────
-Write-Step 4 4 "Done"
+# ── Step 4: Support-app APK (optional) ────────────────────────────────────────
+$supportApkBuilt = $false
+$supportApkSizeMB = 0
+
+if ($Support) {
+    Write-Step 4 $totalSteps "Support-app APK"
+
+    Write-Host "`n  ▸ Building support-app" -ForegroundColor Cyan
+    Push-Location "$PSScriptRoot\support-app"
+    try {
+        npm run android:sync
+        if ($LASTEXITCODE -ne 0) { Write-Fail "support-app android:sync failed." }
+
+        Push-Location android
+        try {
+            .\gradlew assembleDebug
+        } finally {
+            Pop-Location
+        }
+        if ($LASTEXITCODE -ne 0) { Write-Fail "support-app Gradle build failed." }
+    } finally {
+        Pop-Location
+    }
+
+    $supportApkSrc  = "$PSScriptRoot\support-app\android\app\build\outputs\apk\debug\app-debug.apk"
+    $supportApkDest = "$PSScriptRoot\wash-support-latest.apk"
+    if (-not (Test-Path $supportApkSrc)) {
+        Write-Fail "Support APK not found at $supportApkSrc"
+    }
+
+    Copy-Item $supportApkSrc $supportApkDest -Force
+    $supportApkSizeMB = [math]::Round((Get-Item $supportApkDest).Length / 1MB, 1)
+    $supportApkBuilt = $true
+    Write-OK "Support APK ready: $supportApkDest  ($supportApkSizeMB MB)"
+}
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+Write-Step $totalSteps $totalSteps "Done"
 Write-Host ""
 
 if ($committed) {
@@ -142,13 +182,18 @@ if ($committed) {
     Write-Host "  ✓ Pushed to GitHub — no new commit  (HEAD: $commitHash)" -ForegroundColor Green
 }
 
-Write-Host "  ✓ Vercel deploy triggered — check https://wash.vercel.app in ~60s" -ForegroundColor Green
+Write-Host "  ✓ Vercel deploys triggered (main app + support app) — check dashboards in ~60s" -ForegroundColor Green
 
 if ($apkBuilt) {
     Write-Host "  ✓ APK rebuilt: wash-latest.apk  ($apkSizeMB MB)" -ForegroundColor Green
     Write-Host "     → Send this file to your phone to install the update" -ForegroundColor Yellow
 } else {
     Write-Host "  - APK not rebuilt (web-only update)" -ForegroundColor Gray
+}
+
+if ($supportApkBuilt) {
+    Write-Host "  ✓ Support APK rebuilt: wash-support-latest.apk  ($supportApkSizeMB MB)" -ForegroundColor Green
+    Write-Host "     → Send this file to agent phones" -ForegroundColor Yellow
 }
 
 Write-Host ""

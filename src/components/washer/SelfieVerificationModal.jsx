@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
+import { App } from '@capacitor/app';
 import { supabase } from '../../lib/supabase.js';
 
 const BUCKET = 'washer-verification';
@@ -68,6 +69,12 @@ export function evaluateFace(box, vw, vh) {
 
 export default function SelfieVerificationModal({ userId, onCapture, onClose }) {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listener = App.addListener('backButton', () => { onClose(); });
+    return () => { listener.then(l => l.remove()); };
+  }, [onClose]);
 
   const videoRef      = useRef(null);
   const streamRef     = useRef(null);

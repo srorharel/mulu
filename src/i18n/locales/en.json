@@ -722,14 +722,16 @@
       },
       "sectionLicense": {
         "title": "Certificate of Licensed Dealer",
-        "hint": "Upload a photo or PDF of your business license (מוסך מורשה / עוסק מורשה)",
+        "hint": "Upload a PDF of your business license (מוסך מורשה / עוסק מורשה)",
         "upload": "Upload document",
         "change": "Change document",
-        "uploaded": "License uploaded"
+        "uploaded": "License uploaded",
+        "pdfOnly": "Please upload a PDF file"
       },
       "submit": "Submit for review",
       "submitting": "Submitting…",
-      "submitError": "Submission failed. Please try again."
+      "submitError": "Submission failed. Please try again.",
+      "discardWarning": "Going back will discard your uploaded documents. Continue?"
     },
     "pending": {
       "title": "Application received",

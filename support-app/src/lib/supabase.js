@@ -7,4 +7,6 @@ if (!url || !key) {
   console.warn('[Support] Copy .env.example to .env and fill in Supabase credentials.')
 }
 
-export const supabase = url && key ? createClient(url, key) : null
+export const supabase = url && key
+  ? createClient(url, key, { auth: { storageKey: 'wash-support-auth' } })
+  : null

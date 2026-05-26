@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { registerAgentPush, unregisterAgentToken } from '../lib/pushInit.js'
 
 const AuthContext = createContext(null)
 
@@ -8,6 +9,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [agentBlocked, setAgentBlocked] = useState(false)
+  const pushRegistered = useRef(false)
 
   async function loadProfile(userId) {
     const { data } = await supabase
@@ -25,6 +27,11 @@ export function AuthProvider({ children }) {
 
     setAgentBlocked(false)
     setProfile(data)
+
+    if (!pushRegistered.current) {
+      pushRegistered.current = true
+      registerAgentPush(userId).catch(() => {})
+    }
   }
 
   useEffect(() => {
@@ -54,6 +61,10 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    if (session) {
+      await unregisterAgentToken(session.user.id).catch(() => {})
+      pushRegistered.current = false
+    }
     await supabase.auth.signOut()
   }
 
