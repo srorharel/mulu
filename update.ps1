@@ -109,10 +109,10 @@ if ($buildApk -match '^[Yy]$') {
     npx cap sync android
     if ($LASTEXITCODE -ne 0) { Write-Fail "npx cap sync android failed." }
 
-    Write-Host "`n  ▸ gradlew assembleDebug" -ForegroundColor Cyan
+    Write-Host "`n  ▸ gradlew clean assembleDebug" -ForegroundColor Cyan
     Push-Location "$PSScriptRoot\android"
     try {
-        .\gradlew assembleDebug
+        .\gradlew clean assembleDebug
     } finally {
         Pop-Location
     }
@@ -151,7 +151,7 @@ if ($Support) {
 
         Push-Location android
         try {
-            .\gradlew assembleDebug
+            .\gradlew clean assembleDebug
         } finally {
             Pop-Location
         }
