@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
   --color-surface:            #0c0d12;
   --color-surface-elevated:   #15171f;
@@ -81,6 +79,21 @@
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold;
   }
 }
+
+/* Leaflet z-index cap — prevents Leaflet panes from competing with app modals.
+   Default Leaflet values range 200–1000; we cap below the modal layer. */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1 !important;
+}
+.leaflet-tile-pane    { z-index: 1 !important; }
+.leaflet-overlay-pane { z-index: 2 !important; }
+.leaflet-shadow-pane  { z-index: 3 !important; }
+.leaflet-marker-pane  { z-index: 4 !important; }
+.leaflet-tooltip-pane { z-index: 5 !important; }
+.leaflet-popup-pane   { z-index: 6 !important; }
+.leaflet-control      { z-index: 7 !important; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

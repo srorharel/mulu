@@ -257,7 +257,27 @@ Tab switches use a `200ms` fade (`opacity` only, no slide) to keep perceived per
 
 ---
 
-## 11. Disagreement protocol
+## 11. Z-index scale
+
+Single source of truth for stacking. Never use ad-hoc z-index values outside this scale.
+
+| Layer | Value | Use |
+|-------|-------|-----|
+| Base | 0 | Default content |
+| Leaflet (capped) | 1–7 | All Leaflet panes via global override in `index.css` |
+| Sticky headers | 10 | Page headers, sticky tabs |
+| Dropdown | 20 | Select menus, popovers |
+| Sticky footers | 30 | Mobile bottom tab bar, sticky CTAs |
+| Drawer/Sheet | 100 | Side drawer, bottom sheet |
+| Modal | 1000 | Confirm dialogs, full-screen modals |
+| Lightbox | 99999 | Photo lightbox (must beat any third-party CSS) |
+| Toast | 100000 | Toasts sit above lightbox |
+
+Rule: never use values between these tiers. If you need a new tier, document it here first.
+
+---
+
+## 12. Disagreement protocol
 
 When implementation conflicts with this design document:
 

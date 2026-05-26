@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { approveOrder, getSignedUrl } from '../lib/approvals.js'
 import { useReverseGeocode } from '../lib/geocode.js'
 import Pill from './Pill.jsx'
+import PhotoLightbox from './PhotoLightbox.jsx'
 
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
 
@@ -37,7 +38,7 @@ function VideoModal({ url, onClose }) {
   }, [onClose])
 
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={onClose}>
       <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute -top-9 right-0 text-white/70 hover:text-white" aria-label="Close">
           <X className="h-6 w-6" />
@@ -49,25 +50,6 @@ function VideoModal({ url, onClose }) {
   )
 }
 
-function ImageModal({ url, onClose }) {
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute -top-9 right-0 text-white/70 hover:text-white" aria-label="Close">
-          <X className="h-6 w-6" />
-        </button>
-        <img src={url} alt="" className="w-full rounded-xl max-h-[80vh] object-contain bg-black" />
-      </div>
-    </div>,
-    document.body
-  )
-}
 
 function VideoThumb({ label, url }) {
   const [open, setOpen] = useState(false)
@@ -89,29 +71,25 @@ function VideoThumb({ label, url }) {
   )
 }
 
-function PhotoThumb({ label, url }) {
-  const [open, setOpen] = useState(false)
+function PhotoThumb({ label, url, onClick }) {
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => url && setOpen(true)}
-        disabled={!url}
-        className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
-          url ? 'border-edge hover:border-agent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
-        } bg-surface`}
-      >
-        {url ? (
-          <img src={url} alt="" className="w-full aspect-square object-cover" />
-        ) : (
-          <div className="w-full aspect-square flex items-center justify-center">
-            <Camera className="h-5 w-5 text-ink-muted" />
-          </div>
-        )}
-        <span className="text-[11px] text-ink-muted font-medium text-center py-1.5 px-1 truncate">{label}</span>
-      </button>
-      {open && url && <ImageModal url={url} onClose={() => setOpen(false)} />}
-    </>
+    <button
+      type="button"
+      onClick={() => url && onClick?.()}
+      disabled={!url}
+      className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
+        url ? 'border-edge hover:border-agent/50 cursor-pointer' : 'border-edge/40 opacity-40 cursor-not-allowed'
+      } bg-surface`}
+    >
+      {url ? (
+        <img src={url} alt="" className="w-full aspect-square object-cover" />
+      ) : (
+        <div className="w-full aspect-square flex items-center justify-center">
+          <Camera className="h-5 w-5 text-ink-muted" />
+        </div>
+      )}
+      <span className="text-[11px] text-ink-muted font-medium text-center py-1.5 px-1 truncate">{label}</span>
+    </button>
   )
 }
 
@@ -217,9 +195,18 @@ export default function ApprovalRow({ order, onApproved }) {
   const [beforeUrl,  setBeforeUrl]  = useState(null)
   const [afterUrl,   setAfterUrl]   = useState(null)
   const [photoUrls,  setPhotoUrls]  = useState({})
+  const [lightboxIndex, setLightboxIndex] = useState(null)
   const [confirming, setConfirming] = useState(false)
   const [approving,  setApproving]  = useState(false)
   const [error, setError]           = useState('')
+
+  const allPhotos = useMemo(() => {
+    if (!isNewShape) return []
+    return [
+      ...PHOTO_SLOTS.map(s => ({ key: `arrival_${s}`,    label: `${t('approvals.section.arrival')} — ${t(`approvals.photoSlots.${s}`)}`,    url: photoUrls[`arrival_${s}`] })),
+      ...PHOTO_SLOTS.map(s => ({ key: `completion_${s}`, label: `${t('approvals.section.completion')} — ${t(`approvals.photoSlots.${s}`)}`, url: photoUrls[`completion_${s}`] })),
+    ].filter(p => p.url)
+  }, [isNewShape, photoUrls, t])
 
   useEffect(() => {
     if (isNewShape) {
@@ -336,39 +323,62 @@ export default function ApprovalRow({ order, onApproved }) {
 
       {/* Evidence */}
       {isNewShape ? (
-        <div className="grid grid-cols-2 gap-4">
-          {/* Arrival photos */}
-          <div className="flex flex-col gap-2">
-            <p className="text-[11.5px] font-bold text-ink-muted uppercase tracking-[0.05em]">
-              {t('approvals.section.arrival')}
-            </p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {PHOTO_SLOTS.map(slot => (
-                <PhotoThumb
-                  key={slot}
-                  label={t(`approvals.photoSlots.${slot}`)}
-                  url={photoUrls[`arrival_${slot}`]}
-                />
-              ))}
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Arrival photos */}
+            <div className="flex flex-col gap-2">
+              <p className="text-[11.5px] font-bold text-ink-muted uppercase tracking-[0.05em]">
+                {t('approvals.section.arrival')}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {PHOTO_SLOTS.map(slot => {
+                  const key = `arrival_${slot}`
+                  return (
+                    <PhotoThumb
+                      key={slot}
+                      label={t(`approvals.photoSlots.${slot}`)}
+                      url={photoUrls[key]}
+                      onClick={() => {
+                        const idx = allPhotos.findIndex(p => p.key === key)
+                        if (idx >= 0) setLightboxIndex(idx)
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Completion photos */}
+            <div className="flex flex-col gap-2">
+              <p className="text-[11.5px] font-bold text-agent uppercase tracking-[0.05em]">
+                {t('approvals.section.completion')}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {PHOTO_SLOTS.map(slot => {
+                  const key = `completion_${slot}`
+                  return (
+                    <PhotoThumb
+                      key={slot}
+                      label={t(`approvals.photoSlots.${slot}`)}
+                      url={photoUrls[key]}
+                      onClick={() => {
+                        const idx = allPhotos.findIndex(p => p.key === key)
+                        if (idx >= 0) setLightboxIndex(idx)
+                      }}
+                    />
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Completion photos */}
-          <div className="flex flex-col gap-2">
-            <p className="text-[11.5px] font-bold text-agent uppercase tracking-[0.05em]">
-              {t('approvals.section.completion')}
-            </p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {PHOTO_SLOTS.map(slot => (
-                <PhotoThumb
-                  key={slot}
-                  label={t(`approvals.photoSlots.${slot}`)}
-                  url={photoUrls[`completion_${slot}`]}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+          <PhotoLightbox
+            photos={allPhotos}
+            index={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+            onNavigate={setLightboxIndex}
+          />
+        </>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <VideoThumb label={t('approvals.row.videoBefore')} url={beforeUrl} />

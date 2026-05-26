@@ -7,6 +7,49 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0f172a" />
     <title>Wash Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      // Global crash catcher — runs before React, survives WebView restarts.
+      // Saves error to localStorage so we can display it on next launch.
+      (function () {
+        var KEY = '__crash_log';
+        // Show crash from previous session
+        var prev = null;
+        try { prev = localStorage.getItem(KEY); } catch (_) {}
+        if (prev) {
+          try { localStorage.removeItem(KEY); } catch (_) {}
+          var d = document.createElement('div');
+          d.id = 'crash-overlay';
+          d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0f172a;color:#f4f5f7;padding:24px;font:14px/1.5 monospace;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center';
+          d.innerHTML = '<div style="max-width:360px;width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px">'
+            + '<h1 style="font-size:16px;font-weight:700;margin:0 0 8px">Previous crash detected</h1>'
+            + '<pre style="font-size:11px;color:#a3a8b8;white-space:pre-wrap;word-break:break-all;margin:0 0 16px;max-height:200px;overflow:auto">' + prev.replace(/</g, '&lt;') + '</pre>'
+            + '<button id="crash-dismiss" style="width:100%;height:44px;background:#3FB58F;color:#0f172a;font-weight:700;border:none;border-radius:12px;cursor:pointer;font-size:14px">Dismiss &amp; continue</button>'
+            + '<button id="crash-reset" style="width:100%;height:44px;margin-top:8px;background:transparent;color:#ef4444;font-weight:600;border:1px solid rgba(239,68,68,0.4);border-radius:12px;cursor:pointer;font-size:13px">Clear data &amp; reload</button>'
+            + '</div>';
+          document.addEventListener('DOMContentLoaded', function () {
+            document.body.appendChild(d);
+            document.getElementById('crash-dismiss').onclick = function () { d.remove(); };
+            document.getElementById('crash-reset').onclick = function () {
+              try { localStorage.clear(); } catch (_) {}
+              location.href = '/';
+            };
+          });
+        }
+        function save(msg) {
+          try { localStorage.setItem(KEY, String(msg).slice(0, 2000)); } catch (_) {}
+        }
+        window.onerror = function (msg, src, line, col, err) {
+          save('onerror: ' + msg + '\nat ' + src + ':' + line + ':' + col + (err && err.stack ? '\n' + err.stack : ''));
+        };
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          save('unhandledrejection: ' + (r && r.stack ? r.stack : String(r)));
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
