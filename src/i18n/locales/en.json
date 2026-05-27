@@ -197,7 +197,7 @@
         "en_route": "Your washer is on the way",
         "arrived": "Washer has arrived",
         "in_progress": "Washing in progress",
-        "pending_approval": "Almost done!",
+        "pending_approval": "Under review",
         "completed": "All done!",
         "cancelled": "Order cancelled"
       },
@@ -207,7 +207,7 @@
         "en_route": "{{name}} is heading to your car",
         "arrived": "{{name}} is at your car",
         "in_progress": "{{name}} is washing your car",
-        "pending_approval": "{{name}} submitted for review",
+        "pending_approval": "Awaiting verification",
         "completed": "Your car is sparkling clean!",
         "cancelled": "This order was cancelled"
       },
@@ -216,7 +216,7 @@
         "en_route": "Washer on the way",
         "arrived": "Washer is here",
         "in_progress": "Washing in progress",
-        "pending_approval": "Wash complete · under review"
+        "pending_approval": "Under review"
       },
       "eta": {
         "arrivingIn": "Arriving in",
@@ -229,6 +229,11 @@
         "call": "Call",
         "callWasher": "Call washer",
         "chatWasher": "Chat with washer"
+      },
+      "pendingApproval": {
+        "title": "Wash submitted for review",
+        "body": "Your washer finished and uploaded photos. Support is verifying the result.",
+        "helper": "This usually takes under 10 minutes."
       }
     },
     "vehicles": {
@@ -488,7 +493,12 @@
         "submitted": "Submitted for approval"
       },
       "submitted": "Submitted!",
-      "submittedDesc": "Awaiting admin approval"
+      "submittedDesc": "Awaiting admin approval",
+      "submittedHelper": "You'll be notified when support reviews your wash.",
+      "declineBanner": {
+        "title": "Support requested changes",
+        "helper": "Fix the issue and resubmit for approval"
+      }
     },
     "toggle": {
       "online": "Online",

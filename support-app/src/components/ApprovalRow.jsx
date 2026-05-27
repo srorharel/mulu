@@ -363,6 +363,21 @@ export default function ApprovalRow({ order, onApproved }) {
         </div>
       </div>
 
+      {/* Decline history banner */}
+      {order.decline_count > 0 && (
+        <div className={`rounded-xl border px-3.5 py-2.5 flex items-center gap-2.5 ${
+          order.decline_count >= 3
+            ? 'bg-danger/10 border-danger/30'
+            : 'bg-warning-500/10 border-warning-500/30'
+        }`}>
+          <span className={`text-xs font-bold ${order.decline_count >= 3 ? 'text-danger' : 'text-warning-600'}`}>
+            {order.decline_count >= 3
+              ? t('approvals.row.escalated', { count: order.decline_count })
+              : t('approvals.row.previouslyDeclined', { count: order.decline_count })}
+          </span>
+        </div>
+      )}
+
       {/* Evidence */}
       {isNewShape ? (
         <>

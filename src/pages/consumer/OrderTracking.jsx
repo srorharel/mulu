@@ -166,14 +166,11 @@ export default function OrderTracking() {
       .then(({ data }) => setWasherProfile(data ?? null))
   }, [order?.washer_id])
 
-  // When the order transitions to pending_approval while the consumer is watching,
-  // mark this order so ConsumerLayout fires the modal immediately on its next realtime event.
-  // ConsumerLayout's realtime listener handles the actual modal open; we just clear any
-  // session-dismiss so it isn't suppressed.
+  // When the order transitions to completed while the consumer is watching,
+  // clear session-dismiss so ConsumerLayout fires the rating modal.
   useEffect(() => {
     if (!order?.id) return
-    if (prevStatus !== null && prevStatus !== 'pending_approval' && order.status === 'pending_approval') {
-      // Clear any prior session-dismiss so the modal shows
+    if (prevStatus !== null && prevStatus !== 'completed' && order.status === 'completed') {
       sessionStorage.removeItem(sessionDismissKey(order.id))
     }
     setPrevStatus(order.status)
@@ -364,6 +361,18 @@ export default function OrderTracking() {
               unreadCount={unreadCount}
               t={t}
             />
+          )}
+
+          {/* Pending approval — awaiting verification banner */}
+          {order.status === 'pending_approval' && (
+            <div className="rounded-glass p-5 text-center bg-primary-50/50 dark:bg-accent-muted/50 border border-primary-200/50">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary-500/10 flex items-center justify-center">
+                <div className="h-5 w-5 animate-spin rounded-full border-[2.5px] border-primary-500 border-t-transparent" />
+              </div>
+              <p className="text-[15px] font-bold text-ink">{t('consumer.tracking.pendingApproval.title')}</p>
+              <p className="text-sm text-ink-muted mt-1.5 max-w-xs mx-auto">{t('consumer.tracking.pendingApproval.body')}</p>
+              <p className="text-xs text-ink-muted/70 mt-3">{t('consumer.tracking.pendingApproval.helper')}</p>
+            </div>
           )}
 
           {/* Completed banner */}

@@ -253,7 +253,7 @@ export default function WasherDashboard() {
     return () => { cancelled = true }
   }, [user.id, online])
 
-  // Detect consumer-side cancel via realtime.
+  // Detect terminal transitions (cancel, complete) via realtime.
   useEffect(() => {
     if (!activeJob?.id) return
     const channel = supabase
@@ -262,7 +262,8 @@ export default function WasherDashboard() {
         event: 'UPDATE', schema: 'public', table: 'orders',
         filter: `id=eq.${activeJob.id}`,
       }, (payload) => {
-        if (payload.new.status === 'completed' || payload.new.status === 'cancelled') {
+        const newStatus = payload.new.status
+        if (newStatus === 'completed' || newStatus === 'cancelled') {
           setActiveJob(null)
         }
       })

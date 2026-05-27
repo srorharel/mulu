@@ -11,8 +11,6 @@ import RatingModal from './RatingModal.jsx'
 const sessionDismissKey = (orderId) => `rating_modal_dismissed_${orderId}`
 
 function isWithinWindow(order) {
-  // At pending_approval, completed_at may not be set yet — treat as within window.
-  if (order.status === 'pending_approval' && !order.completed_at) return true
   const ref = order.completed_at ? new Date(order.completed_at) : null
   if (!ref) return true
   return Date.now() - ref.getTime() < 48 * 60 * 60 * 1000
@@ -20,7 +18,7 @@ function isWithinWindow(order) {
 
 function needsRating(order) {
   return (
-    ['pending_approval', 'completed'].includes(order.status) &&
+    order.status === 'completed' &&
     !order.rated_at &&
     !order.rating_skipped &&
     isWithinWindow(order)
@@ -46,7 +44,7 @@ export default function ConsumerLayout() {
         completion_photo_driver, completion_photo_passenger
       `)
       .eq('consumer_id', user.id)
-      .in('status', ['pending_approval', 'completed'])
+      .in('status', ['completed'])
       .is('rated_at', null)
       .eq('rating_skipped', false)
       .order('created_at', { ascending: false })
@@ -72,7 +70,7 @@ export default function ConsumerLayout() {
     checkForPendingRating()
   }, [location.pathname, checkForPendingRating])
 
-  // ── Realtime: watch for this consumer's orders transitioning to pending_approval
+  // ── Realtime: watch for this consumer's orders transitioning to completed
   useEffect(() => {
     if (!user?.id) return
     const channel = supabase
@@ -88,7 +86,7 @@ export default function ConsumerLayout() {
         (payload) => {
           const updated = payload.new
           if (
-            updated.status === 'pending_approval' &&
+            updated.status === 'completed' &&
             !updated.rated_at &&
             !updated.rating_skipped &&
             !sessionStorage.getItem(sessionDismissKey(updated.id))

@@ -96,8 +96,9 @@ Three roles exist in `profiles.role`:
 
 Key tables:
 - `profiles` — role (`consumer`/`washer`/`agent`), GPS location (`current_location` PostGIS point, `last_lat`/`last_lng`/`last_location_at`), online status, preferences (`locale`, ringtone, nav app), tier/rating columns (`current_rating`, `current_tier` int 1–5, `rated_job_count`, `tier_changed_at`), `agent_display_name`
-- `orders` — PostGIS `geography(Point, 4326)` for location, status state machine, vehicle category (`category IN ('private','jeep','pickup')`), pricing columns (`payout_amount` locked at acceptance), car details (`car_plate`, `car_make`, `car_model`, `car_color`, `car_year`), 4 consumer car photos (`car_photo_front/back/driver/passenger`), site flags (`site_has_water`, `site_has_power`), access notes, 4 arrival photos (`arrival_photo_front/back/driver/passenger`), 4 completion photos (`completion_photo_front/back/driver/passenger`), submitted location (`submitted_lat`, `submitted_lng`, `submitted_location_at`), rating columns (`rated_at`, `rating_skipped`), `cancelled_by` ('consumer'/'washer'/'agent'), `vehicle_id` FK to `vehicles`
+- `orders` — PostGIS `geography(Point, 4326)` for location, status state machine, vehicle category (`category IN ('private','jeep','pickup')`), pricing columns (`payout_amount` locked at acceptance), car details (`car_plate`, `car_make`, `car_model`, `car_color`, `car_year`), 4 consumer car photos (`car_photo_front/back/driver/passenger`), site flags (`site_has_water`, `site_has_power`), access notes, 4 arrival photos (`arrival_photo_front/back/driver/passenger`), 4 completion photos (`completion_photo_front/back/driver/passenger`), submitted location (`submitted_lat`, `submitted_lng`, `submitted_location_at`), rating columns (`rated_at`, `rating_skipped`), `cancelled_by` ('consumer'/'washer'/'agent'), `vehicle_id` FK to `vehicles`, approval columns (`submitted_for_approval_at`, `approved_at`, `approved_by`, `decline_reason`, `declined_by`, `declined_at`, `decline_count`)
 - `order_events` — insert-only audit log
+- `approval_audit` — tracks every agent approve/decline action with `order_id`, `agent_id`, `action` ('approved'/'declined'), `reason`, `created_at`
 - `order_messages` — consumer↔washer direct chat per order; writable only while status is `accepted`/`en_route`/`arrived`/`in_progress`; read-only thereafter
 - `vehicles` — consumer saved vehicles (`plate`, `nickname`, `make`, `model`, `year`, `color`, `category IN ('private','jeep','pickup')`, `is_default`); at most one default per consumer enforced by unique partial index
 - `washer_ratings` — consumer star ratings (1–5) per completed order; drives tier recomputation
@@ -112,10 +113,12 @@ Key tables:
 - `washer_verifications` — washer onboarding submissions; `status IN ('pending_review','approved','rejected')`; contains paths to ID document (`id_document_path`), selfie (`selfie_path`), and business license (`business_license_path`) stored in `washer-verification` bucket; agents review and approve/reject via `review_washer_verification` RPC. Washer profile gains `washer_verification_status`, `washer_service_areas text[]`, and `washer_dealer_number` columns.
 
 Key RPC functions (security-definer, called from client unless noted):
-- `nearby_jobs(washer_lat, washer_lng, radius_km)` — spatial query returning pending orders within distance; **deliberately excludes `key_location`** until after acceptance (ADR-007)
-- `get_washer_active_job()` — returns the washer's current in-flight order
-- `transition_order_status(order_id, new_status, washer_lat?, washer_lng?)` — enforces allowed state transitions; requires 4 arrival photos + 100 m geofence for `en_route → arrived`; requires 4 completion photos + GPS for `in_progress → pending_approval`; agent can cancel or force-complete from any non-terminal status; writes `approved_at`/`approved_by` on agent completes
-- `find_nearby_washers_for_order(p_order_id, p_radius_m)` — spatial query called by fan-out Edge Function; excludes washers already in `order_washer_notifications`
+- `nearby_jobs(washer_lat, washer_lng, radius_km)` — spatial query returning pending orders within distance; **deliberately excludes `key_location`** until after acceptance (ADR-007); excludes washers with active or `pending_approval` orders (ADR-024)
+- `get_washer_active_job()` — returns the washer's current in-flight order (includes `pending_approval` status per ADR-024)
+- `transition_order_status(order_id, new_status, washer_lat?, washer_lng?)` — enforces allowed state transitions; requires 4 arrival photos + 100 m geofence for `en_route → arrived`; requires 4 completion photos + GPS for `in_progress → pending_approval`; blocks `pending → accepted` if washer has active/pending-approval job; agent can cancel or force-complete from any non-terminal status; writes `approved_at`/`approved_by` on agent completes; writes `submitted_for_approval_at` on submission; writes `approval_audit` on agent approve
+- `decline_order(p_order_id, p_reason)` — agent-only; reverts `pending_approval → in_progress` with reason (≥3 chars); increments `decline_count`; writes `approval_audit`; auto-creates support ticket at 3 declines
+- `washer_has_pending_approval(p_washer_id)` — returns boolean; used by client for pre-flight lockout check
+- `find_nearby_washers_for_order(p_order_id, p_radius_m)` — spatial query called by fan-out Edge Function; excludes washers already in `order_washer_notifications` and washers with active/pending-approval orders (ADR-024)
 - `payout_for_tier(tier)` — returns payout ILS for tier 1–5 (40/45/50/55/60)
 - `submit_rating(order_id, stars, feedback?)` / `skip_rating(order_id)` — consumer rates a completed wash
 - `recompute_washer_tier(washer_id)` — recalculates `current_tier` from recent ratings
@@ -124,7 +127,7 @@ Key RPC functions (security-definer, called from client unless noted):
 - `review_washer_verification(p_verification_id, p_decision, p_reason?)` — agent-only RPC; sets verification status to `approved` or `rejected` and mirrors status to `profiles.washer_verification_status`
 - `get_washer_verifications(p_status?)` — agent-only security-definer RPC; returns washer verification rows joined with `profiles` (name, phone) and `auth.users` (email) as flat columns (`washer_name`, `washer_phone`, `washer_email`). Used by support-app because `profiles` does not expose `email` directly. Added in migration `0062`; column-ambiguity bug fixed in `0063` (all table references fully qualified with schema prefix; `set search_path = public, auth`; explicit `::text` casts).
 
-Migrations live in `supabase/migrations/` (0001–0058). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
+Migrations live in `supabase/migrations/` (0001–0066). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
 
 **Bootstrap warning:** `npm run db:migrate --bootstrap` records every migration file as applied *without* executing its SQL. If a column is missing despite a migration existing for it (e.g. `profiles.locale`), run the `ALTER TABLE` directly in the Supabase SQL editor to heal the DB state — the migration runner will skip the file since it's already in `schema_migrations`.
 
@@ -135,13 +138,20 @@ Migrations live in `supabase/migrations/` (0001–0058). Run `npm run db:migrate
 - `support-attachments` — support chat file attachments (private, 5 MB, jpg/png/webp). Create manually in Supabase dashboard; apply `supabase/storage_support.sql` for RLS.
 - `washer-verification` — private bucket for washer onboarding documents (10 MB limit; jpg/png/webp/pdf). Paths: `{user_id}/id_document.jpg`, `{user_id}/selfie.jpg`, `{user_id}/business_license.{ext}`. Washer can read/insert/update/delete own folder; agents can read all. Bucket + RLS policies created by `0060_create_washer_verification_bucket.sql` and improved by `0061_improve_washer_verification_bucket.sql`. If bucket is missing after migration, run `npm run setup:buckets` (uses admin SDK) then `npm run db:migrate` to apply policies.
 
-### Order Status State Machine
+### Order Status State Machine (ADR-024)
 
 ```
 pending → accepted → en_route → arrived → in_progress → pending_approval → completed
-                                     ↑                             ↑
-                         100 m geofence + 4 arrival photos   4 completion photos + GPS
-                                             agent approves in support-app → completed
+                                     ↑                             ↑            ↑
+                         100 m geofence + 4 arrival photos   4 completion   agent approves
+                                                             photos + GPS
+
+pending_approval:
+  - Washer LOCKED: cannot accept or be offered new jobs
+  - Consumer sees "awaiting verification" — NO photos, NO rating
+  - Agent approves → completed (consumer sees photos + rating modal)
+  - Agent declines (with reason) → in_progress (washer can fix and resubmit)
+  - After 3 declines: auto-escalate to support ticket
 
 Agent overrides:
   agent can cancel from any non-terminal status
@@ -272,9 +282,10 @@ FCM (Firebase Cloud Messaging) push via two Supabase Edge Functions. Native Capa
 - Batch-inserts into `order_washer_notifications` (dedup), then calls `send-notification` once per eligible washer
 - Re-run safe: already-notified washers excluded by the dedup table
 
-**Supported event types:** `order_accepted`, `washer_on_way`, `washer_arrived`, `wash_completed`, `order_approved`, `order_cancelled`, `customer_cancelled`, `new_chat_message`, `new_job_nearby`, `support_message`, `support_resolved`, `tier_changed`
+**Supported event types:** `order_accepted`, `washer_on_way`, `washer_arrived`, `wash_completed`, `wash_pending_review`, `wash_complete_consumer`, `wash_declined`, `order_approved`, `order_cancelled`, `customer_cancelled`, `new_chat_message`, `new_job_nearby`, `support_message`, `support_resolved`, `tier_changed`
 
 **DB triggers:**
+- `trg_notify_on_order_change` (orders UPDATE, status change) → `pending_approval`: notifies washer (`wash_pending_review`); `completed`: notifies washer (`order_approved`) + consumer (`wash_complete_consumer`); `in_progress` from `pending_approval` (decline): notifies washer (`wash_declined`); `cancelled`: branches by `cancelled_by`
 - `trg_notify_on_new_order` (orders INSERT) → `fan-out-nearby-job`
 - `trg_notify_on_support_message` (support_messages INSERT, agent/system sender only)
 - `trg_notify_on_support_resolution` (support_conversations UPDATE, first terminal transition only)

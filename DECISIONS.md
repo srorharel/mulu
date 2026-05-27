@@ -290,6 +290,31 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 **Consequence:** All consumer pages need dark-mode equivalents. The redesign was built consumer-light-only; 9 files have hardcoded light values without `dark:` variants (see "Consumer dark-mode completion" in Open follow-ups). A smoke test was performed in this commit; screens confirmed navigable in dark mode. Remaining gaps tracked in follow-ups.
 **Alternatives considered:** Keep the role split (rejected — user explicitly wants the toggle). Render the toggle but no-op it for consumer (rejected — dishonest UI). Ship as hidden feature flag (rejected — adds complexity not needed at this scale).
 
+## ADR-024: Support-gated wash approval lifecycle
+**Date:** 2026-05-28
+**Status:** Accepted
+
+**Context:** Photos and rating must not reach the consumer until a support agent has approved the wash. Washers must not be offered new jobs while they have a wash awaiting approval — this prevents them from racing through jobs and leaving low-quality work hidden behind the gate.
+
+**Decision:**
+- `pending_approval` is the only non-terminal status that locks the washer.
+- Consumer is told "awaiting verification" during this window; no photos, no rating modal.
+- Agent decision branches:
+  - **approve** → `completed` (consumer sees photos + rating modal; washer unlocked)
+  - **decline** → `in_progress` with `decline_reason` (washer can fix and resubmit)
+- After 3 consecutive declines on the same order, auto-create a support ticket flagging quality issues.
+- All status writes go through `transition_order_status` or `decline_order`. No exceptions.
+- `nearby_jobs` and `find_nearby_washers_for_order` both exclude washers with active or `pending_approval` orders.
+- `get_washer_active_job` includes `pending_approval` so the washer dashboard shows the locked state.
+- Notification trigger: `pending_approval` notifies the washer (acknowledgment), NOT the consumer. `completed` notifies both. Decline notifies the washer with the reason.
+
+**Consequence:**
+- Slight UX delay for the consumer (they wait until agent approves).
+- Throughput hit per washer when an approval is slow; mitigation: SLA target on agents.
+- `approval_audit` table tracks every approve/decline for transparency.
+
+---
+
 ## ADR-021: orders INSERT RLS updated to validate vehicle_id ownership
 **Date:** 2026-05-18
 **Status:** Accepted

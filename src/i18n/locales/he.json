@@ -197,7 +197,7 @@
         "en_route": "השוטף בדרך אליך",
         "arrived": "השוטף הגיע",
         "in_progress": "שטיפה מתבצעת",
-        "pending_approval": "כמעט סיימנו!",
+        "pending_approval": "בבדיקה",
         "completed": "הושלם!",
         "cancelled": "ההזמנה בוטלה"
       },
@@ -207,7 +207,7 @@
         "en_route": "{{name}} בדרך לרכב שלך",
         "arrived": "{{name}} ליד הרכב",
         "in_progress": "{{name}} שוטף את הרכב",
-        "pending_approval": "{{name}} שלח לבדיקה",
+        "pending_approval": "ממתין לאימות",
         "completed": "הרכב שלך נקי ומבריק!",
         "cancelled": "ההזמנה בוטלה"
       },
@@ -216,7 +216,7 @@
         "en_route": "השוטף בדרך",
         "arrived": "השוטף כאן",
         "in_progress": "שטיפה מתבצעת",
-        "pending_approval": "שטיפה הושלמה · בבדיקה"
+        "pending_approval": "בבדיקה"
       },
       "eta": {
         "arrivingIn": "מגיע בעוד",
@@ -229,6 +229,11 @@
         "call": "שיחה",
         "callWasher": "התקשר לשוטף",
         "chatWasher": "שוחח עם השוטף"
+      },
+      "pendingApproval": {
+        "title": "הוואש נשלח לבדיקה",
+        "body": "השוטף סיים והעלה תמונות. צוות התמיכה בודק את התוצאה.",
+        "helper": "זה לוקח בדרך כלל פחות מ-10 דקות."
       }
     },
     "vehicles": {
@@ -488,7 +493,12 @@
         "submitted": "נשלח לאישור"
       },
       "submitted": "נשלח!",
-      "submittedDesc": "ממתין לאישור מנהל"
+      "submittedDesc": "ממתין לאישור מנהל",
+      "submittedHelper": "תקבל הודעה כשצוות התמיכה יבדוק את הוואש.",
+      "declineBanner": {
+        "title": "צוות התמיכה ביקש לתקן",
+        "helper": "תקן ושלח שוב לבדיקה"
+      }
     },
     "toggle": {
       "online": "מחובר",

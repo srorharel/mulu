@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import {
-  MoonStar, Sparkles, ChevronRight, Loader2,
+  MoonStar, Sparkles, ChevronRight, Loader2, Clock,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
   Phone, Droplets, Zap, Star, ArrowLeft, Check,
 } from 'lucide-react'
@@ -530,7 +530,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     mutateOrder({ status: trans.next })
     if (trans.next === 'pending_approval') {
       showToast(t('washer.drawer.toasts.submitted'), 'success')
-      setTimeout(onJobDone, 1500)
     } else {
       showToast(t(ADVANCE_TOAST_KEYS[trans.next] ?? 'washer.drawer.updating'), 'success')
     }
@@ -703,11 +702,27 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
         </div>
       )}
 
-      {/* ── Terminal states ── */}
+      {/* ── Decline banner — shown when washer needs to fix and resubmit ── */}
+      {order.status === 'in_progress' && order.decline_count > 0 && order.decline_reason && (
+        <div className="bg-danger-500/10 border border-danger-500/30 backdrop-blur-xl rounded-glass p-4">
+          <div className="flex items-center gap-2 text-danger-500 font-semibold mb-1">
+            <XCircle className="w-4 h-4 shrink-0" />
+            <span className="text-sm">{t('washer.drawer.declineBanner.title')}</span>
+          </div>
+          <p className="text-sm text-ink-muted">{order.decline_reason}</p>
+          <p className="text-xs text-ink-muted mt-2">{t('washer.drawer.declineBanner.helper')}</p>
+        </div>
+      )}
+
+      {/* ── Pending approval state ── */}
       {order.status === 'pending_approval' && (
         <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 text-center">
+          <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-accent/10 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-accent" />
+          </div>
           <p className="font-semibold text-accent">{t('washer.drawer.submitted')}</p>
           <p className="text-xs text-ink-muted mt-1">{t('washer.drawer.submittedDesc')}</p>
+          <p className="text-xs text-ink-muted/70 mt-2">{t('washer.drawer.submittedHelper')}</p>
         </div>
       )}
       {order.status === 'completed' && (

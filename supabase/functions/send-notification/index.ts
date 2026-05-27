@@ -7,6 +7,9 @@ type EventType =
   | 'washer_on_way'
   | 'washer_arrived'
   | 'wash_completed'
+  | 'wash_pending_review'
+  | 'wash_complete_consumer'
+  | 'wash_declined'
   | 'order_approved'
   | 'order_cancelled'
   | 'new_chat_message'
@@ -59,6 +62,18 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
   wash_completed: {
     en: { title: 'Wash submitted',      body: 'Your wash is done — tap to rate.' },
     he: { title: 'הרחיצה הושלמה',       body: 'הרחיצה בוצעה — הקש לדרג.' },
+  },
+  wash_pending_review: {
+    en: { title: 'Awaiting approval',   body: 'Submitted. Support is reviewing your wash.' },
+    he: { title: 'ממתין לאישור',        body: 'השליחה התקבלה. צוות התמיכה יבדוק את הוואש.' },
+  },
+  wash_complete_consumer: {
+    en: { title: 'Wash complete',       body: 'Your wash is ready — tap to rate.' },
+    he: { title: 'הוואש הושלם',         body: 'הוואש שלך מוכן — הקש לדירוג.' },
+  },
+  wash_declined: {
+    en: { title: 'Wash needs fixes',    body: (d) => `Support requested changes. Reason: ${d.reason || 'See details'}` },
+    he: { title: 'הוואש לא אושר',       body: (d) => `צוות התמיכה ביקש לתקן. סיבה: ${d.reason || 'ראה פרטים'}` },
   },
   order_approved: {
     en: { title: 'Job approved',        body: 'Your wash was approved. Great work!' },
@@ -132,10 +147,13 @@ function routeFor(event_type: EventType, data: Record<string, string>): string {
     case 'washer_on_way':
     case 'washer_arrived':
     case 'wash_completed':
+    case 'wash_complete_consumer':
     case 'order_cancelled':
     case 'new_chat_message':
       return data.order_id ? `/order/${data.order_id}` : '/home'
     case 'order_approved':
+    case 'wash_pending_review':
+    case 'wash_declined':
       return data.order_id ? `/washer/job/${data.order_id}` : '/washer'
     case 'customer_cancelled':
     case 'new_job_nearby':
