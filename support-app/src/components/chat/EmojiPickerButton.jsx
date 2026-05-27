@@ -46,7 +46,7 @@ export default function EmojiPickerButton({ onEmojiSelect, disabled }) {
 
       {open && (
         <div
-          className="absolute bottom-full mb-2 right-0"
+          className="absolute bottom-full mb-2 end-0"
           style={{ zIndex: 50 }}
           data-testid="emoji-picker"
         >

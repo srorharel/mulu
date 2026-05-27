@@ -1,38 +1,48 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
 import { z } from 'zod'
 import en from './locales/en.json'
 import he from './locales/he.json'
 
+export const LOCALE_STORAGE_KEY = 'wash_locale'
+
 // Migrate saved locale from old key so existing users keep their preference.
-const OLD_LOCALE_KEY = 'sparklego_locale'
-const NEW_LOCALE_KEY = 'wash_locale'
 try {
-  const saved = localStorage.getItem(OLD_LOCALE_KEY)
-  if (saved && !localStorage.getItem(NEW_LOCALE_KEY)) {
-    localStorage.setItem(NEW_LOCALE_KEY, saved)
+  const old = localStorage.getItem('sparklego_locale')
+  if (old && !localStorage.getItem(LOCALE_STORAGE_KEY)) {
+    localStorage.setItem(LOCALE_STORAGE_KEY, old)
   }
-  if (saved) localStorage.removeItem(OLD_LOCALE_KEY)
-} catch (_) { /* private browsing — ignore */ }
+  if (old) localStorage.removeItem('sparklego_locale')
+} catch { /* private browsing — ignore */ }
+
+function resolveInitialLocale() {
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
+    if (stored === 'he' || stored === 'en') return stored
+  } catch { /* localStorage blocked */ }
+  return 'he'
+}
 
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
       en: { translation: en },
       he: { translation: he },
     },
-    fallbackLng: 'en',
+    lng: resolveInitialLocale(),
+    fallbackLng: 'he',
     supportedLngs: ['en', 'he'],
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-      lookupLocalStorage: NEW_LOCALE_KEY,
-    },
     interpolation: { escapeValue: false },
   })
+
+const applyDir = (lng) => {
+  if (typeof document === 'undefined') return
+  document.documentElement.dir = lng === 'he' ? 'rtl' : 'ltr'
+  document.documentElement.lang = lng
+}
+applyDir(i18n.language)
+i18n.on('languageChanged', applyDir)
 
 // Global zod error map — evaluated at validation time so messages follow language changes.
 z.setErrorMap((issue, ctx) => {

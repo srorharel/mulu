@@ -43,10 +43,10 @@ export default function MessageBubble({ message, isOwn, showSeen, seenAt }) {
       <div
         className={`max-w-[78%] text-[13.5px] leading-[1.45] px-3.5 py-2.5 ${
           isOwn
-            ? 'rounded-2xl rounded-br-sm text-white'
+            ? 'rounded-2xl rounded-ee-sm text-white'
             : isAgent
-              ? 'rounded-2xl rounded-bl-sm border border-agent/30 text-ink bg-agent/16'
-              : 'rounded-2xl rounded-bl-sm border border-edge text-ink bg-surface-elevated'
+              ? 'rounded-2xl rounded-es-sm border border-agent/30 text-ink bg-agent/16'
+              : 'rounded-2xl rounded-es-sm border border-edge text-ink bg-surface-elevated'
         }`}
         style={isOwn ? {
           background: `linear-gradient(135deg, var(--color-agent), var(--color-agent-deep))`,

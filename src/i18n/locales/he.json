@@ -656,9 +656,13 @@
       "preview": "נגן"
     }
   },
+  "toasts": {
+    "languageChanged": "השפה עודכנה"
+  },
   "settings": {
     "language": {
-      "label": "שפה"
+      "label": "שפה",
+      "helper": "בחר את שפת האפליקציה"
     },
     "notifications": {
       "sound": {

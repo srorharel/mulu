@@ -92,7 +92,7 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
             type="button"
             onClick={handleRemove}
             aria-label={t('consumer.home.photos.removing')}
-            className="absolute top-1.5 right-1.5 flex items-center justify-center w-6 h-6 rounded-full bg-black/60 text-white"
+            className="absolute top-1.5 end-1.5 flex items-center justify-center w-6 h-6 rounded-full bg-black/60 text-white"
           >
             <X className="h-3.5 w-3.5" />
           </button>

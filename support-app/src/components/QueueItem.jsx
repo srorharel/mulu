@@ -146,7 +146,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
       {/* Unread badge */}
       {unreadCount > 0 && (
         <span
-          className="absolute bottom-2.5 right-3 flex items-center justify-center rounded-full font-bold text-[10.5px] shrink-0"
+          className="absolute bottom-2.5 end-3 flex items-center justify-center rounded-full font-bold text-[10.5px] shrink-0"
           style={{
             minWidth: 18, height: 18, padding: '0 5px',
             background: isSelected ? 'var(--color-agent)' : 'var(--color-accent)',

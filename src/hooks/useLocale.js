@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
-import i18n from '../i18n/index.js'
+import i18n, { LOCALE_STORAGE_KEY } from '../i18n/index.js'
 
 export function useLocale() {
   const { user, profile, refreshProfile } = useAuth()
@@ -18,6 +18,7 @@ export function useLocale() {
   async function setLocale(lang) {
     setLocaleState(lang)
     await i18n.changeLanguage(lang)
+    try { localStorage.setItem(LOCALE_STORAGE_KEY, lang) } catch { /* private browsing */ }
     if (!user) return { error: null }
     const { error } = await supabase
       .from('profiles')

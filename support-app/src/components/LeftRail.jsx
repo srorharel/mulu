@@ -28,7 +28,7 @@ function Badge({ count, active, inactiveBadge, t }) {
   if (!count) return null
   return (
     <span
-      className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-surface"
+      className="absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-surface"
       style={{ background: active ? 'var(--color-agent)' : inactiveBadge }}
       aria-label={t('nav.badgeItems', { count })}
     >

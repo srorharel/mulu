@@ -39,7 +39,7 @@ export default function PhotoLightbox({ photos, initialIndex = 0, onClose }) {
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+        className="absolute top-4 end-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
       >
         <X className="h-5 w-5" />
       </button>

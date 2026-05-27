@@ -1,7 +1,10 @@
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import './i18n/index.js'
+import i18n from './i18n/index.js'
 import './index.css'
+
+document.documentElement.dir = i18n.language === 'he' ? 'rtl' : 'ltr'
+document.documentElement.lang = i18n.language
 import './lib/capacitorBack.js'
 
 // Eruda in-browser devtools — dev mode only, and only when ?debug=1 is in the URL.

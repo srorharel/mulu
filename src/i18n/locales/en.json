@@ -656,9 +656,13 @@
       "preview": "Play"
     }
   },
+  "toasts": {
+    "languageChanged": "Language updated"
+  },
   "settings": {
     "language": {
-      "label": "Language"
+      "label": "Language",
+      "helper": "Choose the app language"
     },
     "notifications": {
       "sound": {

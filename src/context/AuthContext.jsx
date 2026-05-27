@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import i18n from '../i18n/index.js'
+import i18n, { LOCALE_STORAGE_KEY } from '../i18n/index.js'
 import { unregisterToken } from '../lib/notifications.js'
 
 const AuthContext = createContext(null)
@@ -10,6 +10,22 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  function syncLocale(prof) {
+    if (!prof?.locale) return
+    let localChoice
+    try { localChoice = localStorage.getItem(LOCALE_STORAGE_KEY) } catch { /* private browsing */ }
+    if (localChoice === 'he' || localChoice === 'en') {
+      if (prof.locale !== localChoice) {
+        supabase.from('profiles').update({ locale: localChoice }).eq('id', prof.id).then(() => {})
+      }
+      return
+    }
+    if (prof.locale !== i18n.language) {
+      i18n.changeLanguage(prof.locale)
+      try { localStorage.setItem(LOCALE_STORAGE_KEY, prof.locale) } catch { /* private browsing */ }
+    }
+  }
 
   async function fetchProfile(userId) {
     const { data } = await supabase
@@ -26,12 +42,12 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .single()
-      if (retry?.locale) i18n.changeLanguage(retry.locale)
+      if (retry) syncLocale(retry)
       setProfile(retry ?? null)
       return retry ?? null
     }
 
-    if (data.locale) i18n.changeLanguage(data.locale)
+    syncLocale(data)
     setProfile(data)
     return data
   }
@@ -68,7 +84,7 @@ export function AuthProvider({ children }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function signUp(email, password, metadata) {
     return supabase.auth.signUp({

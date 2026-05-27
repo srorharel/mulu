@@ -209,7 +209,7 @@ export default function OrderHistory() {
                               }`}>
                                 <Car className="h-5 w-5" />
                                 {isLive && (
-                                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary-600 border-2 border-white" />
+                                  <span className="absolute -top-0.5 -end-0.5 w-3 h-3 rounded-full bg-primary-600 border-2 border-white" />
                                 )}
                               </div>
 

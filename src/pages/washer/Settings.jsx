@@ -144,6 +144,7 @@ export default function Settings() {
         {/* ── 4. Language ───────────────────────────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
           <p className="text-sm font-semibold text-ink">{t('settings.language.label')}</p>
+          <p className="text-sm text-ink-muted">{t('settings.language.helper')}</p>
           <PillRow
             groupId="washer-language"
             options={LANGUAGE_OPTIONS}
@@ -151,6 +152,7 @@ export default function Settings() {
             onChange={async (lang) => {
               const { error } = await setLocale(lang)
               if (error) showToast(error.message, 'error')
+              else showToast(t('toasts.languageChanged'))
             }}
           />
         </section>

@@ -23,8 +23,8 @@ function ChatBubble({ message, isOwn, senderName }) {
       )}
       <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
         isOwn
-          ? 'bg-accent text-white rounded-br-sm'
-          : 'bg-glass border border-glass-border backdrop-blur-sm text-ink rounded-bl-sm'
+          ? 'bg-accent text-white rounded-ee-sm'
+          : 'bg-glass border border-glass-border backdrop-blur-sm text-ink rounded-es-sm'
       }`}>
         <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.body}</p>
       </div>

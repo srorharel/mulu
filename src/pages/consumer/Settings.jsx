@@ -43,6 +43,7 @@ export default function ConsumerSettings() {
 
           <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-5 flex flex-col gap-3">
             <p className="text-sm font-semibold text-ink">{t('settings.language.label')}</p>
+            <p className="text-sm text-ink-muted">{t('settings.language.helper')}</p>
             <PillRow
               groupId="consumer-language"
               options={LANGUAGE_OPTIONS}
@@ -50,6 +51,7 @@ export default function ConsumerSettings() {
               onChange={async (lang) => {
                 const { error } = await setLocale(lang)
                 if (error) showToast(error.message, 'error')
+                else showToast(t('toasts.languageChanged'))
               }}
             />
           </section>

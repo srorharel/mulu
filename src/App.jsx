@@ -4,7 +4,6 @@ import { AppRouter } from './router.jsx'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { ToastProvider } from './components/ui/Toast.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
-import { useDirection } from './hooks/useDirection.js'
 
 function EnvBanner() {
   const { t } = useTranslation()
@@ -17,7 +16,6 @@ function EnvBanner() {
 }
 
 export default function App() {
-  useDirection()
   return (
     <ErrorBoundary>
       <EnvBanner />
