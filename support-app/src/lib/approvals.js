@@ -25,6 +25,13 @@ export async function approveOrder(orderId) {
   })
 }
 
+export async function declineOrder(orderId, reason) {
+  return supabase.rpc('decline_order', {
+    p_order_id: orderId,
+    p_reason:   reason,
+  })
+}
+
 export async function getSignedUrl(path) {
   if (!path) return null
   const { data } = await supabase.storage

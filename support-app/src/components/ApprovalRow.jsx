@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { CheckCircle, Clock, Play, X, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { approveOrder, getSignedUrl } from '../lib/approvals.js'
+import { approveOrder, declineOrder, getSignedUrl } from '../lib/approvals.js'
 import i18n from '../i18n'
 import { useReverseGeocode } from '../lib/geocode.js'
 import Pill from './Pill.jsx'
@@ -197,8 +197,9 @@ export default function ApprovalRow({ order, onApproved }) {
   const [afterUrl,   setAfterUrl]   = useState(null)
   const [photoUrls,  setPhotoUrls]  = useState({})
   const [lightboxIndex, setLightboxIndex] = useState(null)
-  const [confirming, setConfirming] = useState(false)
-  const [approving,  setApproving]  = useState(false)
+  const [confirming, setConfirming] = useState(null) // 'approve' | 'decline' | null
+  const [busy,       setBusy]       = useState(null) // 'approve' | 'decline' | null
+  const [declineReason, setDeclineReason] = useState('')
   const [error, setError]           = useState('')
 
   const allPhotos = useMemo(() => {
@@ -226,12 +227,24 @@ export default function ApprovalRow({ order, onApproved }) {
     }
   }, [isNewShape, photoPaths]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function doApprove() {
-    setApproving(true)
+  async function doApprove(e) {
+    e.stopPropagation()
+    setBusy('approve')
     setError('')
     const { error: err } = await approveOrder(order.id)
-    setApproving(false)
-    if (err) { setError(err.message); setConfirming(false); return }
+    setBusy(null)
+    if (err) { setError(err.message); setConfirming(null); return }
+    onApproved(order.id)
+  }
+
+  async function doDecline(e) {
+    e.stopPropagation()
+    if (!declineReason.trim() || declineReason.trim().length < 3) return
+    setBusy('decline')
+    setError('')
+    const { error: err } = await declineOrder(order.id, declineReason.trim())
+    setBusy(null)
+    if (err) { setError(err.message); return }
     onApproved(order.id)
   }
 
@@ -275,20 +288,23 @@ export default function ApprovalRow({ order, onApproved }) {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 shrink-0">
-          {!confirming ? (
+        <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+          {confirming === null ? (
             <>
               <button
-                onClick={() => setConfirming(true)}
-                className="flex items-center gap-1.5 text-[12px] font-bold px-3 py-2 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
+                type="button"
+                onClick={() => setConfirming('decline')}
+                disabled={busy !== null}
+                className="flex items-center gap-1.5 text-[12px] font-bold px-3 py-2 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
               >
                 <X size={13} />
                 {t('approvals.actions.reject')}
               </button>
               <button
-                onClick={() => setConfirming(true)}
-                disabled={approving}
-                className="flex items-center gap-1.5 text-[13px] font-bold px-4 py-2 rounded-xl text-white transition-colors"
+                type="button"
+                onClick={() => setConfirming('approve')}
+                disabled={busy !== null}
+                className="flex items-center gap-1.5 text-[13px] font-bold px-4 py-2 rounded-xl text-white transition-colors disabled:opacity-50"
                 style={{
                   background: 'var(--color-agent)',
                   boxShadow: '0 4px 14px rgba(63,181,143,0.3)',
@@ -300,20 +316,45 @@ export default function ApprovalRow({ order, onApproved }) {
                 {t('approvals.actions.approve')}
               </button>
             </>
-          ) : (
+          ) : confirming === 'approve' ? (
             <div className="flex flex-col items-end gap-1">
               <p className="text-[12px] font-semibold text-ink">{t('approvals.actions.confirmTitle')}</p>
               <div className="flex gap-2">
-                <button onClick={() => setConfirming(false)} className="btn-ghost text-xs px-2 py-1">
+                <button type="button" onClick={() => setConfirming(null)} className="btn-ghost text-xs px-2 py-1">
                   {t('approvals.actions.confirmNo')}
                 </button>
                 <button
+                  type="button"
                   onClick={doApprove}
-                  disabled={approving}
+                  disabled={busy !== null}
                   className="text-xs font-bold px-3 py-1 rounded-lg text-white disabled:opacity-50"
                   style={{ background: 'var(--color-agent)' }}
                 >
-                  {approving ? '…' : t('approvals.actions.confirmYes')}
+                  {busy === 'approve' ? '…' : t('approvals.actions.confirmYes')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-end gap-1.5 min-w-[200px]">
+              <p className="text-[12px] font-semibold text-danger">{t('approvals.actions.declineTitle')}</p>
+              <textarea
+                value={declineReason}
+                onChange={e => setDeclineReason(e.target.value)}
+                placeholder={t('approvals.actions.declinePlaceholder')}
+                rows={2}
+                className="w-full rounded-lg border border-edge bg-surface px-2.5 py-1.5 text-xs text-ink resize-none focus:outline-none focus:border-danger"
+              />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setConfirming(null); setDeclineReason('') }} className="btn-ghost text-xs px-2 py-1">
+                  {t('approvals.actions.confirmNo')}
+                </button>
+                <button
+                  type="button"
+                  onClick={doDecline}
+                  disabled={busy !== null || !declineReason.trim() || declineReason.trim().length < 3}
+                  className="text-xs font-bold px-3 py-1 rounded-lg border border-danger/40 text-danger hover:bg-danger/10 disabled:opacity-40 transition-colors"
+                >
+                  {busy === 'decline' ? '…' : t('approvals.actions.declineConfirm')}
                 </button>
               </div>
             </div>
