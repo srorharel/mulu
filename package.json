@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
-    "dev:all": "concurrently --names \"WASH,AGENT\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"npm run dev\" \"npm run dev --prefix support-app\"",
+    "dev:admin": "npm run dev --prefix admin-app",
+    "dev:all": "concurrently --names \"WASH,AGENT,ADMIN\" --prefix-colors \"cyan,magenta,yellow\" --kill-others-on-fail \"npm run dev\" \"npm run dev --prefix support-app\" \"npm run dev --prefix admin-app\"",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",

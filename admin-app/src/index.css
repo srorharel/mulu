@@ -1,0 +1,66 @@
+:root {
+  --color-surface:            #08090d;
+  --color-surface-elevated:   #10131a;
+  --color-surface-elevated-2: #161a23;
+  --color-surface-high:       #1e222d;
+  --color-ink:                #f4f5f7;
+  --color-ink-muted:          #a3a8b8;
+  --color-ink-subtle:         #6b7388;
+  --color-edge:               #23262f;
+  --color-edge-strong:        #2e323d;
+  --color-admin:              #E8B547;
+  --color-admin-deep:         #A87C1B;
+  --color-admin-soft:         rgba(232, 181, 71, 0.16);
+  --color-glass-surface:      rgba(16, 19, 26, 0.70);
+  --color-glass-border:       rgba(255, 255, 255, 0.06);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-surface text-ink font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 40px;
+  }
+  .btn-primary {
+    @apply btn text-surface;
+    background: var(--color-admin);
+    box-shadow: 0 4px 12px rgba(232, 181, 71, 0.28);
+  }
+  .btn-primary:hover { background: var(--color-admin-deep); color: var(--color-ink); }
+  .btn-ghost {
+    @apply btn text-ink-muted hover:bg-surface-elevated;
+  }
+  .btn-danger {
+    @apply btn border border-danger/50 text-danger hover:bg-danger/10;
+    background: transparent;
+  }
+  .input {
+    @apply w-full rounded-xl border border-edge bg-surface-elevated px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-subtle transition;
+    min-height: 40px;
+  }
+  .input:focus {
+    @apply border-admin ring-1 ring-admin/30;
+  }
+  .card {
+    @apply bg-surface-elevated rounded-2xl border border-edge p-4;
+  }
+  .label-uppercase {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted;
+  }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-edge-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-subtle); }

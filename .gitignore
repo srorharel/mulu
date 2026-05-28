@@ -18,3 +18,7 @@ support-app/android/app/build/
 support-app/android/.gradle/
 support-app/android/app/release/
 support-app/android/app/google-services.json
+
+# Admin-app build artifacts (web-only — no android/)
+admin-app/dist/
+admin-app/node_modules/

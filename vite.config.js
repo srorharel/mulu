@@ -36,7 +36,7 @@ export default defineConfig(() => {
       environment: 'jsdom',
       globals: true,
       setupFiles: ['./src/test/setup.js'],
-      exclude: ['support-app/**', '**/node_modules/**', '**/dist/**'],
+      exclude: ['support-app/**', 'admin-app/**', '**/node_modules/**', '**/dist/**'],
       alias: {
         // Always use the stub in tests — avoids network access and keeps tests fast.
         '@mediapipe/tasks-vision': mediapipeStub,

@@ -231,6 +231,43 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 7a. Super-admin role + helper (0069) ─────────────────────────────────────
+
+console.log('\n── Roles / super_admin ──────────────────────────────────────')
+
+const roleCheck = await q(`
+  SELECT pg_get_constraintdef(c.oid) AS def
+  FROM pg_constraint c
+  JOIN pg_class      t ON t.oid = c.conrelid
+  JOIN pg_namespace  n ON n.oid = t.relnamespace
+  WHERE n.nspname = 'public'
+    AND t.relname = 'profiles'
+    AND c.conname = 'profiles_role_check'
+`)
+if (roleCheck.length === 0) {
+  fail('profiles_role_check constraint', 'not found')
+} else if (!/super_admin/.test(roleCheck[0].def)) {
+  fail('profiles_role_check', `missing 'super_admin' — got: ${roleCheck[0].def}`)
+} else {
+  pass(`profiles_role_check includes super_admin`)
+}
+
+const isSuperAdmin = await q(`
+  SELECT 1 FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname = 'is_super_admin'
+`)
+if (isSuperAdmin.length > 0) pass('public.is_super_admin() exists')
+else                          fail('public.is_super_admin()', 'not found — check 0069')
+
+const isAdminGone = await q(`
+  SELECT 1 FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname = 'is_admin'
+`)
+if (isAdminGone.length === 0) pass('public.is_admin() removed (inert helper dropped)')
+else                           fail('public.is_admin()', 'still present — 0069 should have dropped it')
+
 // ── 7. Storage RLS for washer-verification bucket (0061 / 0068) ──────────────
 
 console.log('\n── Storage policies ─────────────────────────────────────────')
