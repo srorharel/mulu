@@ -18,7 +18,7 @@ function Write-Fail ($msg) {
 # Always run from the script's directory, regardless of where it was invoked
 Set-Location $PSScriptRoot
 
-$totalSteps = 5
+$totalSteps = 6
 
 # -- Step 1: Sanity checks --
 Write-Step 1 $totalSteps "Sanity checks"
@@ -49,8 +49,22 @@ if ($branch -ne "main") {
 
 Write-OK "All checks passed  (branch: $branch, git: $gitVersion)"
 
-# -- Step 2: Web / Vercel deploy --
-Write-Step 2 $totalSteps "Pushing to GitHub -> Vercel"
+# -- Step 2: Drift report --
+# Non-fatal pre-flight: surfaces how far the live DB has drifted from the
+# bundled defaults BEFORE the push, so an unexpected drift can still be
+# Ctrl+C'd. Failures (missing .env, no DB connectivity) only warn — they
+# never block the deploy, because content drift is informational, not gating.
+Write-Step 2 $totalSteps "Drift report (informational, non-blocking)"
+
+npm run drift
+if ($LASTEXITCODE -ne 0) {
+    Write-Warn "drift report exited with code $LASTEXITCODE - continuing with deploy"
+} else {
+    Write-OK "Drift report complete"
+}
+
+# -- Step 3: Web / Vercel deploy --
+Write-Step 3 $totalSteps "Pushing to GitHub -> Vercel"
 
 if ($CommitMessage -eq "") {
     $CommitMessage = "update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
@@ -89,8 +103,8 @@ if ($LASTEXITCODE -ne 0) { Write-Fail "git push failed." }
 
 Write-OK "Pushed to GitHub  (HEAD: $commitHash)"
 
-# -- Step 3: Main app Android APK --
-Write-Step 3 $totalSteps "Main app APK (wash-latest.apk)"
+# -- Step 4: Main app Android APK --
+Write-Step 4 $totalSteps "Main app APK (wash-latest.apk)"
 
 Write-Host "`n  > npm run build" -ForegroundColor Cyan
 npm run build
@@ -120,8 +134,8 @@ $apkSizeMB = [math]::Round((Get-Item $apkDest).Length / 1MB, 1)
 
 Write-OK "Main APK ready: wash-latest.apk  ($($apkSizeMB) MB)"
 
-# -- Step 4: Support app Android APK --
-Write-Step 4 $totalSteps "Support app APK (wash-support-latest.apk)"
+# -- Step 5: Support app Android APK --
+Write-Step 5 $totalSteps "Support app APK (wash-support-latest.apk)"
 
 Push-Location "$PSScriptRoot\support-app"
 try {
@@ -156,8 +170,8 @@ $supportApkSizeMB = [math]::Round((Get-Item $supportApkDest).Length / 1MB, 1)
 
 Write-OK "Support APK ready: wash-support-latest.apk  ($($supportApkSizeMB) MB)"
 
-# -- Step 5: Summary --
-Write-Step 5 $totalSteps "Done"
+# -- Step 6: Summary --
+Write-Step 6 $totalSteps "Done"
 Write-Host ""
 
 if ($committed) {
