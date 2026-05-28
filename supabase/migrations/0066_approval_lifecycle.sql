@@ -277,7 +277,20 @@ $$;
 GRANT EXECUTE ON FUNCTION public.transition_order_status(UUID, TEXT, DOUBLE PRECISION, DOUBLE PRECISION)
   TO authenticated;
 
--- ── 6. Update nearby_jobs: exclude washers with active/pending-approval jobs ─
+-- ── 6. Update nearby_jobs: exclude callers with active/pending-approval jobs ─
+--
+-- IMPORTANT: this redeclaration is a strict superset of the live function from
+-- 0005_nearby_jobs_coords.sql. We keep the live RETURNS shape (13 columns
+-- including lat / lng — used by WorkerMap.jsx to render job pins) and only
+-- *add* the new NOT EXISTS clause that excludes the calling washer when they
+-- already have an active or pending_approval order.
+--
+-- DROP first because PostgreSQL refuses CREATE OR REPLACE when the RETURNS
+-- TABLE shape ever differs from what's live — defensive even though our
+-- rewrite matches live exactly. The runner wraps every migration in a single
+-- BEGIN/COMMIT, so a failure between DROP and CREATE rolls both back.
+
+DROP FUNCTION IF EXISTS public.nearby_jobs(double precision, double precision, integer);
 
 CREATE OR REPLACE FUNCTION public.nearby_jobs(
   washer_lat float,
@@ -295,7 +308,9 @@ RETURNS TABLE (
   total_price     numeric,
   status          text,
   created_at      timestamptz,
-  distance_km     float
+  distance_km     float,
+  lat             float,
+  lng             float
 )
 LANGUAGE sql
 STABLE
@@ -319,7 +334,9 @@ AS $$
         ST_SetSRID(ST_MakePoint(washer_lng, washer_lat), 4326)::geography
       ) / 1000.0)::numeric,
       2
-    )::float as distance_km
+    )::float                          as distance_km,
+    ST_Y(o.location::geometry)::float as lat,
+    ST_X(o.location::geometry)::float as lng
   FROM public.orders o
   WHERE
     o.status = 'pending'

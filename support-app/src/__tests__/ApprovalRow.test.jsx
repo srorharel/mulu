@@ -50,6 +50,9 @@ i18n.use(initReactI18next).init({
     'approvals.row.pendingApproval': 'Pending approval',
     'approvals.row.videoBefore': 'Before',
     'approvals.row.videoAfter': 'After',
+    'approvals.row.previouslyDeclined_one': 'Previously declined once',
+    'approvals.row.previouslyDeclined_other': 'Previously declined {{count}} times',
+    'approvals.row.escalated_other': 'Escalated after {{count}} declines',
   } } },
   lng: 'en', fallbackLng: 'en',
 })
@@ -186,6 +189,35 @@ describe('ApprovalRow', () => {
     fireEvent.click(screen.getByRole('button', { name: /reject/i }))
     await new Promise((r) => setTimeout(r, 10))
     expect(parentClick).not.toHaveBeenCalled()
+  })
+
+  it('renders with decline_count present on the order row (no missing-column shape)', () => {
+    // The Approvals query selects orders.decline_count (see lib/approvals.js).
+    // If the DB column ever goes missing the query throws before this point,
+    // but this asserts the component happily renders a row that includes the
+    // field — guarding against a future regression that drops decline_count
+    // from the select string or the rendering path.
+    render(
+      <ApprovalRow order={makeOrder({ decline_count: 0 })} onApproved={vi.fn()} />,
+      { wrapper },
+    )
+    expect(screen.getByRole('button', { name: /^approve$/i })).toBeInTheDocument()
+  })
+
+  it('shows the previously-declined banner when decline_count > 0', () => {
+    render(
+      <ApprovalRow order={makeOrder({ decline_count: 1 })} onApproved={vi.fn()} />,
+      { wrapper },
+    )
+    expect(screen.getByText(/previously declined/i)).toBeInTheDocument()
+  })
+
+  it('shows the escalated banner when decline_count ≥ 3', () => {
+    render(
+      <ApprovalRow order={makeOrder({ decline_count: 3 })} onApproved={vi.fn()} />,
+      { wrapper },
+    )
+    expect(screen.getByText(/escalated/i)).toBeInTheDocument()
   })
 
   it('disables both buttons while approve is busy', async () => {

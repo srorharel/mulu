@@ -179,6 +179,46 @@ describe('WasherVerificationRow', () => {
     expect(screen.getByText('Selfie')).toBeInTheDocument()
   })
 
+  it('renders the selfie <img> with the signed URL returned by storage', async () => {
+    // Storage mock returns https://cdn.example.com/<path> for any non-empty path.
+    // The selfie path in the fixture is uid1/selfie.jpg, so we expect that URL
+    // to appear as an <img src> after the loadUrls effect resolves.
+    render(
+      <WasherVerificationRow verification={makeVerification()} onReviewed={vi.fn()} />,
+      { wrapper },
+    )
+
+    const expectedUrl = 'https://cdn.example.com/uid1/selfie.jpg'
+    await waitFor(() => {
+      const imgs = Array.from(document.querySelectorAll('img'))
+      const hit  = imgs.find(i => i.getAttribute('src') === expectedUrl)
+      expect(hit).toBeDefined()
+    })
+
+    // Confirm the signed URL helper was actually called with the selfie path.
+    expect(getVerificationSignedUrl).toHaveBeenCalledWith('uid1/selfie.jpg')
+  })
+
+  it('falls back to the icon (no <img>) when selfie_path is empty', async () => {
+    // Older rows from before 0059 may have selfie_path = '' (default).
+    // The component should not render a broken <img> in that case.
+    render(
+      <WasherVerificationRow
+        verification={makeVerification({ selfie_path: '' })}
+        onReviewed={vi.fn()}
+      />,
+      { wrapper },
+    )
+
+    await waitFor(() => {
+      const imgs    = Array.from(document.querySelectorAll('img'))
+      const selfieUrls = imgs
+        .map(i => i.getAttribute('src') || '')
+        .filter(src => src.includes('selfie'))
+      expect(selfieUrls).toHaveLength(0)
+    })
+  })
+
   it('calls reviewVerification with rejected + reason', async () => {
     const user = userEvent.setup()
     const onReviewed = vi.fn()

@@ -188,6 +188,8 @@ const EXPECTED_COLS = [
   'key_location', 'site_has_water', 'site_has_power',
   'addon_wiper_fluid', 'addon_tire_pressure',
   'evidence_wash_path', 'evidence_wiper_fluid_path', 'evidence_tire_pressure_path',
+  // 0066 / 0067 — required by support-app Approvals query
+  'decline_count',
 ]
 
 const colRows = await q(`
@@ -201,6 +203,50 @@ for (const col of EXPECTED_COLS) {
   if (colNames.has(col)) pass(`orders.${col}`)
   else                   fail(`orders.${col}`, 'missing — run npm run db:migrate')
 }
+
+// ── 6. nearby_jobs return shape (regression guard for 0066 rewrite) ─────────
+//
+// The 0066 redeclaration originally dropped lat/lng from the RETURNS TABLE,
+// which would have killed pending-job pins on the washer map (WorkerMap.jsx
+// reads job.lat / job.lng off these rows). Assert lat & lng stay in the
+// return contract so a future rewrite can't quietly remove them again.
+
+console.log('\n── nearby_jobs return shape ─────────────────────────────────')
+
+const nearbyJobsReturn = await q(`
+  SELECT pg_get_function_result(p.oid) AS returns
+  FROM   pg_proc p
+  JOIN   pg_namespace n ON n.oid = p.pronamespace
+  WHERE  n.nspname = 'public'
+    AND  p.proname = 'nearby_jobs'
+`)
+
+if (nearbyJobsReturn.length === 0) {
+  fail('nearby_jobs function', 'not found')
+} else {
+  const ret = nearbyJobsReturn[0].returns
+  if (/\blat double precision\b/.test(ret)) pass('nearby_jobs returns lat')
+  else                                       fail('nearby_jobs returns lat', 'lat column dropped from RETURNS — WorkerMap pins will break')
+  if (/\blng double precision\b/.test(ret)) pass('nearby_jobs returns lng')
+  else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
+}
+
+// ── 7. Storage RLS for washer-verification bucket (0061 / 0068) ──────────────
+
+console.log('\n── Storage policies ─────────────────────────────────────────')
+
+const storagePolicy = await q(`
+  SELECT 1 FROM pg_policies
+  WHERE schemaname = 'storage'
+    AND tablename  = 'objects'
+    AND policyname = 'agent_read_all_verification'
+`)
+
+if (storagePolicy.length > 0)
+  pass('storage.objects: agent_read_all_verification policy present')
+else
+  fail('storage.objects: agent_read_all_verification policy missing',
+       'agents cannot read washer-verification selfie/ID/license — run npm run db:migrate')
 
 // ── Done ──────────────────────────────────────────────────────────────────────
 
