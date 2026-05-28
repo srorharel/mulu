@@ -35,7 +35,7 @@ export default function Dashboard() {
         <div className="px-5 py-4 border-b border-edge">
           <div className="flex items-center justify-between">
             <span className="text-[14px] font-extrabold tracking-[-0.3px]">
-              wash<span className="text-admin">/admin</span>
+              wash<span className="text-admin-deep">/admin</span>
             </span>
             <button
               onClick={toggleLocale}
@@ -58,7 +58,7 @@ export default function Dashboard() {
                 onClick={() => navigate(`/${id}`, { replace: true })}
                 className={`w-full flex items-center gap-3 px-5 py-2.5 text-[13.5px] transition-colors ${
                   isActive
-                    ? 'bg-admin-soft text-admin font-semibold border-s-2 border-admin'
+                    ? 'bg-admin-soft text-admin-deep font-semibold border-s-2 border-admin'
                     : 'text-ink-muted hover:bg-surface-elevated-2 hover:text-ink'
                 }`}
               >

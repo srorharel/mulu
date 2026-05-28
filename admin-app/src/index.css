@@ -1,18 +1,18 @@
 :root {
-  --color-surface:            #08090d;
-  --color-surface-elevated:   #10131a;
-  --color-surface-elevated-2: #161a23;
-  --color-surface-high:       #1e222d;
-  --color-ink:                #f4f5f7;
-  --color-ink-muted:          #a3a8b8;
-  --color-ink-subtle:         #6b7388;
-  --color-edge:               #23262f;
-  --color-edge-strong:        #2e323d;
+  --color-surface:            #fafafa;
+  --color-surface-elevated:   #ffffff;
+  --color-surface-elevated-2: #f4f4f5;
+  --color-surface-high:       #e4e4e7;
+  --color-ink:                #18181b;
+  --color-ink-muted:          #52525b;
+  --color-ink-subtle:         #a1a1aa;
+  --color-edge:               #e4e4e7;
+  --color-edge-strong:        #d4d4d8;
   --color-admin:              #E8B547;
   --color-admin-deep:         #A87C1B;
   --color-admin-soft:         rgba(232, 181, 71, 0.16);
-  --color-glass-surface:      rgba(16, 19, 26, 0.70);
-  --color-glass-border:       rgba(255, 255, 255, 0.06);
+  --color-glass-surface:      rgba(255, 255, 255, 0.70);
+  --color-glass-border:       rgba(0, 0, 0, 0.06);
 }
 
 @tailwind base;
@@ -32,14 +32,18 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
     min-height: 40px;
   }
+  /* Dark text on amber — high contrast on light theme. */
   .btn-primary {
-    @apply btn text-surface;
+    @apply btn text-zinc-900;
     background: var(--color-admin);
-    box-shadow: 0 4px 12px rgba(232, 181, 71, 0.28);
+    box-shadow: 0 4px 12px rgba(232, 181, 71, 0.35);
   }
-  .btn-primary:hover { background: var(--color-admin-deep); color: var(--color-ink); }
+  .btn-primary:hover {
+    background: var(--color-admin-deep);
+    color: #ffffff;
+  }
   .btn-ghost {
-    @apply btn text-ink-muted hover:bg-surface-elevated;
+    @apply btn text-ink-muted hover:bg-surface-elevated-2;
   }
   .btn-danger {
     @apply btn border border-danger/50 text-danger hover:bg-danger/10;
@@ -54,6 +58,7 @@
   }
   .card {
     @apply bg-surface-elevated rounded-2xl border border-edge p-4;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .label-uppercase {
     @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted;

@@ -29,21 +29,21 @@ export default function Login() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background: [
-            'radial-gradient(at 18% 22%, rgba(232,181,71,0.18), transparent 45%)',
-            'radial-gradient(at 82% 78%, rgba(232,181,71,0.08), transparent 55%)',
+            'radial-gradient(at 18% 22%, rgba(232,181,71,0.22), transparent 45%)',
+            'radial-gradient(at 82% 78%, rgba(232,181,71,0.10), transparent 55%)',
           ].join(','),
         }}
       />
       <div
         className="relative w-full max-w-[400px] p-7 rounded-2xl border border-edge"
         style={{
-          background: 'rgba(16,19,26,0.85)',
-          backdropFilter: 'blur(28px) saturate(160%)',
-          boxShadow: '0 24px 70px rgba(0,0,0,0.5)',
+          background: 'rgba(255,255,255,0.96)',
+          backdropFilter: 'blur(20px) saturate(140%)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04)',
         }}
       >
         <div className="flex items-center gap-2.5 mb-1">
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-admin">
+          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-admin-deep">
             wash / admin
           </span>
         </div>

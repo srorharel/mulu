@@ -151,7 +151,7 @@ export default function Broadcasts() {
       {/* Header */}
       <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <Megaphone size={18} className="text-admin" />
+          <Megaphone size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.broadcasts')}</h1>
         </div>
       </div>
@@ -193,7 +193,7 @@ export default function Broadcasts() {
                   onClick={() => changeSegmentType(s.id)}
                   className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors ${
                     draft.segment_type === s.id
-                      ? 'bg-admin-soft border-admin text-admin'
+                      ? 'bg-admin-soft border-admin text-admin-deep'
                       : 'border-edge text-ink-muted hover:text-ink'
                   }`}
                 >

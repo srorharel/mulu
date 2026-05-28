@@ -89,7 +89,7 @@ export default function Branding() {
     <div className="h-full flex flex-col">
       <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <Image size={18} className="text-admin" />
+          <Image size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.branding')}</h1>
           <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
             {Object.keys(rows).length} overrides
@@ -170,7 +170,7 @@ function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
           <div className="flex items-center gap-2">
             <h2 className="font-semibold text-ink">{slot.label}</h2>
             {isOverridden && (
-              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin">
+              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin-deep">
                 overridden
               </span>
             )}
@@ -204,7 +204,7 @@ function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
           disabled={busy}
         />
         <div className="flex items-center gap-3">
-          <Upload size={16} className="text-admin" />
+          <Upload size={16} className="text-admin-deep" />
           <span className="text-[13px] text-ink">{t('common.upload')}: drop a file or click to browse (jpg/png/webp/svg, max 10 MB)</span>
         </div>
       </label>

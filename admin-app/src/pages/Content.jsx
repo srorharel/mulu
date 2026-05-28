@@ -120,7 +120,7 @@ export default function Content() {
       {/* Header */}
       <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2 mb-3">
-          <FileText size={18} className="text-admin" />
+          <FileText size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.content')}</h1>
           <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
             {Object.keys(bundle).length} keys · {overrideCount} overridden
@@ -134,7 +134,7 @@ export default function Content() {
                 key={a.id}
                 onClick={() => setAppId(a.id)}
                 className={`px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${
-                  appId === a.id ? 'bg-admin-soft text-admin' : 'text-ink-muted hover:text-ink'
+                  appId === a.id ? 'bg-admin-soft text-admin-deep' : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 {a.label}
@@ -148,7 +148,7 @@ export default function Content() {
                 key={l}
                 onClick={() => setLocale(l)}
                 className={`px-2.5 py-1.5 text-[11px] font-bold uppercase rounded-lg transition-colors ${
-                  locale === l ? 'bg-admin-soft text-admin' : 'text-ink-muted hover:text-ink'
+                  locale === l ? 'bg-admin-soft text-admin-deep' : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 {l}
@@ -196,7 +196,7 @@ export default function Content() {
                   <td className="px-6 py-2.5 font-mono text-[12px] text-ink-muted align-top">
                     <span className="break-all">{key}</span>
                     {isOverridden && (
-                      <span className="ms-2 inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin">
+                      <span className="ms-2 inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin-deep">
                         overridden
                       </span>
                     )}
@@ -233,7 +233,7 @@ export default function Content() {
                       <div className="flex items-center gap-1.5 justify-end">
                         <button
                           onClick={() => saveOverride(key, editing.draft)}
-                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg text-surface bg-admin hover:bg-admin-deep transition-colors"
+                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg text-zinc-900 bg-admin hover:bg-admin-deep hover:text-white transition-colors"
                         >
                           {t('common.save')}
                         </button>

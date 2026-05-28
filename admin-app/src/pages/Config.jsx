@@ -97,7 +97,7 @@ export default function Config() {
     <div className="h-full flex flex-col">
       <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <SlidersHorizontal size={18} className="text-admin" />
+          <SlidersHorizontal size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.config')}</h1>
         </div>
       </div>
@@ -171,7 +171,7 @@ export default function Config() {
             )
           })}
           {currentSource === 'config' && (
-            <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border border-admin/40 bg-admin-soft text-admin text-[12px]">
+            <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border border-admin/40 bg-admin-soft text-admin-deep text-[12px]">
               <Info size={13} className="shrink-0 mt-0.5" />
               <span>Pricing source is set to <b>config</b>. Pricing/payout reads from the tables below.</span>
             </div>
