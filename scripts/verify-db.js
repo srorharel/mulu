@@ -231,6 +231,100 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 7e. App config + pricing/payout parity (0075–0078) ───────────────────────
+
+console.log('\n── app_config / pricing parity ──────────────────────────────')
+
+const cfgTable = await q(`SELECT rowsecurity FROM pg_tables WHERE schemaname='public' AND tablename='app_config'`)
+if (cfgTable.length === 0) fail('public.app_config', 'table missing')
+else if (!cfgTable[0].rowsecurity) fail('public.app_config', 'RLS disabled')
+else pass('public.app_config exists, RLS enabled')
+
+const cfgPolicies = await q(`SELECT policyname FROM pg_policies WHERE schemaname='public' AND tablename='app_config'`)
+if (cfgPolicies.find(p => p.policyname === 'app_config anon read')) pass('app_config: anon SELECT policy')
+else                                                                  fail('app_config: anon SELECT policy', 'missing')
+if (cfgPolicies.find(p => p.policyname === 'app_config super_admin write')) pass('app_config: super_admin write policy')
+else                                                                          fail('app_config: super_admin write policy', 'missing')
+
+// Seed presence + values
+const cfgSeed = await q(`SELECT key, value FROM public.app_config ORDER BY key`)
+const cfgMap = Object.fromEntries(cfgSeed.map(r => [r.key, r.value]))
+const EXPECTED_CONFIG = {
+  nearby_job_radius_meters:    15000,
+  arrival_geofence_meters:     100,
+  decline_auto_escalate_count: 3,
+  rating_gate_jobs:            3,
+  signed_url_ttl_seconds:      600,
+}
+for (const [k, v] of Object.entries(EXPECTED_CONFIG)) {
+  const actual = cfgMap[k]?.value
+  if (Number(actual) === v) pass(`app_config.${k} seeded to ${v}`)
+  else                       fail(`app_config.${k}`, `expected ${v}, got ${JSON.stringify(actual)}`)
+}
+const sourceVal = cfgMap.pricing_source?.value
+if (sourceVal === 'hardcoded') pass(`app_config.pricing_source seeded 'hardcoded' (flip-by-human)`)
+else                            fail(`app_config.pricing_source`, `expected 'hardcoded', got ${JSON.stringify(sourceVal)}`)
+
+// pricing_config seed values match the historical hardcoded ones from 0024.
+const EXPECTED_PRICING = [
+  ['private', 100, 60, 40],
+  ['jeep',    120, 80, 40],
+  ['pickup',  130, 90, 40],
+]
+for (const [cat, cp, wp, pf] of EXPECTED_PRICING) {
+  const rows = await q(`SELECT consumer_price, worker_price, platform_fee FROM public.pricing_config WHERE category=$1`, [cat])
+  if (rows.length === 0) { fail(`pricing_config[${cat}]`, 'row missing'); continue }
+  const r = rows[0]
+  if (Number(r.consumer_price) === cp && Number(r.worker_price) === wp && Number(r.platform_fee) === pf)
+    pass(`pricing_config[${cat}] = consumer ${cp} / worker ${wp} / platform ${pf}`)
+  else
+    fail(`pricing_config[${cat}]`, `got ${r.consumer_price}/${r.worker_price}/${r.platform_fee}`)
+}
+
+// payout_tier_config seed matches 0032.
+const EXPECTED_TIERS = [[1,40],[2,45],[3,50],[4,55],[5,60]]
+for (const [tier, payout] of EXPECTED_TIERS) {
+  const rows = await q(`SELECT payout FROM public.payout_tier_config WHERE tier=$1`, [tier])
+  if (rows.length === 0) { fail(`payout_tier_config[${tier}]`, 'row missing'); continue }
+  if (Number(rows[0].payout) === payout) pass(`payout_tier_config[${tier}] = ${payout}`)
+  else                                    fail(`payout_tier_config[${tier}]`, `got ${rows[0].payout}`)
+}
+
+// PARITY: payout_for_tier returns identical results under both pricing_source values.
+// Do this inside a transaction so the seeded flag is restored.
+await client.query('BEGIN')
+try {
+  // Force 'hardcoded' first, capture
+  await client.query(`UPDATE public.app_config SET value='{"value":"hardcoded"}'::jsonb WHERE key='pricing_source'`)
+  const hc = await q(`SELECT 1 AS t, public.payout_for_tier(1) p1, public.payout_for_tier(2) p2,
+                              public.payout_for_tier(3) p3, public.payout_for_tier(4) p4, public.payout_for_tier(5) p5`)
+  await client.query(`UPDATE public.app_config SET value='{"value":"config"}'::jsonb WHERE key='pricing_source'`)
+  const cf = await q(`SELECT 1 AS t, public.payout_for_tier(1) p1, public.payout_for_tier(2) p2,
+                              public.payout_for_tier(3) p3, public.payout_for_tier(4) p4, public.payout_for_tier(5) p5`)
+  let allEqual = true
+  for (const k of ['p1','p2','p3','p4','p5']) {
+    if (Number(hc[0][k]) !== Number(cf[0][k])) {
+      fail(`payout_for_tier parity ${k}`, `hardcoded=${hc[0][k]} config=${cf[0][k]}`)
+      allEqual = false
+    }
+  }
+  if (allEqual) pass(`payout_for_tier parity: tiers 1–5 identical under both source values`)
+} finally {
+  await client.query('ROLLBACK')
+}
+
+// PARITY: COALESCE fallback. Delete an app_config row mid-transaction and
+// confirm the helper returns the hardcoded default.
+await client.query('BEGIN')
+try {
+  await client.query(`DELETE FROM public.app_config WHERE key='arrival_geofence_meters'`)
+  const fb = await q(`SELECT public.get_config_number('arrival_geofence_meters', 100) AS v`)
+  if (Number(fb[0].v) === 100) pass(`get_config_number COALESCE fallback returns hardcoded default when row deleted`)
+  else                          fail(`get_config_number COALESCE fallback`, `got ${fb[0].v}`)
+} finally {
+  await client.query('ROLLBACK')
+}
+
 // ── 7d. Broadcast notifications (0072/0073/0074) ─────────────────────────────
 
 console.log('\n── broadcast_notifications ──────────────────────────────────')
