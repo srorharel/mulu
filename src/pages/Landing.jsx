@@ -3,6 +3,7 @@ import { Waves, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import GlassCard from '../components/ui/GlassCard.jsx'
+import useBrandAsset from '../hooks/useBrandAsset.js'
 
 const FEATURE_ICONS = [MapPin, Waves, Clock]
 
@@ -18,6 +19,7 @@ const tapProps = { whileTap: { scale: 0.97 }, transition: { type: 'spring', stif
 
 export default function Landing() {
   const { t } = useTranslation()
+  const logoSrc = useBrandAsset('main_logo', '/logo.png')
 
   const FEATURES = [
     { icon: FEATURE_ICONS[0], text: t('landing.feature1') },
@@ -37,7 +39,7 @@ export default function Landing() {
         <GlassCard className="p-6 flex flex-col items-center gap-4 text-center">
           <motion.div variants={itemVariants}>
             <img
-              src="/logo.png"
+              src={logoSrc}
               alt="Wash"
               width={1104}
               height={975}

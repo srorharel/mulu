@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckSquare, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
+import useBrandAsset from '../../../src/hooks/useBrandAsset.js'
+import { supabase } from '../lib/supabase.js'
 
 function StatChip({ label, value, color }) {
   return (
@@ -17,6 +19,7 @@ export default function Login() {
   const { t, i18n } = useTranslation()
   const { signIn, agentBlocked } = useAuth()
   const navigate = useNavigate()
+  const logoSrc = useBrandAsset('support_logo', '/wash-logo.png', supabase)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -62,7 +65,7 @@ export default function Login() {
       <div className="relative md:hidden shrink-0 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-2.5 py-4">
           <img
-            src="/wash-logo.png"
+            src={logoSrc}
             alt="Wash"
             className="w-9 h-9 rounded-xl object-contain"
             onError={e => { e.currentTarget.style.display = 'none' }}
@@ -80,7 +83,7 @@ export default function Login() {
       <div className="relative hidden md:flex md:w-[52%] p-16 flex-col justify-between">
         <div className="flex items-center gap-2.5">
           <img
-            src="/wash-logo.png"
+            src={logoSrc}
             alt="Wash"
             className="w-10 h-10 rounded-xl object-contain"
             onError={e => { e.currentTarget.style.display = 'none' }}

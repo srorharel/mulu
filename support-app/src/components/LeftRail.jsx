@@ -1,5 +1,7 @@
 import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import useBrandAsset from '../../../src/hooks/useBrandAsset.js'
+import { supabase } from '../lib/supabase.js'
 
 function nameToHue(name = '') {
   let h = 0
@@ -50,6 +52,7 @@ export default function LeftRail({
   onSignOut,
 }) {
   const { t } = useTranslation()
+  const logoSrc = useBrandAsset('support_logo', '/wash-logo.png', supabase)
   const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount, washerVerifications: washerVerificationCount }
   const displayName = profile?.agent_display_name || profile?.full_name || ''
   const hue = nameToHue(displayName)
@@ -64,7 +67,7 @@ export default function LeftRail({
       {/* Logo */}
       <div className="mb-5 flex items-center justify-center" style={{ width: 40, height: 40 }}>
         <img
-          src="/wash-logo.png"
+          src={logoSrc}
           alt="Wash"
           className="w-9 h-9 rounded-xl object-contain"
           onError={e => { e.currentTarget.style.display = 'none' }}

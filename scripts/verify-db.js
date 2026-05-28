@@ -231,6 +231,56 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 7c. Brand assets (0071) ──────────────────────────────────────────────────
+
+console.log('\n── app_branding ─────────────────────────────────────────────')
+
+const baTable = await q(`
+  SELECT rowsecurity FROM pg_tables
+  WHERE schemaname = 'public' AND tablename = 'app_branding'
+`)
+if (baTable.length === 0) {
+  fail('public.app_branding', 'table missing')
+} else if (!baTable[0].rowsecurity) {
+  fail('public.app_branding', 'RLS disabled')
+} else {
+  pass('public.app_branding exists, RLS enabled')
+}
+
+const baPolicies = await q(`
+  SELECT policyname, cmd FROM pg_policies
+  WHERE schemaname = 'public' AND tablename = 'app_branding'
+`)
+const baAnon = baPolicies.find(p => p.policyname === 'app_branding anon read')
+if (baAnon && baAnon.cmd === 'SELECT') pass('app_branding: anon SELECT policy present')
+else                                    fail('app_branding anon SELECT policy', 'missing')
+const baWrite = baPolicies.find(p => p.policyname === 'app_branding super_admin write')
+if (baWrite) pass('app_branding: super_admin write policy present')
+else         fail('app_branding super_admin write policy', 'missing')
+
+const bucket = await q(`
+  SELECT public FROM storage.buckets WHERE id = 'brand-assets'
+`)
+if (bucket.length > 0) {
+  pass(`storage bucket "brand-assets" exists (public=${bucket[0].public})`)
+} else {
+  fail('storage bucket "brand-assets"', 'missing — run scripts/setup-brand-assets-bucket.js')
+}
+
+const bucketPolicies = await q(`
+  SELECT policyname FROM pg_policies
+  WHERE schemaname='storage' AND tablename='objects'
+    AND policyname IN ('brand_assets_public_read', 'brand_assets_super_admin_rw')
+`)
+if (bucketPolicies.find(p => p.policyname === 'brand_assets_public_read'))
+  pass('storage.objects: brand_assets_public_read policy present')
+else
+  fail('storage.objects: brand_assets_public_read policy', 'missing')
+if (bucketPolicies.find(p => p.policyname === 'brand_assets_super_admin_rw'))
+  pass('storage.objects: brand_assets_super_admin_rw policy present')
+else
+  fail('storage.objects: brand_assets_super_admin_rw policy', 'missing')
+
 // ── 7b. Content overrides (0070) ─────────────────────────────────────────────
 
 console.log('\n── content_overrides ────────────────────────────────────────')
