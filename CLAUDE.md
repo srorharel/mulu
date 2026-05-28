@@ -113,7 +113,7 @@ Key tables:
 - `washer_verifications` — washer onboarding submissions; `status IN ('pending_review','approved','rejected')`; contains paths to ID document (`id_document_path`), selfie (`selfie_path`), and business license (`business_license_path`) stored in `washer-verification` bucket; agents review and approve/reject via `review_washer_verification` RPC. Washer profile gains `washer_verification_status`, `washer_service_areas text[]`, and `washer_dealer_number` columns.
 
 Key RPC functions (security-definer, called from client unless noted):
-- `nearby_jobs(washer_lat, washer_lng, radius_km)` — spatial query returning pending orders within distance; **deliberately excludes `key_location`** until after acceptance (ADR-007); excludes washers with active or `pending_approval` orders (ADR-024)
+- `nearby_jobs(washer_lat, washer_lng, radius_km)` — spatial query returning pending orders within distance; **deliberately excludes `key_location`** until after acceptance (ADR-007); excludes washers with active or `pending_approval` orders (ADR-024). **Return shape includes `lat`/`lng`** (computed via `ST_Y`/`ST_X`) — consumed by `WorkerMap.jsx` to render pin markers. Any rewrite must preserve the 13-column shape (superset only) AND use `DROP FUNCTION IF EXISTS` first — `CREATE OR REPLACE FUNCTION` fails if the `RETURNS TABLE` shape differs. `scripts/verify-db.js` and `src/__tests__/useNearbyJobs.test.jsx` guard this contract.
 - `get_washer_active_job()` — returns the washer's current in-flight order (includes `pending_approval` status per ADR-024)
 - `transition_order_status(order_id, new_status, washer_lat?, washer_lng?)` — enforces allowed state transitions; requires 4 arrival photos + 100 m geofence for `en_route → arrived`; requires 4 completion photos + GPS for `in_progress → pending_approval`; blocks `pending → accepted` if washer has active/pending-approval job; agent can cancel or force-complete from any non-terminal status; writes `approved_at`/`approved_by` on agent completes; writes `submitted_for_approval_at` on submission; writes `approval_audit` on agent approve
 - `decline_order(p_order_id, p_reason)` — agent-only; reverts `pending_approval → in_progress` with reason (≥3 chars); increments `decline_count`; writes `approval_audit`; auto-creates support ticket at 3 declines
@@ -127,9 +127,18 @@ Key RPC functions (security-definer, called from client unless noted):
 - `review_washer_verification(p_verification_id, p_decision, p_reason?)` — agent-only RPC; sets verification status to `approved` or `rejected` and mirrors status to `profiles.washer_verification_status`
 - `get_washer_verifications(p_status?)` — agent-only security-definer RPC; returns washer verification rows joined with `profiles` (name, phone) and `auth.users` (email) as flat columns (`washer_name`, `washer_phone`, `washer_email`). Used by support-app because `profiles` does not expose `email` directly. Added in migration `0062`; column-ambiguity bug fixed in `0063` (all table references fully qualified with schema prefix; `set search_path = public, auth`; explicit `::text` casts).
 
-Migrations live in `supabase/migrations/` (0001–0066). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
+Migrations live in `supabase/migrations/` (0001–0068). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
 
-**Bootstrap warning:** `npm run db:migrate --bootstrap` records every migration file as applied *without* executing its SQL. If a column is missing despite a migration existing for it (e.g. `profiles.locale`), run the `ALTER TABLE` directly in the Supabase SQL editor to heal the DB state — the migration runner will skip the file since it's already in `schema_migrations`.
+Notable recent migrations:
+- `0066_approval_lifecycle.sql` — adds `orders.decline_count` and `orders.submitted_for_approval_at`, the `approval_audit` table + RLS + indexes, and the `washer_has_pending_approval` helper. Also redeclares `nearby_jobs` with the new busy-washer exclusion filter — **the redeclaration is a strict superset of the live shape and MUST keep `lat`/`lng` in the return** (a prior draft accidentally dropped them and would have killed the washer map). Uses `DROP FUNCTION IF EXISTS` before `CREATE OR REPLACE` to allow the redeclaration to succeed even if Postgres deems the shape changed.
+- `0067_ensure_orders_decline_count.sql` — idempotent `ALTER TABLE … ADD COLUMN IF NOT EXISTS decline_count`. Heals deployments where 0066 was bootstrapped or rolled back without leaving the column behind.
+- `0068_ensure_washer_verification_agent_read.sql` — idempotent recreate of the `agent_read_all_verification` storage policy on `storage.objects` so agents can read selfie / ID / license objects from the `washer-verification` bucket. Mirrors the `job-evidence` agent-read pattern from 0020.
+
+**Migration discipline (lessons from the 0066 saga):**
+- `npm run db:migrate --bootstrap` records every migration as applied *without* executing its SQL. A subsequent normal `db:migrate` will then skip the file. If schema objects are missing despite a migration existing for them, add a new heal migration (idempotent `… IF NOT EXISTS`) rather than running raw `ALTER` in the dashboard — the runner will pick it up on the next deploy.
+- `scripts/audit-bootstrap.js` parses every migration file, queries the live DB, and reports any declared object that's missing. Run it after suspicious deploys.
+- `CREATE OR REPLACE FUNCTION` **fails** when the `RETURNS TABLE` shape differs from the existing function (e.g. dropping or reordering columns). Prepend `DROP FUNCTION IF EXISTS public.<name>(<exact arg types>)` before the `CREATE` — the runner wraps each migration in a single `BEGIN`/`COMMIT`, so DROP + CREATE roll back atomically on failure.
+- The contract surface for `nearby_jobs` (lat/lng) and the `agent_read_all_verification` storage policy are both asserted by `npm run db:verify`. `scripts/verify-live-surfaces.js` exercises the Approvals fetch, agent storage RLS, and `nearby_jobs` exclusion filter end-to-end against the live DB.
 
 ### Storage Buckets
 
@@ -237,7 +246,19 @@ When a washer completes a job:
 4. Agent reviews photos + washer GPS location card, clicks Approve
 5. `transition_order_status` RPC sets status → `completed`, writes `approved_at`/`approved_by`
 
+`ApprovalRow` shows a **previously-declined** banner when `orders.decline_count = 1–2` and an **escalated** banner at `decline_count ≥ 3` (the same threshold that auto-creates a support ticket in `decline_order`). The column comes back via the Approvals select in `support-app/src/lib/approvals.js` — guarded by `scripts/verify-db.js` and the `Approvals.fetch.test.js` contract test.
+
 Legacy `evidence_before_path`/`evidence_after_path` video columns still exist in the DB schema but are never written by the current UI.
+
+### Washer Verification (onboarding)
+
+Consolidated overview of the verification pipeline (touchpoints are scattered across the doc):
+
+- **Main app upload** — `src/pages/washer/Verify.jsx` collects ID + business license; `src/components/washer/SelfieVerificationModal.jsx` captures the live selfie and uploads it to `washer-verification/{userId}/selfie.jpg` (one path, upserted on retake). The submit handler inserts a `washer_verifications` row pointing at `selfie_path = '{userId}/selfie.jpg'`.
+- **Storage bucket** — `washer-verification` (private, 10 MB, jpg/png/webp/pdf). Per-user folder; bucket + RLS created by 0060/0061. RLS policies on `storage.objects`: `washer_upload_own`, `washer_read_own`, `washer_update_own`, `washer_delete_own` (path-prefixed by `auth.uid()`), and `agent_read_all_verification` (`bucket_id = 'washer-verification' AND EXISTS … role='agent'`) — the last is what lets the support-app render selfies. Re-asserted idempotently by 0068.
+- **Agent fetch** — `support-app/src/lib/washerVerifications.js` calls the `get_washer_verifications(p_status)` security-definer RPC (added 0062, schema-qualified in 0063) which joins `washer_verifications` with `profiles` and `auth.users` to expose `washer_name` / `washer_phone` / `washer_email` flat columns the support-app needs. Per-doc signed URLs are fetched via `getVerificationSignedUrl` against the `washer-verification` bucket.
+- **Agent UI** — support-app **Washer Verifications tab** (`/`, "אימות"); see the support-app Dashboard section below for tab layout.
+- **Decision RPC** — `review_washer_verification(p_verification_id, p_decision, p_reason?)` flips the row's status and mirrors to `profiles.washer_verification_status`.
 
 ### Support Chat (Main App)
 
