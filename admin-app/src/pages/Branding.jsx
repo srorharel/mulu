@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Image, Upload, RotateCcw, AlertTriangle, Smartphone, AlertCircle } from 'lucide-react'
+import { Image, Upload, RotateCcw, Smartphone, AlertCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { relativeTime } from '../lib/relativeTime.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
 const SLOTS = [
   {
@@ -35,20 +37,27 @@ function publicUrl(path) {
 export default function Branding() {
   const { t } = useTranslation()
   const { profile } = useAuth()
-  const [rows, setRows] = useState({})    // slug → { url, updated_at }
+  const [rows, setRows] = useState({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [confirming, setConfirming] = useState(null) // { slug }
 
   async function refresh() {
     setBusy(true)
     const { data, error: err } = await supabase
       .from('app_branding')
-      .select('slug, url, updated_at')
+      .select('slug, url, updated_at, editor:updated_by(full_name)')
     setBusy(false)
     if (err) { setError(err.message); return }
     setError(null)
     const map = {}
-    for (const r of data ?? []) map[r.slug] = r
+    for (const r of data ?? []) {
+      map[r.slug] = {
+        url: r.url,
+        updated_at: r.updated_at,
+        editor_name: r.editor?.full_name ?? null,
+      }
+    }
     setRows(map)
   }
 
@@ -68,7 +77,7 @@ export default function Branding() {
     const url = publicUrl(path)
     const { error: dbErr } = await supabase
       .from('app_branding')
-      .upsert({ slug, url, updated_by: profile?.id })
+      .upsert({ slug, url, updated_by: profile?.id, updated_at: new Date().toISOString() })
     setBusy(false)
     if (dbErr) { setError(dbErr.message); return }
     refresh()
@@ -81,6 +90,7 @@ export default function Branding() {
       .delete()
       .eq('slug', slug)
     setBusy(false)
+    setConfirming(null)
     if (err) { setError(err.message); return }
     refresh()
   }
@@ -98,7 +108,6 @@ export default function Branding() {
       </div>
 
       <div className="p-6 max-w-3xl w-full mx-auto flex flex-col gap-4">
-        {/* MOBILE BAKE BANNER — mandatory per P3 spec */}
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-warning/40 bg-warning/10 text-warning text-sm">
           <Smartphone size={18} className="shrink-0 mt-0.5" />
           <div>
@@ -119,28 +128,39 @@ export default function Branding() {
 
         {SLOTS.map(slot => {
           const row = rows[slot.slug]
-          const overrideUrl = row?.url
           return (
             <BrandingRow
               key={slot.slug}
               slot={slot}
-              overrideUrl={overrideUrl}
               row={row}
               busy={busy}
               onUpload={(file) => handleUpload(slot.slug, file)}
-              onRestore={() => handleRestore(slot.slug)}
+              onRequestRestore={() => setConfirming({ slug: slot.slug })}
               t={t}
             />
           )
         })}
       </div>
+
+      <ConfirmDialog
+        open={!!confirming}
+        title="Reset to bundled asset?"
+        message={confirming
+          ? `Removes the app_branding row for "${confirming.slug}". Apps will fall back to the bundled image on next load. Stored file in the brand-assets bucket is NOT deleted automatically.`
+          : ''}
+        confirmLabel="Reset"
+        destructive
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => confirming && handleRestore(confirming.slug)}
+      />
     </div>
   )
 }
 
-function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
+function BrandingRow({ slot, row, busy, onUpload, onRequestRestore, t }) {
   const fileRef = useRef(null)
   const [drag, setDrag] = useState(false)
+  const overrideUrl = row?.url
   const isOverridden = !!overrideUrl
 
   function handleFileChange(e) {
@@ -157,9 +177,7 @@ function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
   return (
     <div className="border border-edge rounded-2xl bg-surface-elevated overflow-hidden">
       <div className="px-5 py-4 flex items-start gap-4 border-b border-edge">
-        <div
-          className="w-20 h-20 rounded-xl bg-surface border border-edge overflow-hidden flex items-center justify-center shrink-0"
-        >
+        <div className="w-20 h-20 rounded-xl bg-surface border border-edge overflow-hidden flex items-center justify-center shrink-0">
           {(overrideUrl || slot.bundled) ? (
             <img src={overrideUrl || slot.bundled} alt="" className="max-w-full max-h-full object-contain" />
           ) : (
@@ -169,9 +187,13 @@ function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold text-ink">{slot.label}</h2>
-            {isOverridden && (
+            {isOverridden ? (
               <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin-deep">
                 overridden
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-surface text-ink-subtle border border-edge">
+                bundled default
               </span>
             )}
           </div>
@@ -179,9 +201,9 @@ function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
           <p className="text-[11px] text-ink-subtle mt-1 font-mono break-all">
             <span className="text-ink-subtle">slug:</span> {slot.slug}
           </p>
-          {row?.updated_at && (
-            <p className="text-[10.5px] text-ink-subtle mt-0.5">
-              updated {new Date(row.updated_at).toLocaleString()}
+          {isOverridden && (row?.editor_name || row?.updated_at) && (
+            <p className="text-[10.5px] text-ink-subtle mt-1">
+              Edited{row.editor_name ? ` by ${row.editor_name}` : ''}{row.updated_at ? `, ${relativeTime(row.updated_at)}` : ''}
             </p>
           )}
         </div>
@@ -212,12 +234,12 @@ function BrandingRow({ slot, overrideUrl, row, busy, onUpload, onRestore, t }) {
       {isOverridden && (
         <div className="px-5 py-3 border-t border-edge flex items-center gap-3">
           <button
-            onClick={onRestore}
+            onClick={onRequestRestore}
             disabled={busy}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg text-ink-muted hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
           >
             <RotateCcw size={12} />
-            {t('common.restore')}
+            Reset to default
           </button>
           <a
             href={overrideUrl}

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, RotateCcw, FileText, AlertCircle } from 'lucide-react'
+import { Search, RotateCcw, FileText, AlertCircle, Download } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { relativeTime } from '../lib/relativeTime.js'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 
-// Import each app's static bundle so we can list every key the admin can override.
 import enMain from '../../../src/i18n/locales/en.json'
 import heMain from '../../../src/i18n/locales/he.json'
 import { resources as supportRes } from '../../../support-app/src/i18n/resources.js'
@@ -32,16 +33,33 @@ function flatten(obj, prefix = '') {
   return out
 }
 
+// Inflate dotted-key rows into nested objects — used for the export payload.
+export function rowsToNested(rows) {
+  const out = {}
+  for (const { key, value } of rows) {
+    const parts = key.split('.')
+    let cur = out
+    for (let i = 0; i < parts.length - 1; i++) {
+      const p = parts[i]
+      if (!cur[p] || typeof cur[p] !== 'object') cur[p] = {}
+      cur = cur[p]
+    }
+    cur[parts.at(-1)] = value
+  }
+  return out
+}
+
 export default function Content() {
   const { t } = useTranslation()
   const { profile } = useAuth()
   const [appId, setAppId] = useState('main')
   const [locale, setLocale] = useState('en')
-  const [overrides, setOverrides] = useState({})
+  const [overrides, setOverrides] = useState({})    // key → { value, updated_at, editor_name }
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  const [editing, setEditing] = useState(null) // {key, draft}
+  const [editing, setEditing] = useState(null)       // { key, draft }
+  const [confirming, setConfirming] = useState(null) // { key } for reset
 
   const app = APPS.find(a => a.id === appId) ?? APPS[0]
   const bundle = useMemo(() => flatten(app.bundles[locale] ?? {}), [app, locale])
@@ -50,21 +68,26 @@ export default function Content() {
     setBusy(true)
     const { data, error: err } = await supabase
       .from('content_overrides')
-      .select('key, value, updated_at')
+      .select('key, value, updated_at, editor:updated_by(full_name)')
       .eq('app', appId)
       .eq('locale', locale)
     setBusy(false)
     if (err) { setError(err.message); return }
     setError(null)
     const map = {}
-    for (const r of data ?? []) map[r.key] = r.value
+    for (const r of data ?? []) {
+      map[r.key] = {
+        value: r.value,
+        updated_at: r.updated_at,
+        editor_name: r.editor?.full_name ?? null,
+      }
+    }
     setOverrides(map)
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchOverrides() }, [appId, locale])
 
-  // Realtime — admin editing on one tab updates other tabs live.
   useEffect(() => {
     const ch = supabase
       .channel(`content-overrides-admin:${appId}:${locale}`)
@@ -83,16 +106,13 @@ export default function Content() {
   async function saveOverride(key, value) {
     setError(null)
     const original = bundle[key] ?? ''
-    if (value === original) {
-      // Saving the original value clears the override.
-      return removeOverride(key)
-    }
+    if (value === original) return removeOverride(key)
     const { error: err } = await supabase
       .from('content_overrides')
-      .upsert({ app: appId, locale, key, value, updated_by: profile?.id })
+      .upsert({ app: appId, locale, key, value, updated_by: profile?.id, updated_at: new Date().toISOString() })
     if (err) { setError(err.message); return }
-    setOverrides(prev => ({ ...prev, [key]: value }))
     setEditing(null)
+    fetchOverrides()
   }
 
   async function removeOverride(key) {
@@ -102,8 +122,39 @@ export default function Content() {
       .delete()
       .eq('app', appId).eq('locale', locale).eq('key', key)
     if (err) { setError(err.message); return }
-    setOverrides(prev => { const c = { ...prev }; delete c[key]; return c })
     setEditing(null)
+    setConfirming(null)
+    fetchOverrides()
+  }
+
+  async function handleExport() {
+    setBusy(true); setError(null)
+    const { data, error: err } = await supabase
+      .from('content_overrides')
+      .select('app, locale, key, value')
+    setBusy(false)
+    if (err) { setError(err.message); return }
+    const grouped = {}
+    for (const r of data ?? []) {
+      grouped[r.app] ??= {}
+      grouped[r.app][r.locale] ??= []
+      grouped[r.app][r.locale].push({ key: r.key, value: r.value })
+    }
+    const payload = {}
+    for (const app of Object.keys(grouped)) {
+      payload[app] = {}
+      for (const loc of Object.keys(grouped[app])) {
+        payload[app][loc] = rowsToNested(grouped[app][loc])
+      }
+    }
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `content_overrides_${ts}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const filtered = useMemo(() => {
@@ -117,7 +168,6 @@ export default function Content() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2 mb-3">
           <FileText size={18} className="text-admin-deep" />
@@ -125,9 +175,16 @@ export default function Content() {
           <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
             {Object.keys(bundle).length} keys · {overrideCount} overridden
           </span>
+          <button
+            onClick={handleExport}
+            disabled={busy}
+            className="btn-ghost text-[12px] flex items-center gap-1.5"
+            title="Download all overrides (every app, every locale) as JSON"
+          >
+            <Download size={13} /> Export overrides
+          </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* App selector */}
           <div className="flex bg-surface rounded-xl p-1 border border-edge">
             {APPS.map(a => (
               <button
@@ -141,7 +198,6 @@ export default function Content() {
               </button>
             ))}
           </div>
-          {/* Locale toggle */}
           <div className="flex bg-surface rounded-xl p-1 border border-edge">
             {LOCALES.map(l => (
               <button
@@ -155,7 +211,6 @@ export default function Content() {
               </button>
             ))}
           </div>
-          {/* Search */}
           <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-surface rounded-xl border border-edge px-3">
             <Search size={14} className="text-ink-subtle" />
             <input
@@ -175,7 +230,6 @@ export default function Content() {
         )}
       </div>
 
-      {/* Table */}
       <div className="flex-1 overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-surface-elevated z-0 border-b border-edge">
@@ -188,11 +242,11 @@ export default function Content() {
           </thead>
           <tbody>
             {filtered.map(([key, defaultValue]) => {
-              const isOverridden = key in overrides
+              const override = overrides[key]
+              const isOverridden = !!override
               const isEditing = editing?.key === key
-              const overrideValue = overrides[key]
               return (
-                <tr key={key} className="border-b border-edge hover:bg-surface-elevated/30 group">
+                <tr key={key} className="border-b border-edge hover:bg-surface-elevated-2/50 group">
                   <td className="px-6 py-2.5 font-mono text-[12px] text-ink-muted align-top">
                     <span className="break-all">{key}</span>
                     {isOverridden && (
@@ -218,14 +272,21 @@ export default function Content() {
                         className="w-full bg-surface border border-admin rounded-lg px-2 py-1.5 text-[12px] text-ink outline-none resize-y"
                       />
                     ) : (
-                      <button
-                        onClick={() => setEditing({ key, draft: overrideValue ?? defaultValue })}
-                        className={`text-start w-full whitespace-pre-wrap break-words rounded px-2 py-1 -mx-2 ${
-                          isOverridden ? 'text-ink font-medium' : 'text-ink-subtle italic'
-                        } hover:bg-surface`}
-                      >
-                        {isOverridden ? overrideValue : '—'}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setEditing({ key, draft: override?.value ?? defaultValue })}
+                          className={`text-start w-full whitespace-pre-wrap break-words rounded px-2 py-1 -mx-2 ${
+                            isOverridden ? 'text-ink font-medium' : 'text-ink-subtle italic'
+                          } hover:bg-surface`}
+                        >
+                          {isOverridden ? override.value : '—'}
+                        </button>
+                        {isOverridden && (override.editor_name || override.updated_at) && (
+                          <p className="text-[10.5px] text-ink-subtle mt-0.5 px-2">
+                            Edited{override.editor_name ? ` by ${override.editor_name}` : ''}{override.updated_at ? `, ${relativeTime(override.updated_at)}` : ''}
+                          </p>
+                        )}
+                      </>
                     )}
                   </td>
                   <td className="px-6 py-2.5 align-top text-end whitespace-nowrap">
@@ -246,11 +307,11 @@ export default function Content() {
                       </div>
                     ) : isOverridden ? (
                       <button
-                        onClick={() => removeOverride(key)}
+                        onClick={() => setConfirming({ key })}
                         className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-lg text-ink-muted hover:text-danger transition"
                       >
                         <RotateCcw size={10} />
-                        {t('common.restore')}
+                        Reset to default
                       </button>
                     ) : null}
                   </td>
@@ -263,6 +324,18 @@ export default function Content() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!confirming}
+        title="Reset to bundled default?"
+        message={confirming
+          ? `Removes the override on ${appId}/${locale}/${confirming.key}. Apps will fall back to the bundled value on next load.`
+          : ''}
+        confirmLabel="Reset"
+        destructive
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => confirming && removeOverride(confirming.key)}
+      />
     </div>
   )
 }

@@ -34,7 +34,7 @@ Non-`super_admin` accounts that authenticate are signed out immediately by `Auth
 
 ## Architecture
 
-- React 18 + Vite + Tailwind, dark internal-console palette (amber/gold accent distinguishes from agent mint green).
+- React 18 + Vite + Tailwind, light internal-console palette (amber/gold accent distinguishes from agent mint green).
 - LTR-first (English default); Hebrew supported via the locale toggle in the sidebar header.
 - Auth via `@supabase/supabase-js` with `storageKey: 'wash-admin-auth'` — isolates from the main app and support-app even when all three are open on the same domain.
 - Role gating mirrors the support-app pattern (`AuthContext.jsx` rejects `role !== 'super_admin'`).
@@ -68,6 +68,38 @@ npm run build    # Production build
 npm run preview  # Preview production build
 npm run lint     # ESLint (zero warnings policy)
 npm run test     # Vitest run
+```
+
+## Sync policy
+
+The CMS lets you edit live runtime content (i18n strings, brand assets, config knobs) without redeploying. That power has a maintenance cost: over time the live DB drifts from the bundled code defaults. Keep these rules in mind:
+
+- **The DB is the source of truth for runtime content.** Whatever the admin saves into `content_overrides`, `app_branding`, `app_config`, `pricing_config`, or `payout_tier_config` is what every running app reads.
+- **Code defaults are fallbacks** for fresh installs (no DB row yet) and for the offline-boot path (when `loadOverrides()` can't reach Supabase). They are NOT the canonical content once a row exists.
+- **Run `npm run drift` periodically** from the repo root. It prints a per-table report comparing live DB rows against the bundled defaults. Use it to spot:
+  - Overrides that match the bundle (safe to delete — their existence is just noise)
+  - Overrides that genuinely differ (real product decisions that should eventually be merged back into the bundle)
+  - Orphaned overrides (the bundle dropped the key but the DB row lingers)
+- **When the drift list gets noisy**, click **Export overrides** in the Content tab (and **Export branding + config** in the Dashboard side rail). Hand the resulting JSON to Claude Code with the prompt: "merge these into the bundled defaults and clear the corresponding override rows". The bundles get a synchronized refresh; the DB loses the now-redundant rows; the admin starts clean.
+- **Never edit `en.json`/`he.json` AND the corresponding `content_overrides` row in the same change without consciously deciding which wins.** The DB always wins at runtime (boot-time merge via `addResourceBundle`), so a bundle edit alone won't fix a "wrong string in production" report if a DB override exists. Reset the override (the per-row Reset button on every Content / Branding / Config table) when you want the bundle value to win again.
+
+## Scripts
+
+```bash
+npm run dev      # Dev server on :3002
+npm run build    # Production build
+npm run preview  # Preview production build
+npm run lint     # ESLint (zero warnings policy)
+npm run test     # Vitest run
+```
+
+From the repo root:
+
+```bash
+npm run drift           # all three drift reports in sequence
+npm run drift:content   # content_overrides only
+npm run drift:branding  # app_branding only
+npm run drift:config    # app_config + pricing_config + payout_tier_config
 ```
 
 ## NOT built into this app
