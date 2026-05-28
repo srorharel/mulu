@@ -231,6 +231,36 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 7d. Broadcast notifications (0072/0073/0074) ─────────────────────────────
+
+console.log('\n── broadcast_notifications ──────────────────────────────────')
+
+const bnTable = await q(`
+  SELECT rowsecurity FROM pg_tables
+  WHERE schemaname = 'public' AND tablename = 'broadcast_notifications'
+`)
+if (bnTable.length === 0) fail('public.broadcast_notifications', 'table missing')
+else if (!bnTable[0].rowsecurity) fail('public.broadcast_notifications', 'RLS disabled')
+else pass('public.broadcast_notifications exists, RLS enabled')
+
+const bnFns = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname IN ('resolve_broadcast_segment', 'trigger_broadcast')
+`)
+const fnNames = new Set(bnFns.map(r => r.proname))
+if (fnNames.has('resolve_broadcast_segment')) pass('resolve_broadcast_segment() exists')
+else                                          fail('resolve_broadcast_segment()', 'missing')
+if (fnNames.has('trigger_broadcast')) pass('trigger_broadcast() exists')
+else                                   fail('trigger_broadcast()', 'missing')
+
+const promosCol = await q(`
+  SELECT column_name FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'notification_preferences'
+    AND column_name = 'promos_enabled'
+`)
+if (promosCol.length > 0) pass('notification_preferences.promos_enabled column present')
+else                      fail('notification_preferences.promos_enabled', 'missing')
+
 // ── 7c. Brand assets (0071) ──────────────────────────────────────────────────
 
 console.log('\n── app_branding ─────────────────────────────────────────────')

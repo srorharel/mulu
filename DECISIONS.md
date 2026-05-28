@@ -321,3 +321,12 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 **Context:** `orders.vehicle_id` is a nullable FK to `vehicles`. Without an explicit RLS check, a consumer could supply any UUID in the `vehicle_id` field of an INSERT, including one belonging to another consumer. The FK constraint only guarantees referential integrity, not ownership.
 **Decision:** The `orders: consumer insert` RLS policy was updated in migration 0041 to add: when `vehicle_id IS NOT NULL`, a subquery confirms `vehicles.consumer_id = auth.uid()`. This is the minimal, correct guard — it runs inside the policy `WITH CHECK`, so it fires on every INSERT regardless of the calling code path.
 **Consequence:** Replacing the old policy with DROP + CREATE causes a brief window during the migration where no INSERT policy exists; since migrations run as the service role (which bypasses RLS), there is no practical exposure. The new policy is strictly more restrictive than the old one for authenticated users.
+
+
+## ADR-025: Broadcast scheduling deferred — manual send only in v1
+**Date:** 2026-05-28
+**Status:** Accepted
+**Context:** P4 (admin broadcasts) supports `scheduled_at` on `broadcast_notifications` so the admin can compose a broadcast for later. Executing the scheduled rows requires either pg_cron (Supabase extension) or a separate Edge Function on a cron trigger.
+**Decision:** Build the data model and admin UI for scheduling, but defer the execution path. The admin UI persists `scheduled_at` and shows a warning that scheduled broadcasts wait for pg_cron. Send-now broadcasts (no scheduled_at) work today via `trigger_broadcast()` RPC → pg_net → send-broadcast Edge Function.
+**To enable scheduled execution:** enable the pg_cron extension in the Supabase dashboard, then add a job like `SELECT public.trigger_broadcast(id) FROM public.broadcast_notifications WHERE scheduled_at <= now() AND sent_at IS NULL` on a 5-min schedule. No code change needed.
+**Consequence:** Owner can compose-now-send-later semantics are not live until pg_cron is wired. Send-now path is fully functional.

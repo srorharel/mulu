@@ -660,6 +660,8 @@
     "osPromptAction": "הפעל התראות",
     "webOnly": "התקן את אפליקציית WASH כדי לקבל התראות",
     "masterToggle": "קבל התראות",
+    "promosToggle": "מבצעים והודעות",
+    "promosHint": "בלתי תלוי בעדכוני הזמנה. כיבוי משבית רק הודעות מבצעים.",
     "soundLabel": "צליל",
     "sound": {
       "chirp": "ברירת מחדל",

@@ -38,7 +38,7 @@ export default function NotificationsSection() {
   const { t } = useTranslation()
 
   const [osState, setOsState]           = useState(null)
-  const [prefs, setPrefs]               = useState({ enabled: true, sound: 'chirp' })
+  const [prefs, setPrefs]               = useState({ enabled: true, sound: 'chirp', promos_enabled: true })
   const [loadingPrefs, setLoadingPrefs] = useState(true)
 
   useEffect(() => {
@@ -46,11 +46,15 @@ export default function NotificationsSection() {
     if (!user) return
     supabase
       .from('notification_preferences')
-      .select('enabled, sound')
+      .select('enabled, sound, promos_enabled')
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
-        if (data) setPrefs({ enabled: data.enabled, sound: data.sound })
+        if (data) setPrefs({
+          enabled: data.enabled,
+          sound: data.sound,
+          promos_enabled: data.promos_enabled ?? true,
+        })
         setLoadingPrefs(false)
       })
   }, [user])
@@ -83,6 +87,21 @@ export default function NotificationsSection() {
       )
     if (error) {
       setPrefs(p => ({ ...p, enabled: prev }))
+      showToast(t('common.error'), 'error')
+    }
+  }
+
+  async function savePromos(promos_enabled) {
+    const prev = prefs.promos_enabled
+    setPrefs(p => ({ ...p, promos_enabled }))
+    const { error } = await supabase
+      .from('notification_preferences')
+      .upsert(
+        { user_id: user.id, promos_enabled, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' },
+      )
+    if (error) {
+      setPrefs(p => ({ ...p, promos_enabled: prev }))
       showToast(t('common.error'), 'error')
     }
   }
@@ -164,6 +183,20 @@ export default function NotificationsSection() {
               disabled={osState === 'denied'}
             />
           </div>
+
+          {/* Promotional broadcasts (separate from transactional alerts) */}
+          {prefs.enabled && (
+            <div className="flex items-center justify-between pt-1 border-t border-edge/40">
+              <div className="flex-1 min-w-0 me-3">
+                <p className="text-sm text-ink">{t('notifications.promosToggle')}</p>
+                <p className="text-xs text-ink-muted mt-0.5">{t('notifications.promosHint')}</p>
+              </div>
+              <Toggle
+                checked={prefs.promos_enabled}
+                onChange={savePromos}
+              />
+            </div>
+          )}
 
           {/* Sound picker */}
           {prefs.enabled && (

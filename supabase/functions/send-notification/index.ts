@@ -18,6 +18,7 @@ type EventType =
   | 'support_message'
   | 'support_resolved'
   | 'tier_changed'
+  | 'admin_broadcast'
 
 interface SendPayload {
   user_id: string
@@ -44,7 +45,8 @@ let fcmTokenCache: TokenCache | null = null
 // Small map duplicated here; acceptable for v1.
 
 type BodyResolver = string | ((d: Record<string, string>) => string)
-interface CopyEntry { title: string; body: BodyResolver }
+type TitleResolver = string | ((d: Record<string, string>) => string)
+interface CopyEntry { title: TitleResolver; body: BodyResolver }
 
 const COPY: Record<EventType, Record<string, CopyEntry>> = {
   order_accepted: {
@@ -137,6 +139,18 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
         : 'שיחת התמיכה שלך נסגרה. הקש לצפייה.',
     },
   },
+  admin_broadcast: {
+    // Title + body come from the broadcast row itself (data.title_en/he,
+    // data.body_en/he) so the owner controls copy per-locale per-broadcast.
+    en: {
+      title: (d) => d.title_en ?? d.title ?? 'Wash',
+      body:  (d) => d.body_en  ?? d.body  ?? '',
+    },
+    he: {
+      title: (d) => d.title_he ?? d.title ?? 'Wash',
+      body:  (d) => d.body_he  ?? d.body  ?? '',
+    },
+  },
 }
 
 // ── Route map (server-side fallback; trigger pre-computes data.route) ─────────
@@ -163,12 +177,18 @@ function routeFor(event_type: EventType, data: Record<string, string>): string {
       return '/support'
     case 'tier_changed':
       return '/washer/earnings'
+    case 'admin_broadcast':
+      return data.route ?? '/home'
     default:
       return '/home'
   }
 }
 
 function resolveBody(template: BodyResolver, data: Record<string, string>): string {
+  return typeof template === 'function' ? template(data) : template
+}
+
+function resolveTitle(template: TitleResolver, data: Record<string, string>): string {
   return typeof template === 'function' ? template(data) : template
 }
 
@@ -224,7 +244,7 @@ Deno.serve(async (req) => {
   // ── 1. Check user notification preferences ───────────────────────────────
   const { data: prefs } = await supabase
     .from('notification_preferences')
-    .select('enabled, sound')
+    .select('enabled, sound, promos_enabled')
     .eq('user_id', user_id)
     .single()
 
@@ -233,6 +253,15 @@ Deno.serve(async (req) => {
       user_id, event_type, payload: data, delivered: false, error: 'user_disabled',
     })
     return new Response(JSON.stringify({ skipped: 'user_disabled' }), { status: 200 })
+  }
+
+  // Promotional broadcasts use a separate opt-in so users can silence them
+  // without losing transactional alerts.
+  if (event_type === 'admin_broadcast' && prefs.promos_enabled === false) {
+    await supabase.from('notification_log').insert({
+      user_id, event_type, payload: data, delivered: false, error: 'user_promos_disabled',
+    })
+    return new Response(JSON.stringify({ skipped: 'user_promos_disabled' }), { status: 200 })
   }
 
   // ── 2. Fetch device tokens ────────────────────────────────────────────────
@@ -265,7 +294,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ skipped: 'unknown_event_type' }), { status: 200 })
   }
 
-  const title = copy.title
+  const title = resolveTitle(copy.title, data)
   const body  = resolveBody(copy.body, data)
   const route = data.route ?? routeFor(event_type, data)
   const sound = prefs.sound ?? 'chirp'

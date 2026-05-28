@@ -660,6 +660,8 @@
     "osPromptAction": "Enable notifications",
     "webOnly": "Install the WASH app to receive notifications",
     "masterToggle": "Receive notifications",
+    "promosToggle": "Promotions and announcements",
+    "promosHint": "Independent of order updates. Disable to stop announcements only.",
     "soundLabel": "Sound",
     "sound": {
       "chirp": "Default",
