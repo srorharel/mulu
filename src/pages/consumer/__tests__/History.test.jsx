@@ -7,6 +7,7 @@ import en from '../../../i18n/locales/en.json'
 import he from '../../../i18n/locales/he.json'
 import OrderHistory from '../OrderHistory.jsx'
 import { supabase } from '../../../lib/supabase.js'
+import { ToastProvider } from '../../../components/ui/Toast.jsx'
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
 
@@ -60,7 +61,9 @@ function renderHistory(language = 'he', orders = mockOrders) {
   return render(
     <I18nextProvider i18n={i18n}>
       <MemoryRouter>
-        <OrderHistory />
+        <ToastProvider>
+          <OrderHistory />
+        </ToastProvider>
       </MemoryRouter>
     </I18nextProvider>
   )
