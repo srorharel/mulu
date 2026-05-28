@@ -15,11 +15,18 @@ cd support-app && npm run dev   # Agent support app only (port 3001)
 npm run build          # Production build (main app)
 npm run lint           # ESLint (zero warnings policy)
 npm run preview        # Preview production build locally
+npm run test           # Vitest run (main app suite — support-app has its own)
 
 npm run setup          # Full DB init: check env → migrate → verify
 npm run db:migrate     # Apply SQL migrations to Postgres
+npm run db:migrate:bootstrap  # Record every migration as applied WITHOUT running SQL (see Migration discipline)
 npm run db:verify      # Verify tables, RLS, functions, seed data
 npm run check:env      # Validate required .env variables
+npm run setup:buckets  # Create the washer-verification storage bucket via admin SDK (heal if missing)
+
+# Diagnostic scripts (no npm alias — invoke directly)
+node scripts/audit-bootstrap.js       # Parse every migration + compare against live DB; surface declared-but-missing objects
+node scripts/verify-live-surfaces.js  # End-to-end live checks for Approvals fetch, agent storage RLS, nearby_jobs exclusion filter
 
 npm run android:sync   # Build web + sync to Android Studio (Capacitor)
 npm run android:open   # Open Android Studio
@@ -379,6 +386,14 @@ Applied in: `ConsumerLayout` (consumer inner routes), `WasherMapShell`, `WasherS
 - `src/lib/format.js` — `toTitleCase(name)` utility for display names.
 
 **Washer Settings (`/washer/settings`) note:** contains a local `GridPill` component (2×2 grid, used for the ringtone section) that depends on a module-level `const SPRING = { type: 'spring', stiffness: 300, damping: 30 }`. Do not remove this constant during refactors — it is not imported from `PillRow`.
+
+### Tests
+
+Main-app suite lives under `src/**/__tests__/` and `src/__tests__/`; support-app suite under `support-app/src/__tests__/`. Both use Vitest + jsdom + Testing Library.
+
+`src/test/setup.js` is the global Vitest setup file (loaded via `vite.config.js`'s `test.setupFiles`). It imports `@testing-library/jest-dom` and runs a global `beforeEach` that clears `sessionStorage` and `localStorage`. The reset exists because `SignUp.jsx` (and other surfaces) persist a draft to storage on every render; without the reset, state leaks across tests and reproduces hard-to-trace failures (see the washerSignup pollution incident). Don't remove it — write per-test seeding instead if a test genuinely needs persisted storage.
+
+The Approvals / Verification / nearby_jobs contracts have dedicated regression guards: `scripts/verify-db.js` (column + RLS + return-shape assertions), `support-app/src/__tests__/Approvals.fetch.test.js` (select-string contract), `src/__tests__/useNearbyJobs.test.jsx` (lat/lng pass-through), and `scripts/verify-live-surfaces.js` (end-to-end live DB checks).
 
 ### i18n
 
