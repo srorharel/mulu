@@ -12,7 +12,9 @@
     "updating": "Updating…",
     "cancelling": "Cancelling…",
     "uploading": "Uploading…",
-    "km": "km"
+    "km": "km",
+    "close": "Close",
+    "emoji": "Emoji"
   },
   "auth": {
     "login": "Log in",
@@ -289,6 +291,7 @@
     "dashboard": {
       "gpsRequired": "Enable GPS and try again — location is required to go online",
       "openMenu": "Open menu",
+      "recenterMap": "Recenter map on my location",
       "youre": "You're",
       "today": "TODAY",
       "locationPrompt": {

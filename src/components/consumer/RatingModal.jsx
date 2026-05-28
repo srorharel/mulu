@@ -95,6 +95,7 @@ function PhotoTile({ slot, url, loading, onExpand, t }) {
 
 // ── Fullscreen photo viewer (portal, z-200, above everything) ─────────────────
 function FullscreenPhoto({ url, label, onClose }) {
+  const { t } = useTranslation()
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
@@ -110,7 +111,7 @@ function FullscreenPhoto({ url, label, onClose }) {
       <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('common.close')}
           className="absolute -top-10 end-0 text-white/70 hover:text-white p-1"
         >
           <X className="h-6 w-6" />
@@ -143,6 +144,7 @@ function Backdrop({ children }) {
 
 // ── Modal shell: sticky header + scrollable body + sticky footer ──────────────
 function ModalShell({ title, onX, body, footer }) {
+  const { t } = useTranslation()
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -157,7 +159,7 @@ function ModalShell({ title, onX, body, footer }) {
         <p className="text-[17px] font-bold text-ink leading-tight">{title}</p>
         <button
           onClick={onX}
-          aria-label="Close"
+          aria-label={t('common.close')}
           className="w-8 h-8 flex items-center justify-center rounded-full text-ink-muted hover:bg-surface ms-3 shrink-0"
         >
           <X className="h-4 w-4" />

@@ -12,7 +12,9 @@
     "updating": "מעדכן...",
     "cancelling": "מבטל...",
     "uploading": "מעלה...",
-    "km": "ק\"מ"
+    "km": "ק\"מ",
+    "close": "סגור",
+    "emoji": "אמוג'י"
   },
   "auth": {
     "login": "כניסה",
@@ -289,6 +291,7 @@
     "dashboard": {
       "gpsRequired": "הפעל GPS ונסה שוב — נדרש מיקום כדי להתחבר",
       "openMenu": "פתח תפריט",
+      "recenterMap": "מרכז מפה על המיקום שלי",
       "youre": "אתה",
       "today": "היום",
       "locationPrompt": {

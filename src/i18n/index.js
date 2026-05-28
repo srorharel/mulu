@@ -3,6 +3,8 @@ import { initReactI18next } from 'react-i18next'
 import { z } from 'zod'
 import en from './locales/en.json'
 import he from './locales/he.json'
+import { loadOverrides, subscribeContentOverrides } from '../lib/contentOverrides.js'
+import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 
 export const LOCALE_STORAGE_KEY = 'wash_locale'
 
@@ -43,6 +45,13 @@ const applyDir = (lng) => {
 }
 applyDir(i18n.language)
 i18n.on('languageChanged', applyDir)
+
+// Runtime content overrides (admin-app edits propagate live).
+// Non-blocking: applies cached bundle synchronously, then refreshes in bg.
+if (isSupabaseConfigured) {
+  loadOverrides({ supabase, app: 'main', locale: i18n.language, i18n })
+  subscribeContentOverrides({ supabase, app: 'main', i18n })
+}
 
 // Global zod error map — evaluated at validation time so messages follow language changes.
 z.setErrorMap((issue, ctx) => {

@@ -32,6 +32,7 @@ function timeAgo(dateStr) {
 }
 
 function VideoModal({ url, onClose }) {
+  const { t } = useTranslation()
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
@@ -41,7 +42,7 @@ function VideoModal({ url, onClose }) {
   return createPortal(
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={onClose}>
       <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute -top-9 right-0 text-white/70 hover:text-white" aria-label="Close">
+        <button onClick={onClose} className="absolute -top-9 right-0 text-white/70 hover:text-white" aria-label={t('common.close')}>
           <X className="h-6 w-6" />
         </button>
         <video src={url} controls autoPlay className="w-full rounded-xl max-h-[70vh] bg-black" />

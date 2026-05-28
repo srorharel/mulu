@@ -4,7 +4,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: './',
   plugins: [react()],
-  server: { host: true, port: 3001, strictPort: true },
+  server: {
+    host: true,
+    port: 3001,
+    strictPort: true,
+    // Allow src/lib/contentOverrides.js (one folder up) during dev.
+    fs: { allow: ['..'] },
+  },
   build: {
     rollupOptions: {
       output: {

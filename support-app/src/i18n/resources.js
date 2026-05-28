@@ -21,6 +21,7 @@ export const resources = {
         download: 'הורד',
         details: 'פרטים',
         general: 'שאלה כללית',
+        emoji: 'אמוג\'י',
       },
 
       login: {
@@ -60,6 +61,8 @@ export const resources = {
         queue: 'תור',
         verify: 'אימות',
         badgeItems: '{{count}} פריטים',
+        label: 'ניווט',
+        ariaPrimary: 'ניווט ראשי',
       },
 
       status: {
@@ -365,6 +368,7 @@ export const resources = {
         download: 'Download',
         details: 'Details',
         general: 'General question',
+        emoji: 'Emoji',
       },
 
       login: {
@@ -404,6 +408,8 @@ export const resources = {
         queue: 'Queue',
         verify: 'Verify',
         badgeItems: '{{count}} items',
+        label: 'Navigation',
+        ariaPrimary: 'Primary',
       },
 
       status: {

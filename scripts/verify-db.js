@@ -231,6 +231,42 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 7b. Content overrides (0070) ─────────────────────────────────────────────
+
+console.log('\n── content_overrides ────────────────────────────────────────')
+
+const coTable = await q(`
+  SELECT rowsecurity FROM pg_tables
+  WHERE schemaname = 'public' AND tablename = 'content_overrides'
+`)
+if (coTable.length === 0) {
+  fail('public.content_overrides', 'table missing')
+} else if (!coTable[0].rowsecurity) {
+  fail('public.content_overrides', 'RLS disabled')
+} else {
+  pass('public.content_overrides exists, RLS enabled')
+}
+
+const coPolicies = await q(`
+  SELECT policyname, cmd, qual
+  FROM pg_policies
+  WHERE schemaname = 'public' AND tablename = 'content_overrides'
+`)
+const coAnonRead = coPolicies.find(p => p.policyname === 'content_overrides anon read')
+if (coAnonRead && coAnonRead.cmd === 'SELECT') pass('content_overrides: anon SELECT policy present')
+else                                            fail('content_overrides anon SELECT policy', 'missing')
+const coWrite = coPolicies.find(p => p.policyname === 'content_overrides super_admin write')
+if (coWrite) pass('content_overrides: super_admin write policy present')
+else         fail('content_overrides super_admin write policy', 'missing')
+
+const coRealtime = await q(`
+  SELECT 1 FROM pg_publication_tables
+  WHERE pubname = 'supabase_realtime'
+    AND schemaname = 'public' AND tablename = 'content_overrides'
+`)
+if (coRealtime.length > 0) pass('content_overrides on supabase_realtime publication')
+else                       fail('content_overrides on supabase_realtime publication', 'missing')
+
 // ── 7a. Super-admin role + helper (0069) ─────────────────────────────────────
 
 console.log('\n── Roles / super_admin ──────────────────────────────────────')

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Smile } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import EmojiPicker from 'emoji-picker-react'
 
 export default function EmojiPickerButton({ onEmojiSelect, disabled }) {
+  const { t } = useTranslation()
   const [open, setOpen]    = useState(false)
   const wrapperRef         = useRef(null)
 
@@ -38,7 +40,7 @@ export default function EmojiPickerButton({ onEmojiSelect, disabled }) {
         onClick={() => setOpen(o => !o)}
         disabled={disabled}
         className="shrink-0 p-1.5 rounded-lg text-ink-subtle hover:text-ink-muted transition-colors disabled:opacity-40"
-        aria-label="Emoji"
+        aria-label={t('common.emoji')}
         data-testid="emoji-trigger"
       >
         <Smile className="h-[17px] w-[17px]" />

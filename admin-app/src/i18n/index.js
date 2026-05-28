@@ -1,6 +1,8 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { resources } from './resources.js'
+import { loadOverrides, subscribeContentOverrides } from '../../../src/lib/contentOverrides.js'
+import { supabase } from '../lib/supabase.js'
 
 const STORAGE_KEY = 'admin_locale'
 
@@ -25,5 +27,10 @@ i18n
 i18n.on('languageChanged', (lng) => {
   try { localStorage.setItem(STORAGE_KEY, lng) } catch { /* ignore */ }
 })
+
+if (supabase) {
+  loadOverrides({ supabase, app: 'admin', locale: i18n.language, i18n })
+  subscribeContentOverrides({ supabase, app: 'admin', i18n })
+}
 
 export default i18n

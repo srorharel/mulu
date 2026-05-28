@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { LocateFixed } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import 'leaflet/dist/leaflet.css'
 import './WasherMarker.css'
 
@@ -214,6 +215,7 @@ function FollowLayer({ washerPosition, activeJob, followPaused, setFollowPaused 
 //   activeJob       { lat, lng, id } | null
 //   onJobPinTap     (jobId) => void
 export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap }) {
+  const { t } = useTranslation()
   const [followPaused, setFollowPaused] = useState(false)
   const mapRef = useRef(null)
 
@@ -295,7 +297,7 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
       {!activeJob && washerCoordsValid && (
         <button
           onClick={handleRecenter}
-          aria-label="Recenter map on my location"
+          aria-label={t('washer.dashboard.recenterMap')}
           className="absolute z-[800] flex items-center justify-center rounded-2xl bg-glass border border-glass-border backdrop-blur-xl shadow-lg transition-transform active:scale-90"
           style={{
             bottom: 'calc(56px + 120px + 1.5rem)',

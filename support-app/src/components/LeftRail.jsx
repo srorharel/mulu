@@ -59,7 +59,7 @@ export default function LeftRail({
     <aside
       className="hidden md:flex flex-col items-center shrink-0 bg-surface border-r border-edge py-3.5"
       style={{ width: 68 }}
-      aria-label="Navigation"
+      aria-label={t('nav.label')}
     >
       {/* Logo */}
       <div className="mb-5 flex items-center justify-center" style={{ width: 40, height: 40 }}>
@@ -72,7 +72,7 @@ export default function LeftRail({
       </div>
 
       {/* Tab buttons */}
-      <nav className="flex flex-col gap-1.5 flex-1" aria-label="Primary">
+      <nav className="flex flex-col gap-1.5 flex-1" aria-label={t('nav.ariaPrimary')}>
         {TABS.map(({ id, Icon, labelKey, inactiveBadge }) => {
           const isActive = activeTab === id
           const count    = counts[id]
