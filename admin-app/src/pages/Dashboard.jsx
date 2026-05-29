@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FileText, Image, Megaphone, SlidersHorizontal, LogOut, Download, ClipboardList, Users as UsersIcon } from 'lucide-react'
+import { FileText, Image, Megaphone, SlidersHorizontal, LogOut, Download, ClipboardList, Users as UsersIcon, Palette } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import Content from './Content.jsx'
@@ -10,6 +10,7 @@ import Broadcasts from './Broadcasts.jsx'
 import Config from './Config.jsx'
 import Jobs from './Jobs.jsx'
 import Users from './Users.jsx'
+import DesignEditor from './DesignEditor.jsx'
 
 const TABS = [
   { id: 'jobs',       icon: ClipboardList,      page: Jobs       },
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'content',    icon: FileText,           page: Content    },
   { id: 'branding',   icon: Image,              page: Branding   },
   { id: 'broadcasts', icon: Megaphone,          page: Broadcasts },
+  { id: 'design',     icon: Palette,            page: DesignEditor },
   { id: 'config',     icon: SlidersHorizontal,  page: Config     },
 ]
 

@@ -323,6 +323,36 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 **Consequence:** Replacing the old policy with DROP + CREATE causes a brief window during the migration where no INSERT policy exists; since migrations run as the service role (which bypasses RLS), there is no practical exposure. The new policy is strictly more restrictive than the old one for authenticated users.
 
 
+## ADR-026: Reassigned-washer payout recomputed from new tier
+**Date:** 2026-05-29
+**Status:** Accepted
+**Context:** `admin_reassign_washer` (0082) replaces the assigned washer on a non-terminal order. The locked `payout_amount` (set at `pending → accepted` per the tier-payout rule) was the previous washer's rate. Two reasonable choices: preserve the original payout, or recompute from the new washer's tier.
+**Decision:** Recompute from the new washer's tier (`payout_for_tier(p.current_tier)`, or 50 if unrated). Reassignment is typically a remediation — the original washer dropped the job, was unreachable, or produced bad work — so the financial baseline should match the new operator. The full before/after payout deltas land in `admin_order_audit.payload` for transparency.
+**Alternatives considered:** Preserve original payout — defensible when the reassignment is administrative (e.g. consolidating two accounts). Rejected: the audit log makes it easy to spot when a recompute lowered a payout, and the admin can immediately follow with `admin_override_order_price` if a one-off adjustment is needed. Encoding both behaviors behind a flag would be premature.
+**Consequence:** Reassigning to a higher-tier washer increases the order's `payout_amount`; reassigning to a lower-tier or unrated washer decreases it. The change is always audited.
+
+## ADR-027: Live design editor scope, bounds, and gate philosophy
+**Date:** 2026-05-29
+**Status:** Accepted
+**Context:** P8 ships a live tap-to-edit design editor. Designers / owners need to tweak visual properties (color, padding, radius, offset) on individual UI surfaces without a code deploy. Three concerns: (a) avoid breaking layout, (b) avoid drifting too far from the bundled design, (c) keep accidental entry from a normal admin session out of the way.
+
+**Decision:**
+- **Scope (what CAN be edited):** seven properties per registered surface — `color`, `bg`, `text_size`, `padding`, `border_radius`, `offset_x`, `offset_y`. Stored in `design_overrides` keyed by `(app, id, property)`. Anon SELECT (visual properties, no more sensitive than the CSS bundle). super_admin write via `admin_set_design_override` RPC with bound validation.
+- **Bounds:** `offset_x`/`offset_y` ∈ [-100, 100] px; `text_size` ∈ [0.7, 1.5] em; `border_radius` ∈ [0, 32] px; `padding` ∈ [0, 48] px. Enforced server-side in the RPC AND client-side via the slider `min`/`max`. Picked so a misclick can't push elements off-screen or shrink text below legibility.
+- **Non-goals (explicitly):** no JSX structural edits, no absolute repositioning beyond the offset bound, no SVG-only component edits (WashMark, MapBG), no form input behavior, no edits to the admin app itself.
+- **Surface registry:** the manifest at `admin-app/src/data/editableManifest.json` is the source of truth. A surface is editable only when (a) it is in the manifest AND (b) the code wraps it in `<Editable id="...">`. ~20 surfaces are instrumented for v1 (consumer Home book CTA, washer Dashboard online pill, support Approvals row, etc.); the full list is in the manifest. Wrapping more is a routine PR.
+- **Passphrase gate:** `DESIGN_GATE = '121212'` in `DesignEditor.jsx`, stored in `useState` (tab-session only, NOT localStorage). Closing the tab re-locks. **This is a soft gate, not a security boundary.** Anyone with DevTools can flip the React state. The actual write protection is the `is_super_admin()` RLS policy on `design_overrides` plus the bound-validating RPC. The gate's only job is to prevent a super_admin from accidentally dropping into edit mode while doing other admin work.
+- **Drift detection:** `npm run drift:design` (script `scripts/design-drift.js`) lists orphaned rows (id no longer in manifest), active rows, and unbounded rows (impossible via the RPC; only happens if the table is written by a back-door).
+
+**Alternatives considered:**
+- A full visual page builder: rejected — moves the project from "owner can tweak knobs" to "owner builds layouts," requiring a much larger drag-drop UI and tighter coupling to runtime rendering. Out of scope.
+- Storing CSS variables in `app_branding` (the existing branding table): rejected — `app_branding` is keyed by global theme tokens, not by per-component instance. Mixing them would muddy both.
+- Stronger gate (password from `app_config` table, or super_admin-only RLS on a `design_editor_unlocked` row): rejected — the gate's purpose is friction, not security; once you concede that DevTools can bypass anything client-side, an RLS-backed gate is just security theater.
+
+**Consequence:** Owner can rapidly iterate on visual properties of any of the ~20 instrumented surfaces without a deploy. Edits propagate to live users via Realtime (same channel as `content_overrides`). The drift script ensures the manifest doesn't decay as components are renamed or removed.
+
+---
+
 ## ADR-025: Broadcast scheduling deferred — manual send only in v1
 **Date:** 2026-05-28
 **Status:** Accepted

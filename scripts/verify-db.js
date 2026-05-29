@@ -607,6 +607,44 @@ if (impTable.length === 0)         fail('public.impersonation_tokens', 'table mi
 else if (!impTable[0].rowsecurity) fail('public.impersonation_tokens', 'RLS disabled')
 else                                pass('public.impersonation_tokens exists, RLS enabled')
 
+// ── 7i. Design overrides (0088–0089) ─────────────────────────────────────────
+
+console.log('\n── design_overrides ─────────────────────────────────────────')
+
+const doTable = await q(`
+  SELECT rowsecurity FROM pg_tables WHERE schemaname='public' AND tablename='design_overrides'
+`)
+if (doTable.length === 0)         fail('public.design_overrides', 'table missing')
+else if (!doTable[0].rowsecurity) fail('public.design_overrides', 'RLS disabled')
+else                               pass('public.design_overrides exists, RLS enabled')
+
+const doPolicies = await q(`
+  SELECT policyname, cmd FROM pg_policies
+  WHERE schemaname = 'public' AND tablename = 'design_overrides'
+`)
+if (doPolicies.find(p => p.policyname === 'design_overrides anon read')) pass('design_overrides: anon SELECT policy present')
+else                                                                       fail('design_overrides anon SELECT policy', 'missing')
+if (doPolicies.find(p => p.policyname === 'design_overrides super_admin write')) pass('design_overrides: super_admin write policy present')
+else                                                                              fail('design_overrides super_admin write policy', 'missing')
+
+const doRealtime = await q(`
+  SELECT 1 FROM pg_publication_tables
+  WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='design_overrides'
+`)
+if (doRealtime.length > 0) pass('design_overrides on supabase_realtime publication')
+else                        fail('design_overrides on supabase_realtime publication', 'missing')
+
+const designRpcs = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('admin_set_design_override','admin_clear_design_override','admin_reset_all_design_overrides')
+`)
+const designFnNames = new Set(designRpcs.map(r => r.proname))
+for (const fn of ['admin_set_design_override','admin_clear_design_override','admin_reset_all_design_overrides']) {
+  if (designFnNames.has(fn)) pass(`${fn}() exists`)
+  else                        fail(`${fn}()`, 'missing — check 0089')
+}
+
 // ── 7a. Super-admin role + helper (0069) ─────────────────────────────────────
 
 console.log('\n── Roles / super_admin ──────────────────────────────────────')

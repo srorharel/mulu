@@ -7,6 +7,7 @@ import i18n from '../i18n'
 import { useReverseGeocode } from '../lib/geocode.js'
 import Pill from './Pill.jsx'
 import PhotoLightbox from './PhotoLightbox.jsx'
+import Editable from './editable/Editable.jsx'
 
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
 
@@ -253,6 +254,7 @@ export default function ApprovalRow({ order, onApproved }) {
     .filter(Boolean).join(' · ')
 
   return (
+    <Editable id="support.approvals.row">
     <div className="border border-edge rounded-2xl bg-surface-elevated p-4 flex flex-col gap-4" style={{ borderRadius: 14 }}>
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
@@ -447,5 +449,6 @@ export default function ApprovalRow({ order, onApproved }) {
       {/* Location card */}
       <LocationCard order={order} />
     </div>
+    </Editable>
   )
 }

@@ -20,6 +20,7 @@ import LicensePlatePicker from '../../components/consumer/LicensePlatePicker.jsx
 import CarPhotoUpload from '../../components/consumer/CarPhotoUpload.jsx'
 import VehiclePickerSheet from '../../components/consumer/VehiclePickerSheet.jsx'
 import SaveVehicleDialog from '../../components/consumer/SaveVehicleDialog.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 // Derive up to 2 initials from profile.full_name, falling back to the email prefix.
 function getInitials(profile, user) {
@@ -508,15 +509,17 @@ export default function ConsumerHome() {
                   </span>
                 </div>
               </div>
-              <MotionButton
-                onClick={handleBook}
-                disabled={submitting || !canSubmit}
-                className="h-[52px] px-[22px] rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)] dark:shadow-[0_4px_14px_rgba(38,181,95,0.15)]"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
-                {!submitting && <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.5} />}
-              </MotionButton>
+              <Editable id="consumer.home.bookCta">
+                <MotionButton
+                  onClick={handleBook}
+                  disabled={submitting || !canSubmit}
+                  className="h-[52px] px-[22px] rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)] dark:shadow-[0_4px_14px_rgba(38,181,95,0.15)]"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
+                  {!submitting && <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.5} />}
+                </MotionButton>
+              </Editable>
             </div>
           </GlassCard>
 

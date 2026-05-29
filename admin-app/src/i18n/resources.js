@@ -37,6 +37,7 @@ export const resources = {
           content:    'Content',
           branding:   'Branding',
           broadcasts: 'Broadcasts',
+          design:     'Design Editor',
           config:     'Config',
         },
         empty: {
@@ -80,6 +81,7 @@ export const resources = {
           content:    'תוכן',
           branding:   'מיתוג',
           broadcasts: 'התראות',
+          design:     'עורך עיצוב',
           config:     'הגדרות',
         },
         empty: {

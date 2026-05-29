@@ -20,7 +20,8 @@
     "drift:content":  "node scripts/content-drift.js",
     "drift:branding": "node scripts/branding-drift.js",
     "drift:config":   "node scripts/config-drift.js",
-    "drift":          "npm run drift:content && npm run drift:branding && npm run drift:config",
+    "drift:design":   "node scripts/design-drift.js",
+    "drift":          "npm run drift:content && npm run drift:branding && npm run drift:config && npm run drift:design",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
     "update": "powershell -ExecutionPolicy Bypass -File ./update.ps1"

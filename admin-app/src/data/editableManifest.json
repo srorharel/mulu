@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "surfaces": [
+    { "id": "consumer.home.bookCta",          "app": "main",    "screen": "Consumer · Home",          "label": "Book wash CTA" },
+    { "id": "consumer.home.vehiclePicker",    "app": "main",    "screen": "Consumer · Home",          "label": "Vehicle picker pill" },
+    { "id": "consumer.home.locationSheetHeader", "app": "main", "screen": "Consumer · Home",          "label": "Location sheet header" },
+    { "id": "consumer.home.carPhotoSection",  "app": "main",    "screen": "Consumer · Home",          "label": "Car photo section heading" },
+    { "id": "consumer.tracking.statusCard",   "app": "main",    "screen": "Consumer · Order",         "label": "Tracking status card" },
+    { "id": "consumer.history.row",           "app": "main",    "screen": "Consumer · History",       "label": "History row" },
+    { "id": "consumer.settings.section",      "app": "main",    "screen": "Consumer · Settings",      "label": "Settings section header" },
+
+    { "id": "washer.dashboard.onlinePill",    "app": "main",    "screen": "Washer · Dashboard",       "label": "Online pill" },
+    { "id": "washer.dashboard.menu",          "app": "main",    "screen": "Washer · Dashboard",       "label": "Washer menu" },
+    { "id": "washer.dashboard.jobDrawerHead", "app": "main",    "screen": "Washer · Dashboard",       "label": "Job drawer header" },
+    { "id": "washer.earnings.tierCard",       "app": "main",    "screen": "Washer · Earnings",        "label": "Tier card" },
+    { "id": "washer.job.acceptCta",           "app": "main",    "screen": "Washer · Job",             "label": "Accept job CTA" },
+    { "id": "washer.settings.section",        "app": "main",    "screen": "Washer · Settings",        "label": "Settings section header" },
+
+    { "id": "support.queue.row",              "app": "support", "screen": "Support · Conversations",  "label": "Queue list row" },
+    { "id": "support.chatPane.header",        "app": "support", "screen": "Support · Conversations",  "label": "Chat pane header" },
+    { "id": "support.chatPane.composer",      "app": "support", "screen": "Support · Conversations",  "label": "Composer bar" },
+    { "id": "support.approvals.row",          "app": "support", "screen": "Support · Approvals",      "label": "Approval row" },
+    { "id": "support.tickets.row",            "app": "support", "screen": "Support · Tickets",        "label": "Ticket row" },
+    { "id": "support.verifications.row",      "app": "support", "screen": "Support · Verifications",  "label": "Verification row" },
+    { "id": "support.dashboard.tabBar",       "app": "support", "screen": "Support · Dashboard",      "label": "Top tab bar" }
+  ]
+}

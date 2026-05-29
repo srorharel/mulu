@@ -38,7 +38,7 @@ Non-`super_admin` accounts that authenticate are signed out immediately by `Auth
 - LTR-first (English default); Hebrew supported via the locale toggle in the sidebar header.
 - Auth via `@supabase/supabase-js` with `storageKey: 'wash-admin-auth'` — isolates from the main app and support-app even when all three are open on the same domain.
 - Role gating mirrors the support-app pattern (`AuthContext.jsx` rejects `role !== 'super_admin'`).
-- Tabs: Content (P2) · Branding (P3) · Broadcasts (P4) · Config (P5).
+- Tabs: Live Jobs (P6) · Users (P7) · Content (P2) · Branding (P3) · Broadcasts (P4) · Design Editor (P8) · Config (P5).
 
 ## Deploying to Vercel
 
@@ -96,14 +96,27 @@ npm run test     # Vitest run
 From the repo root:
 
 ```bash
-npm run drift           # all three drift reports in sequence
+npm run drift           # all four drift reports in sequence
 npm run drift:content   # content_overrides only
 npm run drift:branding  # app_branding only
 npm run drift:config    # app_config + pricing_config + payout_tier_config
+npm run drift:design    # design_overrides vs editableManifest.json
 ```
+
+## Design Editor (P8)
+
+See ADR-027 for the philosophy and bound rules. Quick reference:
+
+- **Enter:** click the **Design Editor** tab. Passphrase prompt appears; type `121212`. This is a SOFT GATE — it prevents accidental entry but is not a security boundary. RLS + the bound-validating RPC enforce real write protection.
+- **Edit a surface:** from the unlocked editor, click **Edit live** next to any registered surface. The main / support app opens in a new tab with `?design_edit=1`. An amber outline appears on hover over every `<Editable>` component; tap one and an inline property panel slides in (color, bg, text-size, padding, border-radius, offset-x, offset-y).
+- **What's editable:** only the seven visual properties above, only on surfaces wrapped in `<Editable id="...">`, and only the ids registered in `admin-app/src/data/editableManifest.json`. JSX structure, SVG icons, form behavior, and the admin app itself are NOT editable.
+- **Bounds:** offsets ±100 px, text-size 0.7–1.5 em, radius 0–32 px, padding 0–48 px. Enforced both client-side (slider min/max) and server-side (RPC raises on out-of-bound writes).
+- **Reset a property:** each row in the Active Overrides table has a Reset button (clears the single override). The **Reset all** button at the top of the editor wipes every row — confirm by typing `RESET DESIGN`.
+- **Drift:** `npm run drift:design` reports orphan rows (id was removed from the manifest) and unbounded values (impossible via the RPC; only happens if a back-door write inserted them).
+- **Exit edit mode:** the bottom-of-screen amber bar shows "Exit edit mode" — click to clear the session flag and reload.
 
 ## NOT built into this app
 
 - **Capacitor / Android APK** — admin is desktop-first, by design. No `capacitor.config.json`, no `android/` directory, no `@capacitor/*` deps.
 - **Push notifications** — the admin *sends* broadcasts; it does not *receive* them.
-- **Leaflet** — no map UI here.
+- ~~Leaflet~~ — Leaflet IS now used in `CreateOrderForm.jsx` (P6) for the location pin step when creating an order on behalf of a consumer.

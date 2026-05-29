@@ -12,6 +12,7 @@ import JobDrawer from '../../components/washer/JobDrawer.jsx'
 import WasherMenu from '../../components/washer/WasherMenu.jsx'
 import NavLauncher from '../../components/washer/NavLauncher.jsx'
 import MapBG from '../../components/ui/MapBG.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 const WorkerMap = lazy(() => import('../../components/washer/WorkerMap.jsx'))
 
@@ -318,15 +319,19 @@ export default function WasherDashboard() {
         className="fixed inset-x-4 flex items-center gap-3 z-40"
         style={{ top: 'max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))' }}
       >
-        <OnlinePill
-          online={online}
-          toggling={toggling}
-          profile={profile}
-          user={user}
-          onToggle={handleToggle}
-          onMenuOpen={() => setMenuOpen(true)}
-          t={t}
-        />
+        <Editable id="washer.dashboard.onlinePill">
+          <div>
+            <OnlinePill
+              online={online}
+              toggling={toggling}
+              profile={profile}
+              user={user}
+              onToggle={handleToggle}
+              onMenuOpen={() => setMenuOpen(true)}
+              t={t}
+            />
+          </div>
+        </Editable>
         <div className="flex-1" />
         <EarningsWidget t={t} />
       </div>

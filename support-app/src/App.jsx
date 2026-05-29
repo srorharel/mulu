@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { AppRouter } from './router.jsx'
+import { DesignOverridesProvider } from './context/DesignOverridesContext.jsx'
+import DesignEditOverlay from './components/editable/DesignEditOverlay.jsx'
 
 export default function App() {
   const { i18n } = useTranslation()
@@ -13,7 +15,10 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <AppRouter />
+      <DesignOverridesProvider app="support">
+        <AppRouter />
+        <DesignEditOverlay app="support" />
+      </DesignOverridesProvider>
     </AuthProvider>
   )
 }
