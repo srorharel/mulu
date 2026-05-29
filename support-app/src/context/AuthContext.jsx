@@ -8,14 +8,22 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [agentBlocked, setAgentBlocked] = useState(false)
+  const [suspended, setSuspended] = useState(null)
   const pushRegistered = useRef(false)
 
   async function loadProfile(userId) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, role, phone, agent_display_name, agent_is_active')
+      .select('id, full_name, role, phone, agent_display_name, agent_is_active, suspended_at, suspended_reason')
       .eq('id', userId)
       .single()
+
+    if (data?.suspended_at) {
+      setSuspended({ reason: data.suspended_reason || '' })
+      setProfile(null)
+      await supabase.auth.signOut()
+      return
+    }
 
     if (!data || data.role !== 'agent') {
       await supabase.auth.signOut()
@@ -24,6 +32,7 @@ export function AuthProvider({ children }) {
       return
     }
 
+    setSuspended(null)
     setAgentBlocked(false)
     setProfile(data)
 
@@ -76,7 +85,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, agentBlocked, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, profile, loading, agentBlocked, suspended, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

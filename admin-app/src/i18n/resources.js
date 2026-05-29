@@ -33,6 +33,7 @@ export const resources = {
       dashboard: {
         tabs: {
           jobs:       'Live Jobs',
+          users:      'Users',
           content:    'Content',
           branding:   'Branding',
           broadcasts: 'Broadcasts',
@@ -75,6 +76,7 @@ export const resources = {
       dashboard: {
         tabs: {
           jobs:       'הזמנות חיות',
+          users:      'משתמשים',
           content:    'תוכן',
           branding:   'מיתוג',
           broadcasts: 'התראות',

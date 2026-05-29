@@ -563,6 +563,50 @@ for (const pol of ['super_admin_write_car_photos','super_admin_write_job_evidenc
   else                                                       fail(`storage.objects: ${pol}`, 'missing — check 0082')
 }
 
+// ── 7h. Admin Users (0084–0087) ──────────────────────────────────────────────
+
+console.log('\n── admin_user_audit + admin user RPCs ───────────────────────')
+
+const auaTable = await q(`
+  SELECT rowsecurity FROM pg_tables WHERE schemaname='public' AND tablename='admin_user_audit'
+`)
+if (auaTable.length === 0)         fail('public.admin_user_audit', 'table missing')
+else if (!auaTable[0].rowsecurity) fail('public.admin_user_audit', 'RLS disabled')
+else                                pass('public.admin_user_audit exists, RLS enabled')
+
+const adminUserRpcs = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('admin_get_user_auth','admin_update_profile','admin_suspend_user',
+                      'admin_unsuspend_user','admin_merge_users','admin_user_activity',
+                      'admin_create_impersonation_token')
+`)
+const userFnNames = new Set(adminUserRpcs.map(r => r.proname))
+for (const fn of ['admin_get_user_auth','admin_update_profile','admin_suspend_user',
+                  'admin_unsuspend_user','admin_merge_users','admin_user_activity',
+                  'admin_create_impersonation_token']) {
+  if (userFnNames.has(fn)) pass(`${fn}() exists`)
+  else                      fail(`${fn}()`, 'missing — check 0086 / 0087')
+}
+
+const suspCols = await q(`
+  SELECT column_name FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='profiles'
+    AND column_name IN ('suspended_at','suspended_reason','suspended_by')
+`)
+const suspNames = new Set(suspCols.map(r => r.column_name))
+for (const c of ['suspended_at','suspended_reason','suspended_by']) {
+  if (suspNames.has(c)) pass(`profiles.${c} column present`)
+  else                  fail(`profiles.${c}`, 'missing — check 0085')
+}
+
+const impTable = await q(`
+  SELECT rowsecurity FROM pg_tables WHERE schemaname='public' AND tablename='impersonation_tokens'
+`)
+if (impTable.length === 0)         fail('public.impersonation_tokens', 'table missing')
+else if (!impTable[0].rowsecurity) fail('public.impersonation_tokens', 'RLS disabled')
+else                                pass('public.impersonation_tokens exists, RLS enabled')
+
 // ── 7a. Super-admin role + helper (0069) ─────────────────────────────────────
 
 console.log('\n── Roles / super_admin ──────────────────────────────────────')

@@ -4,6 +4,7 @@ import { AppRouter } from './router.jsx'
 import { isSupabaseConfigured } from './lib/supabase.js'
 import { ToastProvider } from './components/ui/Toast.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { ImpersonationBanner, SuspendedTakeover } from './components/AdminBanners.jsx'
 
 function EnvBanner() {
   const { t } = useTranslation()
@@ -20,9 +21,11 @@ export default function App() {
     <ErrorBoundary>
       <EnvBanner />
       <AuthProvider>
+        <ImpersonationBanner />
         <ToastProvider>
           <AppRouter />
         </ToastProvider>
+        <SuspendedTakeover />
       </AuthProvider>
     </ErrorBoundary>
   )

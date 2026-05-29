@@ -12,11 +12,14 @@ export function AuthProvider({ children }) {
   async function loadProfile(userId) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, suspended_at')
       .eq('id', userId)
       .single()
 
-    if (!data || data.role !== 'super_admin') {
+    // Defensive: admin_suspend_user blocks super_admin in 0086 but the column
+    // exists so we still check it. If a super_admin row is somehow flagged
+    // suspended we sign out rather than masking the state.
+    if (data?.suspended_at || !data || data.role !== 'super_admin') {
       await supabase.auth.signOut()
       setBlocked(true)
       setProfile(null)

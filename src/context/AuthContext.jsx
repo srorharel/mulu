@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import i18n, { LOCALE_STORAGE_KEY } from '../i18n/index.js'
 import { unregisterToken } from '../lib/notifications.js'
+import { redeemImpersonationFromUrl, getImpersonationBanner } from '../lib/impersonate.js'
 
 const AuthContext = createContext(null)
 
@@ -10,6 +11,8 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [suspended, setSuspended] = useState(null)  // { reason } | null
+  const [impersonation, setImpersonation] = useState(getImpersonationBanner())
 
   function syncLocale(prof) {
     if (!prof?.locale) return
@@ -42,9 +45,20 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .single()
-      if (retry) syncLocale(retry)
+      if (retry) {
+        if (retry.suspended_at) {
+          await handleSuspended(retry)
+          return null
+        }
+        syncLocale(retry)
+      }
       setProfile(retry ?? null)
       return retry ?? null
+    }
+
+    if (data.suspended_at) {
+      await handleSuspended(data)
+      return null
     }
 
     syncLocale(data)
@@ -52,7 +66,21 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  async function handleSuspended(prof) {
+    setSuspended({ reason: prof.suspended_reason || '' })
+    setProfile(null)
+    try { await unregisterToken() } catch { /* noop */ }
+    await supabase.auth.signOut()
+  }
+
   useEffect(() => {
+    // First — check for an impersonation token in the URL and try to redeem
+    // it before hydrating the existing session. Successful redemption sets
+    // a banner and continues; failures fall through to the normal session.
+    redeemImpersonationFromUrl().then(banner => {
+      if (banner) setImpersonation(banner)
+    }).catch(() => {})
+
     // Per spec: getSession for initial hydration.
     // Race against a 12s timeout so a silently dropped network request
     // never leaves the app stuck on the loading spinner.
@@ -108,7 +136,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, suspended, impersonation, signUp, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )
