@@ -39,6 +39,7 @@ export const resources = {
           broadcasts: 'Broadcasts',
           design:     'Design Editor',
           config:     'Config',
+          history:    'History',
         },
         empty: {
           title: 'Nothing to show yet',
@@ -83,6 +84,7 @@ export const resources = {
           broadcasts: 'התראות',
           design:     'עורך עיצוב',
           config:     'הגדרות',
+          history:    'היסטוריה',
         },
         empty: {
           title: 'אין מה להציג עדיין',

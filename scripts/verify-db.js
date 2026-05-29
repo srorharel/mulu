@@ -645,6 +645,90 @@ for (const fn of ['admin_set_design_override','admin_clear_design_override','adm
   else                        fail(`${fn}()`, 'missing — check 0089')
 }
 
+// ── 7j. Admin change history + activity feed + undo (0092–0095) ──────────────
+
+console.log('\n── admin_change_history + activity feed ─────────────────────')
+
+const achTable = await q(`
+  SELECT rowsecurity FROM pg_tables WHERE schemaname='public' AND tablename='admin_change_history'
+`)
+if (achTable.length === 0)         fail('public.admin_change_history', 'table missing — check 0092')
+else if (!achTable[0].rowsecurity) fail('public.admin_change_history', 'RLS disabled')
+else                                pass('public.admin_change_history exists, RLS enabled')
+
+const achPolicies = await q(`
+  SELECT policyname FROM pg_policies WHERE schemaname='public' AND tablename='admin_change_history'
+`)
+for (const pol of ['admin_change_history super_admin read', 'admin_change_history super_admin write']) {
+  if (achPolicies.find(p => p.policyname === pol)) pass(`admin_change_history: ${pol}`)
+  else                                              fail(`admin_change_history: ${pol}`, 'missing — check 0092')
+}
+
+const achRealtime = await q(`
+  SELECT 1 FROM pg_publication_tables
+  WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='admin_change_history'
+`)
+if (achRealtime.length > 0) pass('admin_change_history on supabase_realtime publication')
+else                         fail('admin_change_history on supabase_realtime publication', 'missing')
+
+// Capture trigger function + the six per-table triggers.
+const captureFn = await q(`
+  SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname='public' AND p.proname='capture_admin_change_history'
+`)
+if (captureFn.length > 0) pass('capture_admin_change_history() trigger function exists')
+else                       fail('capture_admin_change_history()', 'missing — check 0092')
+
+const HISTORY_TRIGGERS = {
+  content_overrides:  'trg_history_content_overrides',
+  app_branding:       'trg_history_app_branding',
+  app_config:         'trg_history_app_config',
+  pricing_config:     'trg_history_pricing_config',
+  payout_tier_config: 'trg_history_payout_tier_config',
+  design_overrides:   'trg_history_design_overrides',
+}
+const histTriggers = await q(`
+  SELECT c.relname AS tbl, t.tgname
+  FROM pg_trigger t
+  JOIN pg_class c     ON c.oid = t.tgrelid
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname='public' AND NOT t.tgisinternal AND t.tgname LIKE 'trg_history_%'
+`)
+const histTrigSet = new Set(histTriggers.map(r => `${r.tbl}:${r.tgname}`))
+for (const [tbl, tg] of Object.entries(HISTORY_TRIGGERS)) {
+  if (histTrigSet.has(`${tbl}:${tg}`)) pass(`history trigger ${tg} on ${tbl}`)
+  else                                  fail(`history trigger ${tg} on ${tbl}`, 'missing — capture would be bypassed (check 0092)')
+}
+
+// Activity feed view.
+const feedView = await q(`SELECT 1 FROM pg_views WHERE schemaname='public' AND viewname='admin_activity_feed'`)
+if (feedView.length > 0) pass('admin_activity_feed view exists')
+else                      fail('admin_activity_feed view', 'missing — check 0093')
+
+// New RPCs.
+const histRpcs = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname='public'
+    AND p.proname IN ('get_admin_activity_feed','admin_undo_change','admin_get_deletion_snapshot')
+`)
+const histRpcNames = new Set(histRpcs.map(r => r.proname))
+for (const fn of ['get_admin_activity_feed','admin_undo_change','admin_get_deletion_snapshot']) {
+  if (histRpcNames.has(fn)) pass(`${fn}() exists`)
+  else                       fail(`${fn}()`, 'missing — check 0093/0094/0095')
+}
+
+// admin_user_audit must allow the 'restore_user' action (0095).
+const auaActionDef = await q(`
+  SELECT pg_get_constraintdef(c.oid) AS def
+  FROM pg_constraint c
+  JOIN pg_class t      ON t.oid = c.conrelid
+  JOIN pg_namespace n  ON n.oid = t.relnamespace
+  WHERE n.nspname='public' AND t.relname='admin_user_audit' AND c.conname='admin_user_audit_action_check'
+`)
+if (auaActionDef.length === 0)               fail('admin_user_audit_action_check', 'constraint missing')
+else if (!/restore_user/.test(auaActionDef[0].def)) fail('admin_user_audit_action_check', "missing 'restore_user' — check 0095")
+else                                          pass("admin_user_audit_action_check includes 'restore_user'")
+
 // ── 7a. Super-admin role + helper (0069) ─────────────────────────────────────
 
 console.log('\n── Roles / super_admin ──────────────────────────────────────')
