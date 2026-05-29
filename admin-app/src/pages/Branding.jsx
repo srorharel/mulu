@@ -97,7 +97,7 @@ export default function Branding() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
+      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <Image size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.branding')}</h1>
@@ -107,7 +107,7 @@ export default function Branding() {
         </div>
       </div>
 
-      <div className="p-6 max-w-3xl w-full mx-auto flex flex-col gap-4">
+      <div className="p-4 sm:p-6 max-w-3xl w-full mx-auto flex flex-col gap-4">
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-warning/40 bg-warning/10 text-warning text-sm">
           <Smartphone size={18} className="shrink-0 mt-0.5" />
           <div>
@@ -185,7 +185,7 @@ function BrandingRow({ slot, row, busy, onUpload, onRequestRestore, t }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h2 className="font-semibold text-ink">{slot.label}</h2>
             {isOverridden ? (
               <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin-deep">

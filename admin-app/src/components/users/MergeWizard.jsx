@@ -104,11 +104,11 @@ export default function MergeWizard({ keepUserId, onClose, onDone }) {
             </div>
           )}
         </div>
-        <footer className="border-t border-edge bg-surface-elevated px-5 py-3 flex justify-end gap-2">
-          {step > 1 && <button className="btn-ghost" onClick={() => setStep(step - 1)} disabled={busy}>Back</button>}
+        <footer className="border-t border-edge bg-surface-elevated px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          {step > 1 && <button className="btn-ghost w-full sm:w-auto" onClick={() => setStep(step - 1)} disabled={busy}>Back</button>}
           {step < 3 && (
             <button
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto"
               onClick={() => setStep(step + 1)}
               disabled={(step === 1 && !merge) || (step === 2 && reason.trim().length < 3)}
             >
@@ -117,7 +117,7 @@ export default function MergeWizard({ keepUserId, onClose, onDone }) {
           )}
           {step === 3 && (
             <button
-              className="btn border border-danger/50 text-danger hover:bg-danger/10"
+              className="btn border border-danger/50 text-danger hover:bg-danger/10 w-full sm:w-auto"
               onClick={doMerge}
               disabled={busy}
             >

@@ -50,9 +50,9 @@ export default function CreateOrderForm({ onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[55] bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[55] bg-black/40 flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
       <div
-        className="bg-surface rounded-2xl border border-edge shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-surface rounded-2xl border border-edge shadow-2xl w-full max-w-3xl max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <header className="border-b border-edge bg-surface-elevated px-5 py-3 flex items-center gap-3">
@@ -61,10 +61,10 @@ export default function CreateOrderForm({ onClose, onCreated }) {
             <p className="text-[11px] uppercase tracking-wider text-ink-subtle">Step {step} of 4</p>
             <p className="text-sm font-semibold text-ink">{['Pick consumer','Drop location pin','Vehicle','Notes & submit'][step - 1]}</p>
           </div>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink p-1.5"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Close" className="text-ink-muted hover:text-ink h-10 w-10 -me-1 flex items-center justify-center rounded-xl hover:bg-surface-elevated-2"><X size={18} /></button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
           {error && (
             <div className="mb-3 flex items-start gap-2 px-3 py-2 rounded-xl border border-danger/30 bg-danger/10 text-danger text-xs">
               <AlertCircle size={14} className="shrink-0 mt-0.5" /><span className="font-mono">{error}</span>
@@ -193,7 +193,7 @@ function LocationStep({ loc, setLoc }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div ref={mapEl} className="h-[400px] rounded-xl overflow-hidden border border-edge" />
+      <div ref={mapEl} className="h-[300px] sm:h-[400px] rounded-xl overflow-hidden border border-edge" />
       <p className="text-[12px] text-ink-muted flex items-center gap-1.5">
         <MapPin size={12} /> Click the map to drop a pin. {loc && (
           <span className="font-mono text-ink">{loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}</span>
@@ -208,7 +208,7 @@ function VehicleStep({ category, setCategory, car, setCar }) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <span className="label-uppercase">Category</span>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {CATEGORIES.map(c => (
             <button
               key={c.id}
@@ -242,7 +242,7 @@ function NotesStep({ site, setSite, notes, setNotes, consumer, loc, category, ca
         <p className="text-[12.5px] text-ink-muted font-mono">Loc: {loc?.lat.toFixed(5)}, {loc?.lng.toFixed(5)}</p>
         <p className="text-[12.5px] text-ink-muted">{category} · {[car.plate, car.make, car.model].filter(Boolean).join(' · ') || '—'}</p>
       </div>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-2">
         <Toggle label="Site has water" value={site.water} onChange={v => setSite({ ...site, water: v })} />
         <Toggle label="Site has power" value={site.power} onChange={v => setSite({ ...site, power: v })} />
       </div>

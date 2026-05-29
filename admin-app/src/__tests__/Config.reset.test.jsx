@@ -93,9 +93,9 @@ describe('Config — per-row reset', () => {
   it('BLOCKS reset on pricing_config when pricing_source = config', async () => {
     state.tables.app_config[0].value.value = 'config'
     render(<Config />)
-    await waitFor(() => expect(screen.getByText('jeep')).toBeTruthy())
-    // Click reset on jeep
-    const row = screen.getByText('jeep').closest('tr')
+    await waitFor(() => expect(screen.getAllByText('jeep').length).toBeGreaterThan(0))
+    // Click reset on jeep (the row inside a <tr>, not the mobile card).
+    const row = screen.getAllByText('jeep').map(el => el.closest('tr')).find(Boolean)
     const resetBtn = within(row).getByTitle('Reset to seeded value')
     fireEvent.click(resetBtn)
     await waitFor(() => expect(screen.getByText('Reset blocked')).toBeTruthy())
@@ -106,8 +106,10 @@ describe('Config — per-row reset', () => {
 
   it('ALLOWS reset on pricing_config when pricing_source = hardcoded (drift row is deleted)', async () => {
     render(<Config />)
-    await waitFor(() => expect(screen.getByText('jeep')).toBeTruthy())
-    const row = screen.getByText('jeep').closest('tr')
+    await waitFor(() => expect(screen.getAllByText('jeep').length).toBeGreaterThan(0))
+    // 'jeep' renders in both the mobile card and the desktop table; the row
+    // we want is the one that lives inside a <tr>.
+    const row = screen.getAllByText('jeep').map(el => el.closest('tr')).find(Boolean)
     const resetBtn = within(row).getByTitle('Reset to seeded value')
     expect(resetBtn).not.toBeDisabled()
     fireEvent.click(resetBtn)

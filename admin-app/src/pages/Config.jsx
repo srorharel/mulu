@@ -188,14 +188,14 @@ export default function Config() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
+      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.config')}</h1>
         </div>
       </div>
 
-      <div className="p-6 max-w-4xl w-full mx-auto flex flex-col gap-6">
+      <div className="p-4 sm:p-6 max-w-4xl w-full mx-auto flex flex-col gap-6">
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-warning/40 bg-warning/10 text-warning text-sm">
           <AlertTriangle size={18} className="shrink-0 mt-0.5" />
           <div>
@@ -264,7 +264,7 @@ export default function Config() {
                   <button
                     onClick={() => saveAppConfig(r.key, draft)}
                     disabled={!dirty || busy}
-                    className="btn-primary px-3 py-2"
+                    className="btn-primary px-3 py-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
                     title="Save"
                   >
                     <Save size={13} />
@@ -272,7 +272,7 @@ export default function Config() {
                   <button
                     onClick={() => requestResetAppConfig(r.key)}
                     disabled={atDefault || busy}
-                    className="btn-ghost px-2 py-2"
+                    className="btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
                     title="Reset to default"
                   >
                     <RotateCcw size={13} />
@@ -297,7 +297,41 @@ export default function Config() {
         <section className="card flex flex-col gap-2">
           <h2 className="font-semibold text-ink">Pricing per category</h2>
           <p className="text-[12.5px] text-ink-muted">Active only when pricing_source = config.</p>
-          <table className="w-full text-sm mt-2">
+
+          {/* Mobile: cards */}
+          <div className="lg:hidden flex flex-col gap-2 mt-2">
+            {pricing.map(p => {
+              const atDefault = pricingRowIsDefault(p)
+              return (
+                <div key={p.category} className="rounded-xl border border-edge p-3 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[13px] text-ink">{p.category}</span>
+                    {atDefault
+                      ? <span className="text-[10px] text-ink-subtle uppercase tracking-wider">default</span>
+                      : <span className="text-[10px] text-admin-deep uppercase tracking-wider">overridden</span>}
+                    <button
+                      onClick={() => requestResetPricing(p.category)}
+                      disabled={atDefault || busy}
+                      className="ms-auto btn-ghost px-2 py-2 min-h-[44px] min-w-[44px]"
+                      title="Reset to seeded value"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
+                  <p className="font-mono tabular-nums text-[12.5px] text-ink-muted">
+                    consumer ₪{p.consumer_price} · washer ₪{p.worker_price} · platform ₪{p.platform_fee}
+                  </p>
+                  {!atDefault && (p.editor?.full_name || p.updated_at) && (
+                    <p className="text-[10.5px] text-ink-subtle">
+                      {p.editor?.full_name ? `by ${p.editor.full_name}, ` : ''}{p.updated_at ? relativeTime(p.updated_at) : ''}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <table className="hidden lg:table w-full text-sm mt-2">
             <thead className="text-ink-subtle">
               <tr className="text-[11px] uppercase tracking-wider">
                 <th className="text-start py-1.5">Category</th>
@@ -350,7 +384,32 @@ export default function Config() {
         <section className="card flex flex-col gap-2">
           <h2 className="font-semibold text-ink">Payout per tier</h2>
           <p className="text-[12.5px] text-ink-muted">Active only when pricing_source = config.</p>
-          <table className="w-full text-sm mt-2">
+
+          {/* Mobile: cards */}
+          <div className="lg:hidden flex flex-col gap-2 mt-2">
+            {payouts.map(p => {
+              const atDefault = payoutRowIsDefault(p)
+              return (
+                <div key={p.tier} className="rounded-xl border border-edge p-3 flex items-center gap-2">
+                  <span className="font-mono text-[13px] text-ink">tier {p.tier}</span>
+                  <span className="font-mono tabular-nums text-[12.5px] text-ink-muted">₪{p.payout}</span>
+                  {atDefault
+                    ? <span className="text-[10px] text-ink-subtle uppercase tracking-wider">default</span>
+                    : <span className="text-[10px] text-admin-deep uppercase tracking-wider">overridden</span>}
+                  <button
+                    onClick={() => requestResetPayout(p.tier)}
+                    disabled={atDefault || busy}
+                    className="ms-auto btn-ghost px-2 py-2 min-h-[44px] min-w-[44px]"
+                    title="Reset to seeded value"
+                  >
+                    <RotateCcw size={13} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          <table className="hidden lg:table w-full text-sm mt-2">
             <thead className="text-ink-subtle">
               <tr className="text-[11px] uppercase tracking-wider">
                 <th className="text-start py-1.5">Tier</th>

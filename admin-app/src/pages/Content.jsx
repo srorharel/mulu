@@ -168,8 +168,8 @@ export default function Content() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <FileText size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.content')}</h1>
           <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
@@ -178,7 +178,7 @@ export default function Content() {
           <button
             onClick={handleExport}
             disabled={busy}
-            className="btn-ghost text-[12px] flex items-center gap-1.5"
+            className="btn-ghost text-[12px] flex items-center gap-1.5 shrink-0"
             title="Download all overrides (every app, every locale) as JSON"
           >
             <Download size={13} /> Export overrides
@@ -231,7 +231,78 @@ export default function Content() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <table className="w-full text-sm">
+        {/* Mobile: stacked cards with inline edit */}
+        <div className="lg:hidden p-3 flex flex-col gap-2">
+          {filtered.map(([key, defaultValue]) => {
+            const override = overrides[key]
+            const isOverridden = !!override
+            const isEditing = editing?.key === key
+            return (
+              <div key={key} className="card flex flex-col gap-2">
+                <div className="flex items-start gap-2">
+                  <span className="font-mono text-[11.5px] text-ink-muted break-all flex-1">{key}</span>
+                  {isOverridden && (
+                    <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin-deep">
+                      overridden
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="label-uppercase mb-0.5">Default</p>
+                  <p className="text-[12.5px] text-ink-muted whitespace-pre-wrap break-words">{defaultValue}</p>
+                </div>
+                <div>
+                  <p className="label-uppercase mb-1">Override</p>
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        autoFocus
+                        rows={Math.min(8, (editing.draft.match(/\n/g)?.length ?? 0) + 2)}
+                        value={editing.draft}
+                        onChange={e => setEditing({ ...editing, draft: e.target.value })}
+                        className="w-full bg-surface border border-admin rounded-lg px-2 py-1.5 text-[13px] text-ink outline-none resize-y"
+                      />
+                      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <button onClick={() => setEditing(null)} className="btn-ghost w-full sm:w-auto text-sm">{t('common.cancel')}</button>
+                        <button onClick={() => saveOverride(key, editing.draft)} className="btn-primary w-full sm:w-auto text-sm">{t('common.save')}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setEditing({ key, draft: override?.value ?? defaultValue })}
+                        className={`text-start w-full whitespace-pre-wrap break-words rounded-lg px-3 py-2 min-h-[44px] border border-edge ${
+                          isOverridden ? 'text-ink font-medium bg-surface' : 'text-ink-subtle italic bg-surface'
+                        }`}
+                      >
+                        {isOverridden ? override.value : 'Tap to add override'}
+                      </button>
+                      {isOverridden && (override.editor_name || override.updated_at) && (
+                        <p className="text-[10.5px] text-ink-subtle mt-1">
+                          Edited{override.editor_name ? ` by ${override.editor_name}` : ''}{override.updated_at ? `, ${relativeTime(override.updated_at)}` : ''}
+                        </p>
+                      )}
+                      {isOverridden && (
+                        <button
+                          onClick={() => setConfirming({ key })}
+                          className="mt-2 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider rounded-lg text-ink-muted hover:text-danger"
+                        >
+                          <RotateCcw size={11} /> Reset to default
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          {filtered.length === 0 && (
+            <p className="px-3 py-12 text-center text-ink-subtle text-sm">{busy ? t('common.loading') : 'No keys match this query.'}</p>
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <table className="hidden lg:table w-full text-sm">
           <thead className="sticky top-0 bg-surface-elevated z-0 border-b border-edge">
             <tr className="text-ink-subtle text-[11px] uppercase tracking-wider">
               <th className="text-start px-6 py-2 font-semibold w-[34%]">Key</th>
@@ -308,7 +379,7 @@ export default function Content() {
                     ) : isOverridden ? (
                       <button
                         onClick={() => setConfirming({ key })}
-                        className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-lg text-ink-muted hover:text-danger transition"
+                        className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-lg text-ink-muted hover:text-danger transition"
                       >
                         <RotateCcw size={10} />
                         Reset to default

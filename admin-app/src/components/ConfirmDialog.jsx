@@ -25,6 +25,8 @@ export default function ConfirmDialog({
   onCancel,
   destructive = false,
   busy = false,
+  confirmDisabled = false,
+  children,
 }) {
   useEffect(() => {
     if (!open) return
@@ -39,11 +41,11 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4 overflow-y-auto"
       onClick={() => !busy && onCancel?.()}
     >
       <div
-        className="card flex flex-col gap-4 w-full max-w-md"
+        className="card flex flex-col gap-4 w-full max-w-md my-auto max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -57,16 +59,19 @@ export default function ConfirmDialog({
             {message && <p className="text-[13px] text-ink-muted leading-relaxed">{message}</p>}
           </div>
         </div>
-        <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} disabled={busy} className="btn-ghost">
+        {children}
+        {/* col-reverse on mobile keeps the destructive action away from the
+            thumb (Cancel sits lowest) and guarantees both buttons are visible. */}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button onClick={onCancel} disabled={busy} className="btn-ghost w-full sm:w-auto">
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || confirmDisabled}
             className={destructive
-              ? 'btn border border-danger/50 text-white bg-danger hover:bg-danger-600'
-              : 'btn-primary'}
+              ? 'btn border border-danger/50 text-white bg-danger hover:bg-danger-600 w-full sm:w-auto'
+              : 'btn-primary w-full sm:w-auto'}
           >
             {busy ? 'Working…' : confirmLabel}
           </button>

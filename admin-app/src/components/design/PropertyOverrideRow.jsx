@@ -17,7 +17,7 @@ export default function PropertyOverrideRow({ row, onChanged }) {
         {row.editor?.full_name || '—'}{row.updated_at ? `, ${relativeTime(row.updated_at)}` : ''}
       </td>
       <td className="px-3 py-2 text-end">
-        <button onClick={reset} className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-lg text-ink-muted hover:text-danger transition">
+        <button onClick={reset} className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-lg text-ink-muted hover:text-danger transition">
           <RotateCcw size={10} /> reset
         </button>
       </td>

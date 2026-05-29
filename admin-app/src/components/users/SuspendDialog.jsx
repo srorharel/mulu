@@ -32,10 +32,10 @@ export default function SuspendDialog({ userId, onClose, onDone }) {
             <AlertCircle size={14} className="shrink-0 mt-0.5" /><span className="font-mono">{error}</span>
           </div>
         )}
-        <div className="flex gap-2 justify-end">
-          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button className="btn-ghost w-full sm:w-auto" onClick={onClose}>Cancel</button>
           <button
-            className="btn border border-danger/50 text-danger hover:bg-danger/10"
+            className="btn border border-danger/50 text-danger hover:bg-danger/10 w-full sm:w-auto"
             onClick={doSuspend}
             disabled={busy || reason.trim().length < 3}
           >

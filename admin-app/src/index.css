@@ -69,3 +69,21 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-edge-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-ink-subtle); }
+
+@layer utilities {
+  /* Horizontal filter strips on mobile: scroll, but no visible scrollbar. */
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+/* Mobile drawer + backdrop entrance — the desktop rail never animates. */
+@keyframes admin-drawer-in {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes admin-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.admin-drawer-panel { animation: admin-drawer-in 0.2s ease-out; }
+.admin-backdrop     { animation: admin-fade-in 0.15s ease-out; }

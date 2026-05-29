@@ -149,14 +149,14 @@ export default function Broadcasts() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
+      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <Megaphone size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.broadcasts')}</h1>
         </div>
       </div>
 
-      <div className="p-6 max-w-4xl mx-auto w-full flex flex-col gap-6">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto w-full flex flex-col gap-6">
         {/* Compose */}
         <section className="card flex flex-col gap-4">
           <h2 className="font-semibold text-ink">Compose broadcast</h2>
@@ -264,23 +264,25 @@ export default function Broadcasts() {
           ) : (
             <div className="flex flex-col divide-y divide-edge">
               {history.map(h => (
-                <div key={h.id} className="py-2.5 flex items-center gap-3 text-sm">
-                  <span className="flex-1 truncate font-medium text-ink">{h.title_en}</span>
-                  <span className="text-[11px] text-ink-muted px-2 py-0.5 rounded bg-surface">{h.segment_type}</span>
-                  {h.sent_at ? (
-                    <span className="text-[11px] text-success font-mono tabular-nums">
-                      {h.sent_count}↑ / {h.failed_count}↓
+                <div key={h.id} className="py-2.5 flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3">
+                  <span className="font-medium text-ink truncate sm:flex-1">{h.title_en}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-ink-muted px-2 py-0.5 rounded bg-surface">{h.segment_type}</span>
+                    {h.sent_at ? (
+                      <span className="text-[11px] text-success font-mono tabular-nums">
+                        {h.sent_count}↑ / {h.failed_count}↓
+                      </span>
+                    ) : h.scheduled_at ? (
+                      <span className="text-[11px] text-warning flex items-center gap-1">
+                        <Clock size={10} /> {new Date(h.scheduled_at).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-ink-subtle">draft</span>
+                    )}
+                    <span className="text-[10px] text-ink-subtle whitespace-nowrap sm:ms-auto">
+                      {new Date(h.created_at).toLocaleString()}
                     </span>
-                  ) : h.scheduled_at ? (
-                    <span className="text-[11px] text-warning flex items-center gap-1">
-                      <Clock size={10} /> {new Date(h.scheduled_at).toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-ink-subtle">draft</span>
-                  )}
-                  <span className="text-[10px] text-ink-subtle whitespace-nowrap">
-                    {new Date(h.created_at).toLocaleString()}
-                  </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -290,9 +292,9 @@ export default function Broadcasts() {
 
       {/* Confirm interstitial */}
       {confirming && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => !busy && setConfirming(null)}>
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 overflow-y-auto" onClick={() => !busy && setConfirming(null)}>
           <div
-            className="w-full max-w-md card flex flex-col gap-4"
+            className="w-full max-w-md card flex flex-col gap-4 my-auto max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start gap-3">
@@ -312,11 +314,11 @@ export default function Broadcasts() {
               <p className="text-sm font-semibold text-ink">{draft.title_en}</p>
               <p className="text-[13px] text-ink-muted whitespace-pre-wrap mt-0.5">{draft.body_en}</p>
             </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirming(null)} disabled={busy} className="btn-ghost">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button onClick={() => setConfirming(null)} disabled={busy} className="btn-ghost w-full sm:w-auto">
                 {t('common.cancel')}
               </button>
-              <button onClick={handleConfirmSend} disabled={busy} className="btn-primary">
+              <button onClick={handleConfirmSend} disabled={busy} className="btn-primary w-full sm:w-auto">
                 {busy ? t('common.loading') : `Send to ${confirming.count}`}
               </button>
             </div>
@@ -332,7 +334,7 @@ function BilingualField({ label, multiline, valueEn, valueHe, onChange }) {
   return (
     <div className="flex flex-col gap-2">
       <label className="label-uppercase">{label}</label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Tag
           dir="ltr"
           className="input min-h-[44px]"

@@ -102,8 +102,8 @@ export default function UserDetail({ userId, onClose, onChanged }) {
               {profile.role}
             </span>
           )}
-          <button onClick={onClose} className="text-ink-muted hover:text-ink p-1.5">
-            <X size={16} />
+          <button onClick={onClose} aria-label="Close" className="text-ink-muted hover:text-ink h-10 w-10 -me-1 flex items-center justify-center rounded-xl hover:bg-surface-elevated-2">
+            <X size={18} />
           </button>
         </header>
 
@@ -117,7 +117,7 @@ export default function UserDetail({ userId, onClose, onChanged }) {
         )}
 
         {profile && (
-          <div className="p-5 flex flex-col gap-5">
+          <div className="p-4 sm:p-5 flex flex-col gap-5">
             {profile.suspended_at && (
               <div className="card border-danger/30 bg-danger/5">
                 <p className="text-[11px] uppercase tracking-wider text-danger font-bold">Suspended</p>
@@ -130,7 +130,7 @@ export default function UserDetail({ userId, onClose, onChanged }) {
             )}
 
             {/* Quick-action bar */}
-            <div className="card flex flex-wrap gap-2">
+            <div className="card grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               <ActionBtn onClick={() => setEditing(true)}   icon={UserCog}   label="Edit profile" />
               <ActionBtn onClick={() => setSuspend(true)}   icon={Ban}       label="Suspend" danger
                 disabled={!!profile.suspended_at || profile.role === 'super_admin'} />
@@ -209,8 +209,8 @@ function ActionBtn({ icon: Icon, label, danger, disabled, onClick }) {
       disabled={disabled}
       className={
         danger
-          ? 'btn border border-danger/50 text-danger hover:bg-danger/10 disabled:opacity-50 text-sm'
-          : 'btn border border-edge text-ink hover:bg-surface-elevated-2 disabled:opacity-50 text-sm'
+          ? 'btn border border-danger/50 text-danger hover:bg-danger/10 disabled:opacity-50 text-sm w-full sm:w-auto'
+          : 'btn border border-edge text-ink hover:bg-surface-elevated-2 disabled:opacity-50 text-sm w-full sm:w-auto'
       }
     >
       <Icon size={14} /> {label}
@@ -220,7 +220,7 @@ function ActionBtn({ icon: Icon, label, danger, disabled, onClick }) {
 
 function SummaryGrid({ profile, auth }) {
   return (
-    <section className="grid grid-cols-2 gap-3">
+    <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <InfoCard title="Profile">
         <p className="text-sm font-semibold text-ink">{profile.full_name || '—'}</p>
         <p className="text-[12px] text-ink-muted">{profile.phone || '—'}</p>
@@ -284,7 +284,7 @@ function EditProfileSection({ profile, onCancel, onSaved }) {
   return (
     <section className="card flex flex-col gap-3">
       <h3 className="font-semibold text-ink flex items-center gap-2"><UserCog size={14} /> Edit profile</h3>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Field label="Full name" value={draft.full_name} onChange={v => setDraft({ ...draft, full_name: v })} />
         <Field label="Phone"     value={draft.phone}     onChange={v => setDraft({ ...draft, phone: v })} />
         <SelectField label="Locale" value={draft.locale} onChange={v => setDraft({ ...draft, locale: v })}

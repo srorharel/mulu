@@ -35,7 +35,7 @@ export default function ImpersonateLauncher({ userId, onClose }) {
           Issues a one-time token. Opening the main app with the URL below signs you in as the target user.
           Every action while impersonating is audit-logged. The target user’s app shows a permanent banner while the token is active.
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label className="label-uppercase">TTL (seconds)</label>
           <input type="number" min={30} max={3600} value={ttl} onChange={e => setTtl(Number(e.target.value))} className="input w-32" />
           <button className="btn-primary ms-auto" onClick={issue} disabled={busy}>

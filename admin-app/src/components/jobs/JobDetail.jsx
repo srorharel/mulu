@@ -83,8 +83,8 @@ export default function JobDetail({ orderId, onClose, onChanged }) {
               {order.status}
             </span>
           )}
-          <button onClick={onClose} className="text-ink-muted hover:text-ink p-1.5">
-            <X size={16} />
+          <button onClick={onClose} aria-label="Close" className="text-ink-muted hover:text-ink h-10 w-10 -me-1 flex items-center justify-center rounded-xl hover:bg-surface-elevated-2">
+            <X size={18} />
           </button>
         </header>
 
@@ -98,12 +98,12 @@ export default function JobDetail({ orderId, onClose, onChanged }) {
         )}
 
         {order && (
-          <div className="p-5 flex flex-col gap-5">
+          <div className="p-4 sm:p-5 flex flex-col gap-5">
 
             <SummaryGrid order={order} consumer={consumer} washer={washer} />
 
             {/* Action buttons */}
-            <div className="card flex flex-wrap gap-2">
+            <div className="card grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               <ActionBtn onClick={() => setSection('reassign')} icon={UserCog} label="Reassign washer" />
               <ActionBtn onClick={() => setSection('price')}     icon={Wallet}  label="Override price" />
               <ActionBtn onClick={() => setSection('cancel')}    icon={Ban}     label="Cancel" danger
@@ -199,8 +199,8 @@ function ActionBtn({ icon: Icon, label, danger, disabled, onClick }) {
       disabled={disabled}
       className={
         danger
-          ? 'btn border border-danger/50 text-danger hover:bg-danger/10 disabled:opacity-50 text-sm'
-          : 'btn border border-edge text-ink hover:bg-surface-elevated-2 disabled:opacity-50 text-sm'
+          ? 'btn border border-danger/50 text-danger hover:bg-danger/10 disabled:opacity-50 text-sm w-full sm:w-auto'
+          : 'btn border border-edge text-ink hover:bg-surface-elevated-2 disabled:opacity-50 text-sm w-full sm:w-auto'
       }
     >
       <Icon size={14} /> {label}
@@ -210,7 +210,7 @@ function ActionBtn({ icon: Icon, label, danger, disabled, onClick }) {
 
 function SummaryGrid({ order, consumer, washer }) {
   return (
-    <section className="grid grid-cols-2 gap-3">
+    <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <PartyCard title="Consumer" profile={consumer} />
       <PartyCard title="Washer" profile={washer} emptyHint="Unassigned" />
       <InfoCard title="Vehicle">

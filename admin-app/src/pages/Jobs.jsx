@@ -68,8 +68,8 @@ export default function Jobs() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <ClipboardList size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.jobs')}</h1>
           <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
@@ -77,20 +77,20 @@ export default function Jobs() {
           </span>
           <button
             onClick={() => setCreating(true)}
-            className="btn-primary text-[12px] flex items-center gap-1.5 ml-2"
+            className="btn-primary text-[12px] flex items-center justify-center gap-1.5 w-full sm:w-auto sm:ml-2 min-h-[44px] sm:min-h-0"
             title="Create an order on behalf of a consumer"
           >
-            <Plus size={13} /> Create order
+            <Plus size={14} /> Create order
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1 bg-surface rounded-xl p-1 border border-edge">
+        <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+          <div className="flex gap-1 overflow-x-auto no-scrollbar bg-surface rounded-xl p-1 border border-edge lg:flex-wrap lg:overflow-visible">
             {STATUSES.map(s => (
               <button
                 key={s}
                 onClick={() => setStatus(s)}
-                className={`px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider rounded-lg transition-colors ${
+                className={`shrink-0 whitespace-nowrap px-2.5 py-2 lg:py-1 text-[11px] font-semibold uppercase tracking-wider rounded-lg transition-colors ${
                   status === s ? 'bg-admin-soft text-admin-deep' : 'text-ink-muted hover:text-ink'
                 }`}
               >
@@ -98,14 +98,14 @@ export default function Jobs() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 flex-1 min-w-[180px] bg-surface rounded-xl border border-edge px-3">
+          <div className="flex items-center gap-2 lg:flex-1 lg:min-w-[180px] bg-surface rounded-xl border border-edge px-3">
             <Search size={14} className="text-ink-subtle" />
             <input
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="ID / plate / address"
-              className="flex-1 bg-transparent outline-none text-sm py-1.5"
+              className="flex-1 bg-transparent outline-none text-sm py-2"
             />
           </div>
         </div>
@@ -119,7 +119,16 @@ export default function Jobs() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <table className="w-full text-sm">
+        {/* Mobile: stacked cards */}
+        <div className="lg:hidden p-3 flex flex-col gap-2">
+          {filtered.map(r => <JobCard key={r.id} row={r} onOpen={() => setSelectedId(r.id)} />)}
+          {filtered.length === 0 && (
+            <p className="px-3 py-12 text-center text-ink-subtle text-sm">{busy ? t('common.loading') : 'No jobs match this filter.'}</p>
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <table className="hidden lg:table w-full text-sm">
           <thead className="sticky top-0 bg-surface-elevated z-0 border-b border-edge">
             <tr className="text-ink-subtle text-[11px] uppercase tracking-wider">
               <th className="text-start px-6 py-2 font-semibold">Order</th>
@@ -198,5 +207,42 @@ export default function Jobs() {
         />
       )}
     </div>
+  )
+}
+
+// Mobile-only card representation of a single order row.
+function JobCard({ row, onOpen }) {
+  const isAdminCreated = !!row.created_by_admin
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-start card flex flex-col gap-2 active:bg-surface-elevated-2"
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[12px] text-ink-muted truncate">{row.id?.slice(0, 8)}…</span>
+        {isAdminCreated && (
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-admin-soft text-admin-deep">
+            <Sparkles size={9} /> admin
+          </span>
+        )}
+        <span className={`ms-auto shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${statusColor(row.status)}`}>
+          {row.status}
+        </span>
+      </div>
+      {row.address_label && (
+        <p className="text-[12px] text-ink-muted line-clamp-2">{row.address_label}</p>
+      )}
+      <div className="flex items-end justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-mono text-[12px] text-ink truncate">{row.car_plate || '—'}</p>
+          <p className="text-[10.5px] text-ink-subtle">{row.car_type || '—'}</p>
+        </div>
+        <div className="text-end tabular-nums shrink-0">
+          <p className="text-[13px] text-ink">₪{Number(row.total_price ?? 0)}</p>
+          <p className="text-[10.5px] text-ink-subtle">payout ₪{Number(row.payout_amount ?? row.base_price ?? 0)}</p>
+        </div>
+      </div>
+      <p className="text-[10.5px] text-ink-subtle">{relativeTime(row.created_at)}</p>
+    </button>
   )
 }

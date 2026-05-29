@@ -64,7 +64,7 @@ export default function DesignEditor() {
 
   if (!unlocked) {
     return (
-      <div className="h-full flex items-center justify-center p-6">
+      <div className="h-full flex items-center justify-center p-4 sm:p-6">
         <form onSubmit={tryUnlock} className="w-full max-w-sm card flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Palette size={18} className="text-admin-deep" />
@@ -91,8 +91,8 @@ export default function DesignEditor() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
+        <div className="flex items-center gap-2 flex-wrap">
           <Palette size={18} className="text-admin-deep" />
           <h1 className="text-lg font-bold tracking-tight">Design Editor</h1>
           <span className="ms-auto text-[11px] text-ink-muted tabular-nums">{rows.length} overrides</span>
@@ -111,14 +111,15 @@ export default function DesignEditor() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SurfacePicker />
         <section className="card">
           <h2 className="font-semibold text-ink mb-2">Active overrides</h2>
           {rows.length === 0 ? (
             <p className="text-sm text-ink-muted">No overrides yet. Open any surface from the picker → tap the registered element → adjust.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-sm min-w-[460px]">
               <thead className="text-ink-subtle text-[10.5px] uppercase tracking-wider">
                 <tr>
                   <th className="text-start px-3 py-2">App</th>
@@ -135,6 +136,7 @@ export default function DesignEditor() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </section>
       </div>
@@ -146,20 +148,19 @@ export default function DesignEditor() {
         confirmLabel="RESET DESIGN"
         destructive
         busy={busy}
+        confirmDisabled={resetTyped !== 'RESET DESIGN'}
         onCancel={() => { setShowReset(false); setResetTyped('') }}
         onConfirm={() => { if (resetTyped === 'RESET DESIGN') doReset() }}
-      />
-      {showReset && (
-        <div className="fixed z-[70] left-1/2 -translate-x-1/2 top-[50%] mt-12">
-          <input
-            type="text"
-            placeholder='Type RESET DESIGN'
-            value={resetTyped}
-            onChange={e => setResetTyped(e.target.value)}
-            className="input bg-white shadow-2xl w-[280px]"
-          />
-        </div>
-      )}
+      >
+        <input
+          type="text"
+          autoFocus
+          placeholder="Type RESET DESIGN"
+          value={resetTyped}
+          onChange={e => setResetTyped(e.target.value)}
+          className="input"
+        />
+      </ConfirmDialog>
     </div>
   )
 }
