@@ -231,6 +231,64 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 7f. pg_net wiring on http_post-using functions (0080) ────────────────────
+//
+// Regression: trigger_broadcast (0074) called pg_net.http_post which fails
+// at execution because pg_net is the EXTENSION name; the symbols live in
+// the `net` schema. This block asserts the right wiring stays in place.
+
+console.log('\n── pg_net wiring ────────────────────────────────────────────')
+
+const pgnet = await q(`SELECT extname FROM pg_extension WHERE extname = 'pg_net'`)
+if (pgnet.length > 0) pass('pg_net extension installed')
+else                  fail('pg_net extension', 'not installed — enable in Supabase dashboard')
+
+const netSchema = await q(`SELECT 1 FROM pg_namespace WHERE nspname = 'net'`)
+if (netSchema.length > 0) pass(`net schema exists (where pg_net's http_post lives)`)
+else                       fail('net schema', 'missing — pg_net install may be incomplete')
+
+const httpPostSchemas = await q(`
+  SELECT n.nspname AS schema FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE p.proname = 'http_post'
+`)
+const schemas = httpPostSchemas.map(r => r.schema)
+if (schemas.includes('net')) pass(`net.http_post is callable`)
+else                          fail('net.http_post', `not found — http_post schemas: ${schemas.join(', ') || 'none'}`)
+
+// Any public function that uses http_post must reference it as net.http_post
+// (not pg_net.http_post, not unqualified) AND must include `net` in its
+// search_path.
+// prokind = 'f' filters out aggregates and window functions —
+// pg_get_functiondef raises an error on those.
+const httpUsers = await q(`
+  SELECT p.proname, pg_get_functiondef(p.oid) AS body
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.prokind = 'f'
+    AND pg_get_functiondef(p.oid) ILIKE '%http_post%'
+`)
+for (const fn of httpUsers) {
+  const usesWrong = /\bpg_net\.http_post\b/.test(fn.body)
+  const usesRight = /\bnet\.http_post\b/.test(fn.body)
+  const inPath    = /SET\s+search_path[^;]*\bnet\b/i.test(fn.body)
+
+  if (usesWrong) fail(`${fn.proname}`, 'calls pg_net.http_post — must be net.http_post')
+  else if (!usesRight) fail(`${fn.proname}`, 'calls http_post unqualified — must be net.http_post')
+  else pass(`${fn.proname} calls net.http_post`)
+
+  if (!inPath) fail(`${fn.proname} search_path`, 'missing `net` in SET search_path — function relies on caller path')
+  else         pass(`${fn.proname} sets search_path to include net`)
+}
+
+// trigger_broadcast + notify_send must both exist + match the above.
+const required = ['trigger_broadcast', 'notify_send']
+const found = new Set(httpUsers.map(f => f.proname))
+for (const fn of required) {
+  if (!found.has(fn)) fail(`${fn} in pg_net checks`, 'function missing — should call http_post')
+}
+
 // ── 7e. App config + pricing/payout parity (0075–0078) ───────────────────────
 
 console.log('\n── app_config / pricing parity ──────────────────────────────')
