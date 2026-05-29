@@ -35,7 +35,7 @@ Consumer screens sit on `.bg-mesh` (green radial gradient overlay over `#fafafa`
 
 ### Washer screen pattern (map + floating chrome)
 
-The washer dashboard is a full-screen `WorkerMap` (Leaflet, dark tiles). All UI floats above it:
+The washer dashboard is a full-screen `WorkerMap` (Leaflet; tiles follow theme — CartoDB `dark_all` in dark, `light_all` in light). All UI floats above it:
 - **Top-start:** `OnlinePill` — dark glass pill containing the washer avatar, online/offline status, and menu trigger.
 - **Top-end:** Earnings widget — dark glass chip showing today's earnings (currently a placeholder; see §3 planned features).
 - **Bottom:** `JobDrawer` — a draggable glass bottom sheet that collapses to 120px and expands to 80% of viewport height for the job list, or fully to 100% for the active-job panel.
@@ -52,8 +52,8 @@ The washer dashboard is a full-screen `WorkerMap` (Leaflet, dark tiles). All UI 
 | Order Tracking | `/order/:id` | consumer | light | Full-height, `MapBG` + bottom sheet (no `PageShell`) |
 | Order History | `/history` | consumer | light | `PageShell`, `bg-mesh`, grouped list |
 | Profile | `/profile` | consumer + washer | light / dark | `PageShell` |
-| Washer Dashboard | `/washer` | washer | dark | `WasherMapShell`, full-screen `WorkerMap` |
-| Active Job | (within Dashboard) | washer | dark | `JobDrawer` expanded, no separate route |
+| Washer Dashboard | `/washer` | washer | light / dark | `WasherMapShell`, full-screen `WorkerMap` |
+| Active Job | (within Dashboard) | washer | light / dark | `JobDrawer` expanded, no separate route |
 | Job Detail | `/washer/job/:id` | washer | dark | `WasherShell` |
 | Earnings | `/washer/earnings` | washer | dark | `WasherShell` |
 | Settings | `/washer/settings` | washer | dark | `WasherShell` |
@@ -72,7 +72,7 @@ Theme is resolved in this priority order:
 
 Every component that conditionally applies theme styles must resolve through a single `useTheme()` hook (`src/hooks/useTheme.js`). Components never read `profile.role` to make visual decisions.
 
-**Exception — `WasherMapShell`:** The map shell always applies `.dark` unconditionally and does not call `useTheme()`. The CartoDB `dark_all` tile source is fixed and cannot change at runtime, so every floating overlay (JobDrawer, WasherMenu, OnlinePill, EarningsWidget) must always use dark tokens regardless of the washer's `display_preference`. The non-map shell (`WasherShell`) continues to respect `display_preference` for Earnings, Settings, Shop, and Support.
+**`WasherMapShell`:** Resolves theme through `useTheme()` and applies `.dark` conditionally — the same canonical shell pattern as `WasherShell`. The tile source switches via `mapTiles(isDark)` in `src/lib/mapTheme.js` (CartoDB `dark_all` in dark, `light_all` / Positron in light). Floating overlays (JobDrawer, WasherMenu, OnlinePill, EarningsWidget) use semantic tokens and adapt automatically when `.dark` flips. The non-map shell (`WasherShell`) continues to respect `display_preference` for Earnings, Settings, Shop, and Support.
 
 ### Primary palette (green)
 
@@ -402,11 +402,12 @@ Currently not implemented. When added: replace `y` transitions with instant opac
 
 ### Washer WorkerMap (`WorkerMap.jsx`)
 
-- Tile: CartoDB Dark (`dark_all`) — dark tiles so green markers pop
+- Tile: CartoDB Dark (`dark_all`) in dark mode, CartoDB Positron (`light_all`) in light mode — see `src/lib/mapTheme.js`. The `<TileLayer>` is `key`'d on the URL so Leaflet re-mounts it cleanly when the theme flips.
 - Washer position: CSS-animated `washer-dot` (core + pulsing ring, `WasherMarker.css`)
 - Job pins: `job-pin-dot` 12×12px CSS dots
-- Route polyline: `color="#7DD9A2"`, `weight=3`, `opacity=0.85`, `dashArray="6 8"`
-- Suspense fallback: `<MapBG dark className="absolute inset-0 w-full h-full" />` while lazy chunk loads
+- Route polyline: `color={routeColor(isDark)}` — `#7DD9A2` (primary-500) on dark tiles, `#26B55F` (primary-700) on light tiles for contrast. `weight=3`, `opacity=0.85`, `dashArray="6 8"` unchanged.
+- Marker contrast: the Leaflet container carries `map-light` / `map-dark` (`mapThemeClass(isDark)`). On `light_all` tiles, `.map-light` overrides in `WasherMarker.css` swap the washer dot core to `primary-700` with a `primary-800` halo, and swap the job-pin fill to `primary-700` with a white outline.
+- Suspense fallback: `<MapBG dark={isDark} className="absolute inset-0 w-full h-full" />` while lazy chunk loads — light/dark to match.
 
 ### Consumer Order Tracking MapBG (static placeholder)
 

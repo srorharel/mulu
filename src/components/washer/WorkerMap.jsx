@@ -5,9 +5,8 @@ import { LocateFixed } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import 'leaflet/dist/leaflet.css'
 import './WasherMarker.css'
-
-const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const DARK_ATTR  = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+import { useTheme } from '../../hooks/useTheme.js'
+import { mapTiles, routeColor, mapThemeClass } from '../../lib/mapTheme.js'
 
 const DEFAULT_CENTER   = [31.7683, 35.2137] // Jerusalem fallback
 const FOLLOW_ZOOM      = 16
@@ -216,8 +215,11 @@ function FollowLayer({ washerPosition, activeJob, followPaused, setFollowPaused 
 //   onJobPinTap     (jobId) => void
 export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap }) {
   const { t } = useTranslation()
+  const { isDark } = useTheme()
   const [followPaused, setFollowPaused] = useState(false)
   const mapRef = useRef(null)
+
+  const tiles = mapTiles(isDark)
 
   useEffect(() => {
     if (!activeJob) setFollowPaused(false)
@@ -243,7 +245,7 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
   }
 
   return (
-    <div dir="ltr" className="absolute inset-0 isolate">
+    <div dir="ltr" className={`absolute inset-0 isolate ${mapThemeClass(isDark)}`}>
       <MapContainer
         center={initialCenter}
         zoom={FOLLOW_ZOOM}
@@ -251,7 +253,14 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={false}
       >
-        <TileLayer url={DARK_TILES} attribution={DARK_ATTR} />
+        {/* key on URL → Leaflet re-mounts the TileLayer when theme flips */}
+        <TileLayer
+          key={tiles.url}
+          url={tiles.url}
+          attribution={tiles.attribution}
+          subdomains={tiles.subdomains}
+          maxZoom={tiles.maxZoom}
+        />
 
         <MapCapture mapRef={mapRef} />
         <WasherMarkerLayer position={washerPosition} />
@@ -272,7 +281,7 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
                 [activeJob.lat,      activeJob.lng],
               ]
             }
-            color="#7DD9A2"
+            color={routeColor(isDark)}
             weight={3}
             opacity={0.85}
             dashArray="6 8"

@@ -57,3 +57,22 @@
   border: 2.5px solid #ffffff;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }
+
+/* ── Light-tile overrides (scoped to .map-light on the Leaflet container) ────
+   The default marker colours were tuned for CartoDB dark_all. On the pale
+   light_all (Positron) tiles, the mint primary-500/400 washes out — bump to
+   primary-700 (#26B55F) for the dot/pin core and add a darker halo for the
+   washer dot so it remains the focal point.
+   ──────────────────────────────────────────────────────────────────────── */
+.map-light .washer-dot__core {
+  background: #26B55F;                /* primary-700 — darker core on pale tiles */
+  box-shadow: 0 0 0 2px #1C8747;      /* primary-800 halo for contrast */
+}
+.map-light .washer-dot__ring {
+  border-color: #26B55F;              /* match darker core */
+}
+
+.map-light .job-pin-dot {
+  background: #26B55F;                /* primary-700 */
+  box-shadow: 0 0 0 2px #ffffff, 0 1px 3px rgba(0, 0, 0, 0.25);
+}

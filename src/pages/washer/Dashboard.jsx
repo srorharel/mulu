@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
+import { useTheme } from '../../hooks/useTheme.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useNearbyJobs } from '../../hooks/useNearbyJobs.js'
 import { payoutForTier } from '../../lib/payout.js'
@@ -181,6 +182,7 @@ export default function WasherDashboard() {
   const { user }                    = useAuth()
   const showToast                   = useToast()
   const { t }                       = useTranslation()
+  const { isDark }                  = useTheme()
   const location                    = useLocation()
 
   const [online, setOnline]               = useState(profile?.is_online ?? false)
@@ -303,8 +305,8 @@ export default function WasherDashboard() {
   return (
     <div className="relative h-full">
 
-      {/* ── Real map (lazy) — dark MapBG as Suspense fallback ── */}
-      <Suspense fallback={<MapBG dark className="absolute inset-0 w-full h-full" />}>
+      {/* ── Real map (lazy) — MapBG (theme-matched) as Suspense fallback ── */}
+      <Suspense fallback={<MapBG dark={isDark} className="absolute inset-0 w-full h-full" />}>
         <WorkerMap
           washerPosition={position}
           jobs={jobs}
