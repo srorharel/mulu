@@ -32,6 +32,7 @@ export const resources = {
       },
       dashboard: {
         tabs: {
+          jobs:       'Live Jobs',
           content:    'Content',
           branding:   'Branding',
           broadcasts: 'Broadcasts',
@@ -73,6 +74,7 @@ export const resources = {
       },
       dashboard: {
         tabs: {
+          jobs:       'הזמנות חיות',
           content:    'תוכן',
           branding:   'מיתוג',
           broadcasts: 'התראות',

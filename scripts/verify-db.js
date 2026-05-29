@@ -499,6 +499,70 @@ const coRealtime = await q(`
 if (coRealtime.length > 0) pass('content_overrides on supabase_realtime publication')
 else                       fail('content_overrides on supabase_realtime publication', 'missing')
 
+// ── 7g. Admin Live Jobs (0081–0083) ──────────────────────────────────────────
+
+console.log('\n── admin_order_audit + admin RPCs ───────────────────────────')
+
+const aoaTable = await q(`
+  SELECT rowsecurity FROM pg_tables
+  WHERE schemaname = 'public' AND tablename = 'admin_order_audit'
+`)
+if (aoaTable.length === 0)               fail('public.admin_order_audit', 'table missing')
+else if (!aoaTable[0].rowsecurity)       fail('public.admin_order_audit', 'RLS disabled')
+else                                      pass('public.admin_order_audit exists, RLS enabled')
+
+const aoaPolicies = await q(`
+  SELECT policyname FROM pg_policies
+  WHERE schemaname = 'public' AND tablename = 'admin_order_audit'
+`)
+for (const pol of ['admin_order_audit super_admin read', 'admin_order_audit super_admin write']) {
+  if (aoaPolicies.find(p => p.policyname === pol)) pass(`admin_order_audit: ${pol}`)
+  else                                              fail(`admin_order_audit: ${pol}`, 'missing')
+}
+
+const adminRpcs = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('admin_reassign_washer', 'admin_override_order_price',
+                      'admin_create_order_for_consumer', 'admin_log_photo_replacement')
+`)
+const adminFnNames = new Set(adminRpcs.map(r => r.proname))
+for (const fn of ['admin_reassign_washer','admin_override_order_price','admin_create_order_for_consumer','admin_log_photo_replacement']) {
+  if (adminFnNames.has(fn)) pass(`${fn}() exists`)
+  else                       fail(`${fn}()`, 'missing — check 0082')
+}
+
+const createdByAdminCol = await q(`
+  SELECT column_name FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'created_by_admin'
+`)
+if (createdByAdminCol.length > 0) pass('orders.created_by_admin column present')
+else                              fail('orders.created_by_admin', 'missing — check 0082')
+
+// transition_order_status now takes 5 args (5th = boolean default false)
+const tosArgs = await q(`
+  SELECT pg_get_function_arguments(p.oid) AS args
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname = 'transition_order_status'
+`)
+if (tosArgs.length === 0) fail('transition_order_status', 'not found')
+else {
+  const args = tosArgs[0].args
+  if (/p_admin_override\s+boolean/.test(args)) pass('transition_order_status has p_admin_override boolean DEFAULT false')
+  else                                          fail('transition_order_status', `missing p_admin_override — args: ${args}`)
+}
+
+const adminStoragePolicies = await q(`
+  SELECT policyname FROM pg_policies
+  WHERE schemaname='storage' AND tablename='objects'
+    AND policyname IN ('super_admin_write_car_photos','super_admin_write_job_evidence',
+                       'super_admin_read_car_photos','super_admin_read_job_evidence')
+`)
+for (const pol of ['super_admin_write_car_photos','super_admin_write_job_evidence','super_admin_read_car_photos','super_admin_read_job_evidence']) {
+  if (adminStoragePolicies.find(p => p.policyname === pol)) pass(`storage.objects: ${pol} policy present`)
+  else                                                       fail(`storage.objects: ${pol}`, 'missing — check 0082')
+}
+
 // ── 7a. Super-admin role + helper (0069) ─────────────────────────────────────
 
 console.log('\n── Roles / super_admin ──────────────────────────────────────')
