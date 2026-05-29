@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { getVerificationSignedUrl, reviewVerification } from '../lib/washerVerifications.js'
 import i18n from '../i18n'
 import Pill from './Pill.jsx'
+import Editable from './editable/Editable.jsx'
 
 function timeAgo(dateStr) {
   if (!dateStr) return '—'
@@ -159,6 +160,7 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
   }
 
   return (
+    <Editable id="support.verifications.row">
     <div className="border border-edge rounded-2xl bg-surface-elevated p-4 flex flex-col gap-4">
 
       {/* Header */}
@@ -370,5 +372,6 @@ export default function WasherVerificationRow({ verification, onReviewed }) {
 
       </div>
     </div>
+    </Editable>
   )
 }

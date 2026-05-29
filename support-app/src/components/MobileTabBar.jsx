@@ -1,5 +1,6 @@
 import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import Editable from './editable/Editable.jsx'
 
 const TABS = [
   { id: 'conv',                Icon: MessageSquare, labelKey: 'nav.chat' },
@@ -22,6 +23,7 @@ function Badge({ count }) {
 export default function MobileTabBar({ activeTab, onTabChange, counts = {} }) {
   const { t } = useTranslation()
   return (
+    <Editable id="support.dashboard.tabBar">
     <nav
       className="md:hidden flex items-end justify-around border-t border-edge bg-surface-elevated shrink-0"
       style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
@@ -44,5 +46,6 @@ export default function MobileTabBar({ activeTab, onTabChange, counts = {} }) {
         )
       })}
     </nav>
+    </Editable>
   )
 }

@@ -12,6 +12,7 @@ import MessageBubble from './MessageBubble.jsx'
 import MessageComposer from './MessageComposer.jsx'
 import TypingIndicator from './TypingIndicator.jsx'
 import Pill from './Pill.jsx'
+import Editable from './editable/Editable.jsx'
 
 function nameToHue(name = '') {
   let h = 0
@@ -125,6 +126,7 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
   return (
     <div className="flex-1 flex flex-col min-w-0 border-r border-edge" style={{ background: 'var(--color-surface)' }}>
       {/* Chat header */}
+      <Editable id="support.chatPane.header">
       <div className="flex items-center gap-2 md:gap-3.5 px-3 md:px-[22px] py-3 md:py-3.5 border-b border-edge bg-surface-elevated shrink-0">
         {/* Mobile back button */}
         {onBack && (
@@ -209,6 +211,7 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
           )}
         </div>
       </div>
+      </Editable>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-[22px] py-5 flex flex-col gap-1">

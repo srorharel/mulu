@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHistoryDismissible } from '../../hooks/useHistoryDismissible.js'
 import { useSupportUnread } from '../../hooks/useSupportUnread.js'
+import Editable from '../editable/Editable.jsx'
 
 const MENU_SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
@@ -80,6 +81,7 @@ export default function WasherMenu({ open, onClose, online }) {
           />
 
           {/* Menu panel */}
+          <Editable id="washer.dashboard.menu">
           <motion.div
             key="menu"
             ref={menuRef}
@@ -150,6 +152,7 @@ export default function WasherMenu({ open, onClose, online }) {
               </motion.button>
             </div>
           </motion.div>
+          </Editable>
         </>
       )}
     </AnimatePresence>

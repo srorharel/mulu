@@ -9,6 +9,7 @@ import { useToast } from '../../components/ui/Toast.jsx'
 import { HistoryRowSkeleton } from '../../components/Skeleton.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 // pending_approval is intentionally excluded: wash is done from the consumer's
 // perspective, so the row uses the same muted chrome as completed.
@@ -196,8 +197,8 @@ export default function OrderHistory() {
                       const isLast   = idx === group.orders.length - 1
 
                       return (
+                        <Editable key={order.id} id="consumer.history.row">
                         <motion.div
-                          key={order.id}
                           whileTap={{ scale: 0.99 }}
                           transition={SPRING}
                         >
@@ -239,6 +240,7 @@ export default function OrderHistory() {
                             </div>
                           </Link>
                         </motion.div>
+                        </Editable>
                       )
                     })}
                   </GlassCard>

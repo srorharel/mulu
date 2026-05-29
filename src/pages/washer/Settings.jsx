@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useTheme.js'
 import { useLocale } from '../../hooks/useLocale.js'
 import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
 import PillRow from '../../components/settings/PillRow.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 
@@ -104,6 +105,7 @@ export default function Settings() {
         <h1 className="text-xl font-bold text-ink">{t('washer.settings.title')}</h1>
 
         {/* ── 1. Job alert sound (in-app ping) ──────────────────────── */}
+        <Editable id="washer.settings.section">
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">
           <p className="text-sm font-semibold text-ink">{t('washer.settings.ringtone.label')}</p>
           <GridPill
@@ -114,6 +116,7 @@ export default function Settings() {
           />
           <p className="text-xs text-ink-muted/70">{t('washer.settings.ringtone.hint')}</p>
         </section>
+        </Editable>
 
         {/* ── 2. Display ────────────────────────────────────────────── */}
         <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-5 flex flex-col gap-3">

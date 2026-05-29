@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import StatusTimeline from '../StatusTimeline.jsx'
+import Editable from '../editable/Editable.jsx'
 import OrderChatSheet from '../chat/OrderChatSheet.jsx'
 import PhotoLightbox from '../ui/PhotoLightbox.jsx'
 import { VAT_RATE } from '../../lib/pricing.js'
@@ -941,6 +942,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
         </div>
       ) : (
         /* Job-list header: title + count/loading */
+        <Editable id="washer.dashboard.jobDrawerHead">
         <div className="px-4 pb-3 shrink-0 flex items-center justify-between gap-3">
           <div className="flex flex-col gap-0.5 min-w-0">
             <p className="text-base font-bold text-ink leading-tight">{drawerTitle}</p>
@@ -954,6 +956,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
             )}
           </div>
         </div>
+        </Editable>
       )}
 
       {/* Body */}

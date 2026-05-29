@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
+import Editable from './editable/Editable.jsx'
 
 function nameToHue(name = '') {
   let h = 0
@@ -57,6 +58,7 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
       : 'var(--color-ink-muted)'
 
   return (
+    <Editable id="support.queue.row">
     <button
       onClick={onClick}
       className="w-full text-start relative transition-colors"
@@ -157,5 +159,6 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
         </span>
       )}
     </button>
+    </Editable>
   )
 }

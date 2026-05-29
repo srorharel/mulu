@@ -8,6 +8,7 @@ import { useToast } from '../../components/ui/Toast.jsx'
 import { payoutForTier } from '../../lib/payout.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import Badge from '../../components/ui/Badge.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 export default function JobDetail() {
   const { id } = useParams()
@@ -154,10 +155,12 @@ export default function JobDetail() {
         )}
 
         {order.status === 'pending' && (
+          <Editable id="washer.job.acceptCta">
           <button onClick={acceptJob} disabled={accepting} className="btn-primary mt-auto">
             {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {accepting ? t('washer.jobDetail.accepting') : t('washer.jobDetail.acceptJob')}
           </button>
+          </Editable>
         )}
       </div>
     </PageShell>

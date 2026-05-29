@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { priceBreakdown, VAT_RATE } from '../../lib/pricing.js'
 import { PAYOUT_BY_TIER, UNRATED_PAYOUT, RATING_GATE_JOBS, payoutForTier } from '../../lib/payout.js'
 import PageShell from '../../components/ui/PageShell.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 const container = {
   hidden: {},
@@ -40,6 +41,7 @@ function TierLadder({ profile, t }) {
   const currentPayout = payoutForTier(tier)
 
   return (
+    <Editable id="washer.earnings.tierCard">
     <motion.div variants={tileVariant} className="col-span-2 bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3">
       {/* Heading */}
       <div>
@@ -103,6 +105,7 @@ function TierLadder({ profile, t }) {
         </p>
       )}
     </motion.div>
+    </Editable>
   )
 }
 

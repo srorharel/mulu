@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { validateAttachment } from '../lib/support.js'
 import CannedResponseMenu from './CannedResponseMenu.jsx'
 import EmojiPickerButton from './chat/EmojiPickerButton.jsx'
+import Editable from './editable/Editable.jsx'
 
 export default function MessageComposer({ onSend, onTyping, disabled }) {
   const { t } = useTranslation()
@@ -106,6 +107,7 @@ export default function MessageComposer({ onSend, onTyping, disabled }) {
   const canSend = (text.trim().length > 0 || !!attachment) && !sending && !disabled
 
   return (
+    <Editable id="support.chatPane.composer">
     <div className="border-t border-edge bg-surface-elevated px-3 py-2.5 relative shrink-0">
       {cannedQuery !== null && (
         <CannedResponseMenu
@@ -181,5 +183,6 @@ export default function MessageComposer({ onSend, onTyping, disabled }) {
         onChange={handleFileChange}
       />
     </div>
+    </Editable>
   )
 }

@@ -13,6 +13,7 @@ import OrderChatSheet from '../../components/chat/OrderChatSheet.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import MapBG from '../../components/ui/MapBG.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 const CANCELLABLE = new Set(['pending', 'accepted'])
 
@@ -307,6 +308,7 @@ export default function OrderTracking() {
 
         <div className="px-4 pb-8 flex flex-col gap-4">
           {/* Status heading */}
+          <Editable id="consumer.tracking.statusCard">
           <div className="pt-1">
             <p className="text-[12px] font-semibold text-primary-700 uppercase tracking-[0.3px] leading-none">
               {heading}
@@ -317,6 +319,7 @@ export default function OrderTracking() {
               </p>
             ) : null}
           </div>
+          </Editable>
 
           <TrackingDots status={order.status} t={t} />
 

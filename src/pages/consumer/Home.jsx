@@ -366,6 +366,7 @@ export default function ConsumerHome() {
           )}
 
           {/* ── Location card ── */}
+          <Editable id="consumer.home.locationSheetHeader">
           <MotionButton
             type="button"
             onClick={() => setSheetOpen(true)}
@@ -395,8 +396,10 @@ export default function ConsumerHome() {
               <ChevronRight className="h-5 w-5" />
             </div>
           </MotionButton>
+          </Editable>
 
           {/* ── Vehicle card ── */}
+          <Editable id="consumer.home.vehiclePicker">
           <GlassCard className="p-4">
             <div className="flex justify-between items-center mb-2.5">
               <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
@@ -429,8 +432,10 @@ export default function ConsumerHome() {
               />
             )}
           </GlassCard>
+          </Editable>
 
           {/* ── Photos card ── */}
+          <Editable id="consumer.home.carPhotoSection">
           <GlassCard className="p-4">
             <div className="flex justify-between items-start mb-2.5">
               <div>
@@ -453,6 +458,7 @@ export default function ConsumerHome() {
               <p className="text-[12px] text-ink-muted mt-2">{t('consumer.home.submit.needsPhotos')}</p>
             )}
           </GlassCard>
+          </Editable>
 
           {/* ── Site resources ── */}
           <div className="grid grid-cols-2 gap-2.5">

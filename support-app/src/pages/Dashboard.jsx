@@ -18,6 +18,7 @@ import UserPanel from '../components/UserPanel.jsx'
 import ApprovalRow from '../components/ApprovalRow.jsx'
 import WasherVerificationRow from '../components/WasherVerificationRow.jsx'
 import Pill from '../components/Pill.jsx'
+import Editable from '../components/editable/Editable.jsx'
 
 // ── Approvals view ─────────────────────────────────────────────────────────────
 
@@ -249,6 +250,7 @@ function TicketsView() {
 function TicketListItem({ ticket, selected, onSelect }) {
   const { t } = useTranslation()
   return (
+    <Editable id="support.tickets.row">
     <button
       key={ticket.id}
       onClick={() => onSelect(ticket)}
@@ -276,6 +278,7 @@ function TicketListItem({ ticket, selected, onSelect }) {
         {new Date(ticket.created_at).toLocaleDateString()}
       </p>
     </button>
+    </Editable>
   )
 }
 

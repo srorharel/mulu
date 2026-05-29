@@ -8,6 +8,7 @@ import AppearanceSection from '../../components/settings/AppearanceSection.jsx'
 import PillRow from '../../components/settings/PillRow.jsx'
 import { useLocale } from '../../hooks/useLocale.js'
 import { useToast } from '../../components/ui/Toast.jsx'
+import Editable from '../../components/editable/Editable.jsx'
 
 const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
@@ -41,6 +42,7 @@ export default function ConsumerSettings() {
 
           <AppearanceSection />
 
+          <Editable id="consumer.settings.section">
           <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-5 flex flex-col gap-3">
             <p className="text-sm font-semibold text-ink">{t('settings.language.label')}</p>
             <p className="text-sm text-ink-muted">{t('settings.language.helper')}</p>
@@ -55,6 +57,7 @@ export default function ConsumerSettings() {
               }}
             />
           </section>
+          </Editable>
 
           <GlassCard className="p-0 overflow-hidden">
             <button
