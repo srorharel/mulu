@@ -12,6 +12,7 @@ const ACTION_LABEL = {
   admin_create_order:  'Created order',
   cancel:              'Cancelled (admin)',
   force_complete:      'Force-completed',
+  force_stage:         'Forced stage',
 }
 
 export default function AdminAuditTimeline({ orderId }) {

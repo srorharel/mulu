@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { X, AlertCircle, CheckCircle2, UserCog, Wallet, Camera, Ban, ShieldCheck, MessageSquare, History } from 'lucide-react'
+import { X, AlertCircle, AlertTriangle, CheckCircle2, UserCog, Wallet, Camera, Ban, ArrowLeftRight, MessageSquare, History } from 'lucide-react'
 import {
   fetchJobDetail, fetchProfileBrief, fetchOrderEvents, fetchOrderMessages,
   fetchAvailableWashers, signedUrlFor, uploadReplacement, logPhotoReplacement,
-  adminTransitionStatus, adminReassignWasher, adminOverridePrice,
+  adminTransitionStatus, adminReassignWasher, adminOverridePrice, forceOrderStage,
   statusColor, PHOTO_FIELDS, bucketForField,
+  FORCE_STAGES, forceStageWarnings, isBackwardForce,
 } from '../../lib/adminJobs.js'
 import { supabase } from '../../lib/supabase.js'
 import AdminAuditTimeline from './AdminAuditTimeline.jsx'
@@ -110,6 +111,7 @@ export default function JobDetail({ orderId, onClose, onChanged }) {
                 disabled={['completed','cancelled'].includes(order.status)} />
               <ActionBtn onClick={() => setSection('complete')}  icon={CheckCircle2} label="Force complete"
                 disabled={['completed','cancelled'].includes(order.status)} />
+              <ActionBtn onClick={() => setSection('force_stage')} icon={ArrowLeftRight} label="Force stage" />
             </div>
 
             {/* Sub-sections */}
@@ -141,6 +143,13 @@ export default function JobDetail({ orderId, onClose, onChanged }) {
                 confirmLabel="Force complete"
                 busy={busy}
                 onConfirm={async () => { await doTransition('completed') }}
+                onCancel={() => setSection(null)}
+              />
+            )}
+            {section === 'force_stage' && (
+              <ForceStageSection
+                order={order}
+                onDone={() => { setSection(null); load(); onChanged?.() }}
                 onCancel={() => setSection(null)}
               />
             )}
@@ -398,6 +407,107 @@ function ConfirmReason({ title, hint, confirmLabel, busy, destructive, onConfirm
         busy={busy}
         onCancel={() => setOpen(false)}
         onConfirm={async () => { await onConfirm?.(reason); setOpen(false) }}
+      />
+    </section>
+  )
+}
+
+// Force stage — set the order to ANY status (forward, backward, skipping).
+// Exported for unit testing in isolation from the data-loading JobDetail shell.
+export function ForceStageSection({ order, onDone, onCancel }) {
+  const [target, setTarget] = useState('')
+  const [reason, setReason] = useState('')
+  const [busy, setBusy]     = useState(false)
+  const [error, setError]   = useState(null)
+  const [open, setOpen]     = useState(false)
+
+  const current  = order.status
+  const warnings = target ? forceStageWarnings(current, target) : []
+  const canApply = !!target && target !== current && reason.trim().length > 0
+
+  async function doForce() {
+    setBusy(true); setError(null)
+    try {
+      await forceOrderStage(order.id, target, reason)
+      setOpen(false)
+      onDone?.()
+    } catch (e) {
+      setError(e.message); setBusy(false); setOpen(false)
+    }
+  }
+
+  return (
+    <section className="card flex flex-col gap-3">
+      <h3 className="font-semibold text-ink flex items-center gap-2"><ArrowLeftRight size={14} /> Force stage</h3>
+      <p className="text-[12px] text-ink-muted">
+        Set this order to any stage — forward, backward, or skipping — to match reality. Reason required; every change is audited.
+      </p>
+
+      {/* Stage picker — all 8 statuses, current one marked */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        {FORCE_STAGES.map(s => {
+          const isCurrent = s === current
+          const selected  = s === target
+          return (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setTarget(s)}
+              className={`px-2 py-1.5 rounded-xl border text-[11px] font-semibold uppercase tracking-wider text-center leading-tight transition ${
+                selected
+                  ? 'border-admin bg-admin-soft text-admin-deep'
+                  : 'border-edge text-ink-muted hover:bg-surface-elevated-2'
+              }`}
+            >
+              {s}
+              {isCurrent && <span className="block text-[8.5px] font-normal lowercase tracking-normal text-ink-subtle">current</span>}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Contextual side-effect warnings (informational — action still allowed) */}
+      {warnings.map((w, i) => (
+        <div
+          key={i}
+          role="alert"
+          className={`flex items-start gap-2 px-3 py-2 rounded-xl border text-[11.5px] leading-relaxed ${
+            w.tone === 'warn'
+              ? 'border-warning/40 bg-warning/10 text-warning'
+              : 'border-edge bg-surface-elevated-2 text-ink-muted'
+          }`}
+        >
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>{w.text}</span>
+        </div>
+      ))}
+
+      <textarea
+        rows={2}
+        className="input"
+        placeholder="Reason (required)"
+        value={reason}
+        onChange={e => setReason(e.target.value)}
+      />
+      {error && <p className="text-xs text-danger font-mono">{error}</p>}
+
+      <div className="flex gap-2 justify-end">
+        <button className="btn-ghost" onClick={onCancel}>Cancel</button>
+        <button className="btn-primary" disabled={!canApply || busy} onClick={() => setOpen(true)}>
+          {busy ? 'Working…' : 'Force stage'}
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={open}
+        title={`Force stage → ${target}`}
+        message={`Set status "${current}" → "${target}". Reason: ${reason.trim() || '(none)'}`}
+        confirmLabel="Force stage"
+        destructive={isBackwardForce(current, target)}
+        busy={busy}
+        onCancel={() => setOpen(false)}
+        onConfirm={doForce}
       />
     </section>
   )

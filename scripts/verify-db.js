@@ -524,12 +524,30 @@ const adminRpcs = await q(`
   SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public'
     AND p.proname IN ('admin_reassign_washer', 'admin_override_order_price',
-                      'admin_create_order_for_consumer', 'admin_log_photo_replacement')
+                      'admin_create_order_for_consumer', 'admin_log_photo_replacement',
+                      'admin_force_order_stage')
 `)
 const adminFnNames = new Set(adminRpcs.map(r => r.proname))
 for (const fn of ['admin_reassign_washer','admin_override_order_price','admin_create_order_for_consumer','admin_log_photo_replacement']) {
   if (adminFnNames.has(fn)) pass(`${fn}() exists`)
   else                       fail(`${fn}()`, 'missing — check 0082')
+}
+if (adminFnNames.has('admin_force_order_stage')) pass('admin_force_order_stage() exists')
+else                                              fail('admin_force_order_stage()', 'missing — check 0101')
+
+// admin_order_audit.action CHECK must accept 'force_stage' (0101)
+const aoaActionCheck = await q(`
+  SELECT pg_get_constraintdef(c.oid) AS def
+  FROM pg_constraint c
+  JOIN pg_class t      ON t.oid = c.conrelid
+  JOIN pg_namespace n  ON n.oid = t.relnamespace
+  WHERE n.nspname = 'public' AND t.relname = 'admin_order_audit'
+    AND c.contype = 'c' AND c.conname = 'admin_order_audit_action_check'
+`)
+if (aoaActionCheck.length && /force_stage/.test(aoaActionCheck[0].def)) {
+  pass("admin_order_audit action CHECK includes 'force_stage'")
+} else {
+  fail('admin_order_audit action CHECK', "missing 'force_stage' — check 0101")
 }
 
 const createdByAdminCol = await q(`

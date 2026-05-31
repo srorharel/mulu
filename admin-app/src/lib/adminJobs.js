@@ -163,6 +163,21 @@ export async function adminTransitionStatus({ orderId, newStatus, washerLat = nu
   if (error) throw error
 }
 
+// Force an order to ANY status (forward, backward, or skipping). Reason is
+// mandatory — enforced here client-side AND again server-side by the RPC.
+// Writes a single admin_order_audit row (action='force_stage', reason in the
+// reason column + payload) via the GUC-tagged transition_order_status path.
+export async function forceOrderStage(orderId, toStatus, reason) {
+  const clean = (reason ?? '').trim()
+  if (!clean) throw new Error('reason_required')
+  const { error } = await supabase.rpc('admin_force_order_stage', {
+    p_order_id:  orderId,
+    p_to_status: toStatus,
+    p_reason:    clean,
+  })
+  if (error) throw error
+}
+
 export async function adminReassignWasher({ orderId, newWasherId, reason }) {
   const { error } = await supabase.rpc('admin_reassign_washer', {
     p_order_id:      orderId,
@@ -202,6 +217,60 @@ export async function adminCreateOrderForConsumer(payload) {
 export const STATUSES = [
   'all','pending','accepted','en_route','arrived','in_progress','pending_approval','completed','cancelled',
 ]
+
+// ── Force-stage stage model + side-effect warnings ──────────────────────────
+// The linear lifecycle. `cancelled` is OFF-sequence (a terminal divergence), so
+// it is not part of forward/backward distance math.
+export const STAGE_SEQUENCE = [
+  'pending','accepted','en_route','arrived','in_progress','pending_approval','completed',
+]
+// What the Force-stage picker offers — every concrete status (8).
+export const FORCE_STAGES = [...STAGE_SEQUENCE, 'cancelled']
+
+export function isBackwardForce(current, target) {
+  const c = STAGE_SEQUENCE.indexOf(current)
+  const t = STAGE_SEQUENCE.indexOf(target)
+  return c >= 0 && t >= 0 && t < c
+}
+
+export function isForwardSkip(current, target) {
+  const c = STAGE_SEQUENCE.indexOf(current)
+  const t = STAGE_SEQUENCE.indexOf(target)
+  return c >= 0 && t >= 0 && t > c + 1
+}
+
+// Returns the contextual consequences of a forced move as [{ tone, text }].
+// tone: 'warn' (amber, irreversible side-effect) | 'note' (informational).
+export function forceStageWarnings(current, target) {
+  if (!target || target === current) return []
+  const out = []
+  const c = STAGE_SEQUENCE.indexOf(current)
+  const acceptedIdx = STAGE_SEQUENCE.indexOf('accepted')
+  const backward = isBackwardForce(current, target)
+
+  if (current === 'completed' && target !== 'completed') {
+    out.push({ tone: 'warn', text: 'This order was completed. Payout may already be recorded and a rating may have been requested. Forcing it back does NOT reverse payout or un-send notifications already delivered.' })
+  }
+  if (current === 'pending_approval' && backward) {
+    out.push({ tone: 'warn', text: 'Submitted photos remain; the approval state will reset.' })
+  }
+  if (target === 'pending' && c >= acceptedIdx && current !== 'pending') {
+    out.push({ tone: 'warn', text: 'This may orphan the assigned washer. The washer is NOT automatically unassigned or re-notified.' })
+  }
+  if (backward && out.length === 0) {
+    out.push({ tone: 'warn', text: 'Forcing to an earlier stage does not undo side-effects (notifications, payouts, photos) already produced by later stages.' })
+  }
+  if (isForwardSkip(current, target)) {
+    out.push({ tone: 'note', text: "Skipping intermediate stages — intermediate events won't be recorded." })
+  }
+  if (target === 'cancelled') {
+    out.push({ tone: 'note', text: 'Cancels the order (admin override); cancelled_by is recorded as agent. Already-delivered notifications are not recalled.' })
+  }
+  if (current === 'cancelled' && STAGE_SEQUENCE.includes(target)) {
+    out.push({ tone: 'warn', text: 'This order was cancelled. Forcing it active again does not re-notify the consumer or washer, or restore prior state.' })
+  }
+  return out
+}
 
 export function statusColor(s) {
   switch (s) {

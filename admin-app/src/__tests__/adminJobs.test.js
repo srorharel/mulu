@@ -50,6 +50,7 @@ vi.mock('../lib/supabase.js', () => {
 import {
   fetchJobs, fetchProfileBrief, signedUrlFor, uploadReplacement, logPhotoReplacement,
   adminTransitionStatus, adminReassignWasher, adminOverridePrice, adminCreateOrderForConsumer,
+  forceOrderStage, FORCE_STAGES, isBackwardForce, isForwardSkip, forceStageWarnings,
   STATUSES, statusColor, PHOTO_FIELDS, bucketForField,
 } from '../lib/adminJobs.js'
 
@@ -85,6 +86,22 @@ describe('adminJobs RPC wrappers', () => {
       p_new_payout: 70,
       p_reason: 'comp',
     })
+  })
+
+  it('forceOrderStage calls admin_force_order_stage with trimmed args', async () => {
+    await forceOrderStage('o1', 'accepted', '  moved back to fix photos  ')
+    expect(rpcCalls).toHaveLength(1)
+    expect(rpcCalls[0]).toEqual({
+      name: 'admin_force_order_stage',
+      args: { p_order_id: 'o1', p_to_status: 'accepted', p_reason: 'moved back to fix photos' },
+    })
+  })
+
+  it('forceOrderStage rejects empty/whitespace reason client-side (no RPC fired)', async () => {
+    await expect(forceOrderStage('o1', 'accepted', '   ')).rejects.toThrow('reason_required')
+    await expect(forceOrderStage('o1', 'accepted', '')).rejects.toThrow('reason_required')
+    await expect(forceOrderStage('o1', 'accepted', null)).rejects.toThrow('reason_required')
+    expect(rpcCalls).toHaveLength(0)
   })
 
   it('adminCreateOrderForConsumer returns new order id', async () => {
@@ -146,6 +163,50 @@ describe('adminJobs display helpers', () => {
     expect(bucketForField('car_photo_front')).toBe('car-photos')
     expect(bucketForField('arrival_photo_back')).toBe('job-evidence')
     expect(bucketForField('completion_photo_driver')).toBe('job-evidence')
+  })
+})
+
+describe('force-stage helpers', () => {
+  it('FORCE_STAGES lists all 8 concrete statuses incl. cancelled', () => {
+    expect(FORCE_STAGES).toHaveLength(8)
+    expect(FORCE_STAGES).toContain('cancelled')
+    expect(FORCE_STAGES).not.toContain('all')
+  })
+  it('isBackwardForce true only when target is earlier in the linear sequence', () => {
+    expect(isBackwardForce('in_progress', 'accepted')).toBe(true)
+    expect(isBackwardForce('completed', 'pending')).toBe(true)
+    expect(isBackwardForce('accepted', 'in_progress')).toBe(false)
+    expect(isBackwardForce('accepted', 'cancelled')).toBe(false) // off-sequence
+  })
+  it('isForwardSkip true only when jumping more than one stage forward', () => {
+    expect(isForwardSkip('accepted', 'in_progress')).toBe(true)
+    expect(isForwardSkip('accepted', 'en_route')).toBe(false)
+    expect(isForwardSkip('in_progress', 'accepted')).toBe(false)
+  })
+  it('no warnings for a no-op (same status) or empty target', () => {
+    expect(forceStageWarnings('accepted', 'accepted')).toEqual([])
+    expect(forceStageWarnings('accepted', '')).toEqual([])
+  })
+  it('back from completed → payout/notification warning', () => {
+    const w = forceStageWarnings('completed', 'in_progress')
+    expect(w.some(x => x.tone === 'warn' && /payout/i.test(x.text))).toBe(true)
+  })
+  it('back from pending_approval → approval-reset warning', () => {
+    const w = forceStageWarnings('pending_approval', 'in_progress')
+    expect(w.some(x => /approval state will reset/i.test(x.text))).toBe(true)
+  })
+  it('→ pending from accepted+ → orphaned-washer warning', () => {
+    const w = forceStageWarnings('in_progress', 'pending')
+    expect(w.some(x => /orphan/i.test(x.text))).toBe(true)
+  })
+  it('generic backward warning when no specific one applies', () => {
+    const w = forceStageWarnings('arrived', 'en_route')
+    expect(w).toHaveLength(1)
+    expect(w[0].text).toMatch(/does not undo/i)
+  })
+  it('forward skip → lighter note', () => {
+    const w = forceStageWarnings('accepted', 'in_progress')
+    expect(w.some(x => x.tone === 'note' && /skipping intermediate/i.test(x.text))).toBe(true)
   })
 })
 

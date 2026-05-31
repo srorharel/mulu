@@ -336,9 +336,88 @@ async function smokeDesignEditor() {
   }
 }
 
+// ── P6b — Force stage (any status, forward + backward) ───────────────────────
+async function smokeForceStage() {
+  section('P6 — Force stage (forward, backward, backward-from-terminal)')
+  await impersonate(ADMIN_ID)
+
+  let orderId = null
+  try {
+    const createRes = await q(`
+      SELECT public.admin_create_order_for_consumer(
+        $1::uuid, 32.0853::double precision, 34.7818::double precision, 'private'::text,
+        '{"plate":"99-888-77","make":"Force","model":"Stage"}'::jsonb,
+        '{"water":false,"power":false}'::jsonb,
+        'smoke force-stage order'::text, false::boolean
+      ) AS id
+    `, [CONSUMER_ID])
+    orderId = createRes[0].id
+    if (orderId) pass(`created test order ${orderId.slice(0, 8)}…  (status=pending)`)
+    else { fail('force-stage: order create returned null'); return }
+
+    const forceStage = (toStatus, reason) =>
+      q(`SELECT public.admin_force_order_stage($1::uuid, $2::text, $3::text)`, [orderId, toStatus, reason])
+    const statusOf  = async () => (await q(`SELECT status FROM public.orders WHERE id = $1`, [orderId]))[0].status
+    const auditRow  = (from, to) => q(`
+      SELECT reason, payload FROM public.admin_order_audit
+       WHERE order_id = $1 AND action = 'force_stage'
+         AND payload->>'from_status' = $2 AND payload->>'to_status' = $3
+       ORDER BY created_at DESC LIMIT 1
+    `, [orderId, from, to])
+
+    // 1. Forward skip: pending → in_progress (skips accepted/en_route/arrived)
+    await forceStage('in_progress', 'smoke: forward skip pending to in_progress')
+    if (await statusOf() === 'in_progress') pass('forward-skip pending → in_progress applied')
+    else                                     fail('forward-skip did not set in_progress')
+    let a = await auditRow('pending', 'in_progress')
+    if (a.length && a[0].reason === 'smoke: forward skip pending to in_progress' && a[0].payload.reason)
+      pass('force_stage audit (pending→in_progress) carries reason in column + payload')
+    else fail('force_stage audit (pending→in_progress) missing/incomplete', JSON.stringify(a[0] ?? null))
+
+    // 2. Backward: in_progress → accepted
+    await forceStage('accepted', 'smoke: backward in_progress to accepted')
+    if (await statusOf() === 'accepted') pass('backward in_progress → accepted applied')
+    else                                  fail('backward did not set accepted')
+    a = await auditRow('in_progress', 'accepted')
+    if (a.length && a[0].reason === 'smoke: backward in_progress to accepted')
+      pass('force_stage audit (in_progress→accepted) carries reason')
+    else fail('force_stage audit (in_progress→accepted) missing', JSON.stringify(a[0] ?? null))
+
+    // 3. Forward to a terminal state: accepted → completed
+    await forceStage('completed', 'smoke: forward accepted to completed')
+    if (await statusOf() === 'completed') pass('forward accepted → completed applied')
+    else                                   fail('did not reach completed')
+
+    // 4. Backward FROM a terminal state: completed → in_progress (the 0101 unblock)
+    await forceStage('in_progress', 'smoke: backward from completed')
+    if (await statusOf() === 'in_progress') pass('backward FROM completed → in_progress applied (terminal-source unblocked)')
+    else                                     fail('could not move back from completed — terminal block still present?')
+    a = await auditRow('completed', 'in_progress')
+    if (a.length && a[0].reason === 'smoke: backward from completed')
+      pass('force_stage audit (completed→in_progress) carries reason')
+    else fail('force_stage audit (completed→in_progress) missing', JSON.stringify(a[0] ?? null))
+
+    // 5. Reason is mandatory — empty reason rejected SERVER-side
+    let rejected = false
+    try { await forceStage('accepted', '   ') }
+    catch (e) { rejected = true; pass(`empty reason rejected server-side (${e.message.slice(0, 50)})`) }
+    if (!rejected) fail('admin_force_order_stage accepted an empty reason (server-side enforcement broken)')
+
+  } finally {
+    await unimpersonate()
+    if (orderId) {
+      await client.query('DELETE FROM public.admin_order_audit WHERE order_id = $1', [orderId])
+      await client.query('DELETE FROM public.order_events       WHERE order_id = $1', [orderId])
+      await client.query('DELETE FROM public.orders             WHERE id       = $1', [orderId])
+      pass(`cleanup: deleted force-stage test order ${orderId.slice(0, 8)}…`)
+    }
+  }
+}
+
 // ── run ─────────────────────────────────────────────────────────────────────
 try {
   await smokeLiveJobs()
+  await smokeForceStage()
   await smokeUsers()
   await smokeDesignEditor()
 } catch (e) {
