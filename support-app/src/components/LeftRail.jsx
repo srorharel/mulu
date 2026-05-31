@@ -1,6 +1,6 @@
 import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import useBrandAsset from '../../../src/hooks/useBrandAsset.js'
+import useBrandAsset from '../hooks/useBrandAsset.js'
 import { supabase } from '../lib/supabase.js'
 
 function nameToHue(name = '') {

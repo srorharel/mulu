@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckSquare, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import useBrandAsset from '../../../src/hooks/useBrandAsset.js'
+import useBrandAsset from '../hooks/useBrandAsset.js'
 import { supabase } from '../lib/supabase.js'
 
 function StatChip({ label, value, color }) {

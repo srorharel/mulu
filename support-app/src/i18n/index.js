@@ -1,7 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { resources } from './resources.js'
-import { loadOverrides, subscribeContentOverrides } from '../../../src/lib/contentOverrides.js'
+import { loadOverrides, subscribeContentOverrides } from '../lib/contentOverrides.js'
 import { supabase } from '../lib/supabase.js'
 
 const STORAGE_KEY = 'support_locale'

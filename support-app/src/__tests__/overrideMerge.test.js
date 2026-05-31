@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import i18next from 'i18next'
 import { resources } from '../i18n/resources.js'
-import { loadOverrides } from '../../../src/lib/contentOverrides.js'
+import { loadOverrides } from '../lib/contentOverrides.js'
 
 // Regression: 2026-05 — installed support APK kept showing bundled strings
 // even after the super_admin had set an override row in content_overrides.

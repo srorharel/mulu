@@ -180,7 +180,7 @@ if ($committed) {
     Write-Host "  OK Pushed to GitHub - no new commit  (HEAD: $commitHash)" -ForegroundColor Green
 }
 
-Write-Host "  OK Vercel deploys triggered (main app + support app)" -ForegroundColor Green
+Write-Host "  OK Vercel deploys triggered via git push (main app + admin app + support app)" -ForegroundColor Green
 Write-Host "  OK Main APK: wash-latest.apk  ($($apkSizeMB) MB)" -ForegroundColor Green
 Write-Host "  OK Support APK: wash-support-latest.apk  ($($supportApkSizeMB) MB)" -ForegroundColor Green
 Write-Host ""
