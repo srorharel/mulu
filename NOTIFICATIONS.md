@@ -340,3 +340,59 @@ supabase/functions/send-notification/index.ts      Edge Function: FCM send + log
 android/app/src/main/res/raw/         Placeholder sound files (default, chime, bell, gentle)
 NOTIFICATIONS.md                      This file
 ```
+
+---
+
+## Current Implementation (post-v1)
+
+> The sections above are the original v1 design. The notes below capture what was built since (fan-out, broadcasts, promo opt-in, the 4 named Android channels, the expanded event set, and the required secrets), merged from CLAUDE.md. Where they differ from v1 above, these are authoritative.
+
+FCM push is delivered via three Supabase Edge Functions (`send-notification`, `fan-out-nearby-job`, `send-broadcast`) plus auxiliary admin helpers (`impersonate-redeem`, `admin-user-mgmt`). Native Capacitor only — web/PWA shows an inline toast for foreground notifications but does not register push tokens.
+
+### `send-notification` (`supabase/functions/send-notification/index.ts`)
+- Accepts `{ user_id, event_type, data }` from DB triggers (authenticated via `TRIGGER_SECRET`)
+- Checks `notification_preferences` (user opt-in) and `device_tokens` (FCM tokens)
+- Resolves locale from `profiles.locale`, picks i18n copy from an inline COPY map
+- Sends FCM HTTP v1; caches OAuth2 access token for 50 min across warm instances
+- Deletes dead tokens (`UNREGISTERED`/`INVALID_ARGUMENT`) automatically
+- Logs every attempt to `notification_log`
+
+### `fan-out-nearby-job` (`supabase/functions/fan-out-nearby-job/index.ts`)
+> Note: v1 listed "New Job Nearby" as a deferred follow-up — it is now implemented.
+- Called by `trg_notify_on_new_order` (single `net.http_post` per new order INSERT)
+- Calls `find_nearby_washers_for_order` RPC (default 15 km, configurable via `NEARBY_JOB_RADIUS_METERS`)
+- Batch-inserts into `order_washer_notifications` (dedup), then calls `send-notification` once per eligible washer
+- Re-run safe: already-notified washers excluded by the dedup table
+
+### `send-broadcast` (`supabase/functions/send-broadcast/index.ts`)
+- Called by `trigger_broadcast` RPC (super_admin only) via `net.http_post`; auth via `TRIGGER_SECRET`
+- Idempotency: rejects if the broadcast row's `sent_at` is non-null
+- Rate limit: rejects if any other broadcast was sent in the previous 10 minutes
+- Calls `resolve_broadcast_segment(id)` (0091 lets service_role through) → list of `user_id`s
+- `Promise.allSettled` POSTs `send-notification` per user with `event_type='admin_broadcast'` and title/body/route in `data`
+- Updates `sent_count` / `failed_count` / `sent_at` on the broadcast row
+
+### Supported event types
+`order_accepted`, `washer_on_way`, `washer_arrived`, `wash_completed`, `wash_pending_review`, `wash_complete_consumer`, `wash_declined`, `order_approved`, `order_cancelled`, `customer_cancelled`, `new_chat_message`, `new_job_nearby`, `support_message`, `support_resolved`, `tier_changed`, `admin_broadcast`
+
+### Promo opt-in (0073)
+`notification_preferences.promos_enabled` is a SEPARATE opt-in for `admin_broadcast`. `send-notification` short-circuits with `event_type='admin_broadcast' AND promos_enabled=false`. The transactional `enabled` flag still gates everything else — turning off promos does NOT silence order/support notifications. `NotificationsSection.jsx` renders a second toggle below the master one.
+
+### DB triggers
+- `trg_notify_on_order_change` (orders UPDATE, status change) → `pending_approval`: notifies washer (`wash_pending_review`); `completed`: notifies washer (`order_approved`) + consumer (`wash_complete_consumer`); `in_progress` from `pending_approval` (decline): notifies washer (`wash_declined`); `cancelled`: branches by `cancelled_by`
+- `trg_notify_on_new_order` (orders INSERT) → `fan-out-nearby-job`
+- `trg_notify_on_support_message` (support_messages INSERT, agent/system sender only)
+- `trg_notify_on_support_resolution` (support_conversations UPDATE, first terminal transition only)
+- `trg_notify_on_tier_change` (profiles UPDATE, non-null tier change only)
+
+### Client side (`src/lib/notifications.js`)
+- `initNotifications({ navigate, showToast })` — called once on login by `NotificationsInit` in the router; creates 4 Android notification channels (`wash_chirp`, `wash_chime`, `wash_bell`, `wash_gentle`) before `PushNotifications.register()`; upserts token into `device_tokens`
+- `unregisterToken()` — deletes the FCM token from DB on sign-out
+- `getOsPermissionState()` — returns `'granted'|'denied'|'prompt'|'web'`
+
+### Notification sounds (channel routing)
+Options: `chirp`, `chime`, `bell`, `gentle`. MP3 files in `public/sounds/{name}.mp3` (web preview) and `android/app/src/main/res/raw/{name}.mp3` (native). Stored in `notification_preferences.sound`; picked in the `NotificationsSection` component (shared by consumer `/profile/settings` and washer `/washer/settings`). The Edge Function sets `channel_id: wash_${sound}` so Android routes to the pre-created channel with the correct sound URI. Android O+ requires channel sound to be set at creation time — the 4 channels are created idempotently on every app init.
+
+### Required secrets
+- **Vault secrets:** `edge_function_url`, `service_role_key`, `fan_out_nearby_job_url`
+- **Edge Function secrets:** `TRIGGER_SECRET`, `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT_JSON`, `NEARBY_JOB_RADIUS_METERS`
