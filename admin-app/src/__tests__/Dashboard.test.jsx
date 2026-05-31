@@ -12,6 +12,10 @@ vi.mock('../pages/Branding.jsx',     () => ({ default: () => <div>BrandingStub</
 vi.mock('../pages/Broadcasts.jsx',   () => ({ default: () => <div>BroadcastsStub</div> }))
 vi.mock('../pages/DesignEditor.jsx', () => ({ default: () => <div>DesignStub</div> }))
 vi.mock('../pages/Config.jsx',       () => ({ default: () => <div>ConfigStub</div> }))
+vi.mock('../pages/Settings.jsx',     () => ({ default: () => <div>SettingsStub</div> }))
+// AdminBackground reads BackgroundContext (null without a provider) → renders the
+// plain base layer. Stub it so the Dashboard chrome test stays focused.
+vi.mock('../components/AdminBackground.jsx', () => ({ default: () => null }))
 
 const changeLanguage = vi.fn()
 vi.mock('react-i18next', () => ({

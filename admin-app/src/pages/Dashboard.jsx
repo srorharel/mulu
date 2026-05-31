@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FileText, Image, Megaphone, SlidersHorizontal, LogOut, Download, ClipboardList, Users as UsersIcon, Palette, Menu, History as HistoryIcon, MessagesSquare } from 'lucide-react'
+import { FileText, Image, Megaphone, SlidersHorizontal, LogOut, Download, ClipboardList, Users as UsersIcon, Palette, Menu, History as HistoryIcon, MessagesSquare, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import AdminBackground from '../components/AdminBackground.jsx'
 import Content from './Content.jsx'
 import Branding from './Branding.jsx'
 import Broadcasts from './Broadcasts.jsx'
@@ -13,6 +14,7 @@ import Users from './Users.jsx'
 import Chats from './Chats.jsx'
 import DesignEditor from './DesignEditor.jsx'
 import History from './History.jsx'
+import Settings from './Settings.jsx'
 
 const TABS = [
   { id: 'jobs',       icon: ClipboardList,      page: Jobs       },
@@ -24,6 +26,7 @@ const TABS = [
   { id: 'design',     icon: Palette,            page: DesignEditor },
   { id: 'config',     icon: SlidersHorizontal,  page: Config     },
   { id: 'history',    icon: HistoryIcon,        page: History    },
+  { id: 'appearance', icon: SettingsIcon,       page: Settings   },
 ]
 
 // Export every row of every config-shaped table as one JSON file. Lives on
@@ -166,9 +169,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-surface overflow-hidden text-ink">
-      {/* Persistent rail — desktop only. */}
-      <aside className="hidden lg:flex w-[240px] shrink-0 border-e border-edge bg-surface-elevated flex-col">
+    <div className="relative flex h-screen overflow-hidden text-ink">
+      {/* Personal background layer — fixed, behind everything (z-0). */}
+      <AdminBackground />
+
+      {/* Persistent rail — desktop only. Solid surface stays legible over any bg. */}
+      <aside className="relative z-10 hidden lg:flex w-[240px] shrink-0 border-e border-edge bg-surface-elevated flex-col">
         <Rail {...railProps} />
       </aside>
 
@@ -186,7 +192,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="relative z-10 flex-1 min-w-0 flex flex-col">
         {/* Mobile top app bar — hidden on desktop. */}
         <header className="lg:hidden flex items-center gap-2 h-14 shrink-0 border-b border-edge bg-surface-elevated px-3">
           <button

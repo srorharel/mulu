@@ -41,6 +41,7 @@ export const resources = {
           design:     'Design Editor',
           config:     'Config',
           history:    'History',
+          appearance: 'Appearance',
         },
         empty: {
           title: 'Nothing to show yet',
@@ -87,6 +88,7 @@ export const resources = {
           design:     'עורך עיצוב',
           config:     'הגדרות',
           history:    'היסטוריה',
+          appearance: 'מראה',
         },
         empty: {
           title: 'אין מה להציג עדיין',
