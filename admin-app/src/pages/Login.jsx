@@ -44,7 +44,7 @@ export default function Login() {
       >
         <div className="flex items-center gap-2.5 mb-1">
           <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-admin-deep">
-            wash / admin
+            MULU / admin
           </span>
         </div>
 

@@ -143,11 +143,11 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
     // Title + body come from the broadcast row itself (data.title_en/he,
     // data.body_en/he) so the owner controls copy per-locale per-broadcast.
     en: {
-      title: (d) => d.title_en ?? d.title ?? 'Wash',
+      title: (d) => d.title_en ?? d.title ?? 'MULU',
       body:  (d) => d.body_en  ?? d.body  ?? '',
     },
     he: {
-      title: (d) => d.title_he ?? d.title ?? 'Wash',
+      title: (d) => d.title_he ?? d.title ?? 'MULU',
       body:  (d) => d.body_he  ?? d.body  ?? '',
     },
   },

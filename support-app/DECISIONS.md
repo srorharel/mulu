@@ -1,4 +1,4 @@
-# Architecture Decisions — Wash Support App
+# Architecture Decisions — MULU Support App
 
 ## ADR-S01: Nested project under support-app/ (not a sibling repo)
 

@@ -1,4 +1,4 @@
-# Wash — Mobile Car Wash Marketplace
+# MULU — Mobile Car Wash Marketplace
 
 On-demand mobile car wash PWA. Connects car owners with washers who travel to the customer's location.
 

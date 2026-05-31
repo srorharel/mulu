@@ -1,4 +1,4 @@
-// Wash Support — Approvals, Tickets, Login
+// MULU Support — Approvals, Tickets, Login
 
 // ─────────────────────────────────────────────────────────────
 // APPROVALS — washer completed jobs awaiting review
@@ -13,7 +13,7 @@ function SupportApprovals() {
   ];
 
   return (
-    <DesktopWindow title="Wash · Support">
+    <DesktopWindow title="MULU · Support">
       <LeftRail active="approvals"/>
 
       {/* Approval queue list */}
@@ -296,7 +296,7 @@ function SupportTickets() {
   const statusLabel = { open: 'Open', in_progress: 'In progress', resolved: 'Resolved' };
 
   return (
-    <DesktopWindow title="Wash · Support">
+    <DesktopWindow title="MULU · Support">
       <LeftRail active="tickets"/>
       <div style={{ flex: 1, minWidth: 0, background: S.surface,
         display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -455,7 +455,7 @@ function SupportTickets() {
 // ─────────────────────────────────────────────────────────────
 function SupportLogin() {
   return (
-    <DesktopWindow title="Wash · Agent sign-in">
+    <DesktopWindow title="MULU · Agent sign-in">
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Atmospheric violet mesh */}
@@ -481,7 +481,7 @@ function SupportLogin() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <WashLogo size={40}/>
             <span style={{ fontSize: 16, fontWeight: 800, color: S.ink, letterSpacing: -0.3 }}>
-              wash<span style={{ color: S.agent }}>/agent</span>
+              MULU<span style={{ color: S.agent }}>/agent</span>
             </span>
           </div>
 
@@ -518,7 +518,7 @@ function SupportLogin() {
           </div>
 
           <div style={{ fontSize: 11.5, color: S.inkSubtle }}>
-            © 2026 Wash · v3.2 · Build a8c4f
+            © 2026 MULU · v3.2 · Build a8c4f
           </div>
         </div>
 

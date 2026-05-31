@@ -66,7 +66,7 @@ export default function Pending() {
           <div className="rounded-xl bg-primary-500 p-2">
             <Waves className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-primary-600">Wash</span>
+          <span className="text-xl font-bold text-primary-600">MULU</span>
         </div>
 
         <GlassCard className="p-8 flex flex-col items-center gap-6 text-center">

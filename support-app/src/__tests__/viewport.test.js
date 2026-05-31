@@ -15,7 +15,7 @@ describe('index.html viewport', () => {
     expect(html).toMatch(/name="theme-color"/)
   })
 
-  it('has the Wash Support title', () => {
-    expect(html).toMatch(/<title>Wash Support<\/title>/)
+  it('has the MULU Support title', () => {
+    expect(html).toMatch(/<title>MULU Support<\/title>/)
   })
 })

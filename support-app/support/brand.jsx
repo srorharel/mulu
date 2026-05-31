@@ -1,8 +1,8 @@
-// Wash — shared brand bits used by the Support app.
+// MULU — shared brand bits used by the Support app.
 // Only the logo image + the dark map background.
 
 const WashLogo = ({ size = 40, style }) => (
-  <img src="assets/wash-logo.png" alt="Wash"
+  <img src="assets/wash-logo.png" alt="MULU"
     style={{
       width: size, height: size, objectFit: 'contain',
       display: 'block', filter: 'drop-shadow(0 4px 10px rgba(38,181,95,0.28))',

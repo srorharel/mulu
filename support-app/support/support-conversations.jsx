@@ -1,4 +1,4 @@
-// Wash Support — Conversations dashboard (primary screen)
+// MULU Support — Conversations dashboard (primary screen)
 // 3-column: Queue | Chat | Context panel (OrderPanel)
 
 function SupportConversations() {
@@ -38,7 +38,7 @@ function SupportConversations() {
   ];
 
   return (
-    <DesktopWindow title="Wash · Support">
+    <DesktopWindow title="MULU · Support">
       <LeftRail active="conv" />
 
       {/* Queue column */}

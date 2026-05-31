@@ -17,8 +17,8 @@ Complete in order. Each step depends on the previous.
 **What to do:**
 1. Go to [console.firebase.google.com](https://console.firebase.google.com) and create a new project (or reuse an existing one).
 2. Inside the project: **Add app → Android**.
-3. Package name: **`com.sparklego.app`** — must match exactly (this is the `appId` in `capacitor.config.json`; the display name "Wash" is separate).
-4. Nickname: "Wash Android" (optional).
+3. Package name: **`com.sparklego.app`** — must match exactly (this is the `appId` in `capacitor.config.json`; the display name "MULU" is separate).
+4. Nickname: "MULU Android" (optional).
 5. Skip the SHA-1 step for now (only needed for Google Sign-In, not FCM).
 6. Click **Register app**.
 
@@ -232,7 +232,7 @@ ORDER BY created_at DESC LIMIT 1;
 - Settings section shows: "Notifications are disabled in your phone settings"
 - "Open Settings" button is visible.
 - Master toggle is disabled (greyed out, non-interactive).
-- Tapping "Open Settings" opens the system settings page for the WASH app (Android → App Info for `com.sparklego.app`).
+- Tapping "Open Settings" opens the system settings page for the MULU app (Android → App Info for `com.sparklego.app`).
 
 **Failure modes:**
 - Settings section shows master toggle instead of denied state → `getOsPermissionState()` is returning `'granted'` incorrectly; may indicate a timing issue on the initial mount call.
@@ -525,7 +525,7 @@ ORDER BY created_at DESC LIMIT 1;
 
 **Expected:**
 - Notification arrives in the system notification curtain.
-- Tapping the notification launches the WASH app.
+- Tapping the notification launches the MULU app.
 - App navigates directly to the deep link target (not home).
 
 This test specifically validates the FCM background/killed-app delivery path, which is handled by the OS independently of the running JavaScript.
@@ -750,4 +750,4 @@ Do not file bugs for these items — they are intentional deferrals documented i
 | **"Wash started" notification** | Intentionally silent | `arrived → in_progress` fires no notification. The washer starting the wash is not a consumer-actionable event. |
 | **Open Settings on OEM Android** | Best-effort | `App.openUrl({ url: 'package:com.sparklego.app' })` may route to the generic Settings root instead of the app-specific notification settings page on heavily skinned Android builds (Xiaomi MIUI, OPPO ColorOS, etc.). The standard Android path works on stock and near-stock ROMs. |
 | **Support-app agents** | Out of scope | Agents do not receive push notifications. The support-app has its own `AuthContext` and does not initialize the notification library. |
-| **Web / PWA users** | Out of scope | Settings shows "Install the WASH app to receive notifications." No Web Push in v1. |
+| **Web / PWA users** | Out of scope | Settings shows "Install the MULU app to receive notifications." No Web Push in v1. |

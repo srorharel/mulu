@@ -1,4 +1,4 @@
-# update.ps1 - Wash one-command deploy script
+# update.ps1 - MULU one-command deploy script
 # Usage: .\update.ps1 "my commit message"
 param(
     [string]$CommitMessage = ""

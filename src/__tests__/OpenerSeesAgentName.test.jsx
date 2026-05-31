@@ -84,16 +84,16 @@ describe('SupportChatSheet — opener sees agent name', () => {
     expect(screen.getByTestId('support-header-title')).toHaveTextContent('Waiting for agent...')
   })
 
-  it('shows "Chatting with Maya from Wash" when agent has agent_display_name', () => {
+  it('shows "Chatting with Maya from MULU" when agent has agent_display_name', () => {
     setupMock({
       conversation: {
         id: 'c1', status: 'assigned', order_id: null,
         agent_last_read_at: null, opener_last_read_at: null,
-        agent: { id: 'a1', agent_display_name: 'Maya from Wash', full_name: 'Maya Levi' },
+        agent: { id: 'a1', agent_display_name: 'Maya from MULU', full_name: 'Maya Levi' },
       },
     })
     render(<SupportChatSheet open convId="c1" onClose={vi.fn()} />, { wrapper })
-    expect(screen.getByTestId('support-header-title')).toHaveTextContent('Chatting with Maya from Wash')
+    expect(screen.getByTestId('support-header-title')).toHaveTextContent('Chatting with Maya from MULU')
   })
 
   it('falls back to full_name when agent_display_name is null', () => {
@@ -125,11 +125,11 @@ describe('SupportChatSheet — opener sees agent name', () => {
       conversation: {
         id: 'c1', status: 'assigned', order_id: null,
         agent_last_read_at: null, opener_last_read_at: null,
-        agent: { id: 'a1', agent_display_name: 'Maya from Wash', full_name: 'Maya Levi' },
+        agent: { id: 'a1', agent_display_name: 'Maya from MULU', full_name: 'Maya Levi' },
       },
     })
     render(<SupportChatSheet open convId="c1" onClose={vi.fn()} />, { wrapper })
-    // Avatar shows first letters: "MF" (Maya from Wash → M + F)
+    // Avatar shows first letters: "MF" (Maya from MULU → M + F)
     expect(document.querySelector('.ring-emerald-500')).toBeInTheDocument()
   })
 })

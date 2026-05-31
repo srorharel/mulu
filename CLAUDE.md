@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Wash** — two-sided on-demand car-wash marketplace. PWA + Capacitor Android.
+**MULU** — two-sided on-demand car-wash marketplace. PWA + Capacitor Android.
 React 18 + Vite + Tailwind frontend; Supabase (Postgres + PostGIS, Auth, Realtime, Storage) backend.
 
 ## Commands

@@ -1,14 +1,14 @@
 # DESIGN.md
 
-Single source of truth for all visual and UX decisions in Wash. Every UI change must conform to this document. If a design request conflicts with a rule here, surface the conflict rather than silently complying — see §14.
+Single source of truth for all visual and UX decisions in MULU. Every UI change must conform to this document. If a design request conflicts with a rule here, surface the conflict rather than silently complying — see §14.
 
 ---
 
 ## 1. Brand & voice
 
-Wash is a utility: fast, practical, trustworthy. Think Wolt or Bolt, not Soho House. The visual language is clean and direct — the green is confident, not soft or pastel. Information is presented densely enough to be immediately scannable outdoors, in sunlight, one-handed.
+MULU is a utility: fast, practical, trustworthy. Think Wolt or Bolt, not Soho House. The visual language is clean and direct — the green is confident, not soft or pastel. Information is presented densely enough to be immediately scannable outdoors, in sunlight, one-handed.
 
-What Wash is NOT: luxury, playful-childish, eco-preachy, or corporate-cold. No decorative flourishes that slow the user down.
+What MULU is NOT: luxury, playful-childish, eco-preachy, or corporate-cold. No decorative flourishes that slow the user down.
 
 ---
 

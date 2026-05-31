@@ -66,12 +66,12 @@ export default function Login() {
         <div className="flex items-center gap-2.5 py-4">
           <img
             src={logoSrc}
-            alt="Wash"
+            alt="MULU"
             className="w-9 h-9 rounded-xl object-contain"
             onError={e => { e.currentTarget.style.display = 'none' }}
           />
           <span className="text-[16px] font-extrabold text-ink" style={{ letterSpacing: '-0.3px' }}>
-            wash<span style={{ color: 'var(--color-agent)' }}>/agent</span>
+            MULU<span style={{ color: 'var(--color-agent)' }}>/agent</span>
           </span>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] pb-2" style={{ color: 'var(--color-agent)' }}>
@@ -84,12 +84,12 @@ export default function Login() {
         <div className="flex items-center gap-2.5">
           <img
             src={logoSrc}
-            alt="Wash"
+            alt="MULU"
             className="w-10 h-10 rounded-xl object-contain"
             onError={e => { e.currentTarget.style.display = 'none' }}
           />
           <span className="text-[16px] font-extrabold text-ink" style={{ letterSpacing: '-0.3px' }}>
-            wash<span style={{ color: 'var(--color-agent)' }}>/agent</span>
+            MULU<span style={{ color: 'var(--color-agent)' }}>/agent</span>
           </span>
         </div>
 

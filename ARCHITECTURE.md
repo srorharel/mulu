@@ -1,8 +1,8 @@
 # ARCHITECTURE.md
 
-App structure for Wash. See **CLAUDE.md** for the index + load-bearing gotchas, **DATABASE.md** for the backend, **NOTIFICATIONS.md** for push, **DECISIONS.md** for ADRs.
+App structure for MULU. See **CLAUDE.md** for the index + load-bearing gotchas, **DATABASE.md** for the backend, **NOTIFICATIONS.md** for push, **DECISIONS.md** for ADRs.
 
-**Wash** is a two-sided on-demand car wash marketplace (PWA + Capacitor Android). Consumers book jobs; washers accept nearby jobs. UI is React 18 + Vite + Tailwind; backend is entirely Supabase (Postgres + PostGIS, Auth, Realtime, Storage).
+**MULU** is a two-sided on-demand car wash marketplace (PWA + Capacitor Android). Consumers book jobs; washers accept nearby jobs. UI is React 18 + Vite + Tailwind; backend is entirely Supabase (Postgres + PostGIS, Auth, Realtime, Storage).
 
 ## Three Vite Projects
 

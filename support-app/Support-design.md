@@ -1,6 +1,6 @@
 # Support App — Design Document
 
-Agent-only web app running on port 3001. Agents do not use the main Wash app; all support tooling lives exclusively here.
+Agent-only web app running on port 3001. Agents do not use the main MULU app; all support tooling lives exclusively here.
 
 ---
 

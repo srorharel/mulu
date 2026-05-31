@@ -14,7 +14,7 @@ Rationale: Web Push on iOS PWA requires iOS 16.4+ and a `start_url` scope match,
 
 **PWA fallback:** When the app detects it is running as a PWA (not native Capacitor — `Capacitor.isNativePlatform() === false`), the Notifications section in Settings shows:
 
-> "Install the WASH app to receive notifications"
+> "Install the MULU app to receive notifications"
 
 No toggle, no sound picker, no permission prompt on PWA.
 
@@ -276,7 +276,7 @@ Deferred. Badge count (the number shown on the app icon) requires tracking unrea
 1. Go to [console.firebase.google.com](https://console.firebase.google.com) and create a new project (or reuse an existing one).
 2. Inside the project, click **Add app → Android**.
 3. Register the package name exactly as: **`com.sparklego.app`**
-   — This matches `appId` in `capacitor.config.json`. The display name kept `Wash` during the SparkleGo → Wash rebrand; the package ID was deliberately left unchanged for install-update continuity on existing devices.
+   — This matches `appId` in `capacitor.config.json`. The display name is now `MULU` (SparkleGo → Wash → MULU); the package ID was deliberately left unchanged for install-update continuity on existing devices.
 4. Download `google-services.json` and place it at:
    ```
    android/app/google-services.json

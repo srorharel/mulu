@@ -27,7 +27,7 @@ i18n.use(initReactI18next).init({
     en: {
       translation: {
         'signup.title': 'Create account',
-        'signup.subtitle': 'Join the Wash network',
+        'signup.subtitle': 'Join the MULU network',
         'signup.iAmA': 'I am a…',
         'signup.customer': "I'm a customer",
         'signup.washer': "I'm a washer",

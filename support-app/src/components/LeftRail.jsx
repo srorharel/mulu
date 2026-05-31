@@ -68,7 +68,7 @@ export default function LeftRail({
       <div className="mb-5 flex items-center justify-center" style={{ width: 40, height: 40 }}>
         <img
           src={logoSrc}
-          alt="Wash"
+          alt="MULU"
           className="w-9 h-9 rounded-xl object-contain"
           onError={e => { e.currentTarget.style.display = 'none' }}
         />

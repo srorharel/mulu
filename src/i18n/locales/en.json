@@ -27,7 +27,7 @@
     "signInToAccount": "Sign in to your account",
     "forgotPassword": "Forgot password?",
     "forgotPasswordSoon": "Coming soon",
-    "newToWash": "New to Wash?",
+    "newToWash": "New to MULU?",
     "createAccount": "Create account",
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
@@ -40,7 +40,7 @@
   },
   "signup": {
     "title": "Create account",
-    "subtitle": "Join the Wash network",
+    "subtitle": "Join the MULU network",
     "iAmA": "I am a…",
     "customer": "I'm a customer",
     "washer": "I'm a washer",
@@ -637,7 +637,7 @@
       "2": "Thank you. Where can we improve?",
       "3": "Thank you. Where can we improve?",
       "4": "We're glad you liked it! We'd love to hear how we could make it perfect.",
-      "5": "We're glad you liked it. Thank you for using Wash!",
+      "5": "We're glad you liked it. Thank you for using MULU!",
       "elaborate": {
         "placeholder": "What could be better?",
         "submit": "Send"
@@ -658,7 +658,7 @@
     "osDeniedAction": "Open Settings",
     "osPrompt": "Receive a notification when your wash is ready and when there are updates",
     "osPromptAction": "Enable notifications",
-    "webOnly": "Install the WASH app to receive notifications",
+    "webOnly": "Install the MULU app to receive notifications",
     "masterToggle": "Receive notifications",
     "promosToggle": "Promotions and announcements",
     "promosHint": "Independent of order updates. Disable to stop announcements only.",

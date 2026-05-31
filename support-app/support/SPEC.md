@@ -1,6 +1,6 @@
 # Support App — Design Document
 
-Agent-only web app running on port 3001. Agents do not use the main Wash app; all support tooling lives exclusively here.
+Agent-only web app running on port 3001. Agents do not use the main MULU app; all support tooling lives exclusively here.
 
 ---
 
@@ -54,7 +54,7 @@ No public signup. Agent accounts are created via the Supabase dashboard (`role =
 | `warning` | `#f59e0b` | Caution states, unassigned queue, pending approvals |
 | `danger` | `#ef4444` | Destructive actions, open tickets, tab badges (inactive) |
 
-**Note:** The agent accent was changed from violet `#7C3AED` to teal-green `#3FB58F` so the support tool reads as the agent edition of Wash (brand-family) rather than a separate product. It remains distinct from the lighter consumer `#7DD9A2`.
+**Note:** The agent accent was changed from violet `#7C3AED` to teal-green `#3FB58F` so the support tool reads as the agent edition of MULU (brand-family) rather than a separate product. It remains distinct from the lighter consumer `#7DD9A2`.
 
 Dark mode is hardcoded — there is no light mode toggle in the support app.
 

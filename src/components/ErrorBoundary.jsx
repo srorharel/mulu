@@ -10,7 +10,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('[Wash] Render error:', error, info.componentStack)
+    console.error('[MULU] Render error:', error, info.componentStack)
   }
 
   render() {

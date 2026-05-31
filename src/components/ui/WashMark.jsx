@@ -22,7 +22,7 @@ export default function WashMark({ className = '' }) {
           }}
         />
       </div>
-      wash
+      MULU
     </div>
   )
 }

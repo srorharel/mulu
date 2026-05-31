@@ -1,4 +1,4 @@
-// Wash — Support app screens (agent-only, dark, desktop)
+// MULU — Support app screens (agent-only, dark, desktop)
 // Tokens per Support-design.md. Violet agent accent #7C3AED.
 
 // ─── Tokens ─────────────────────────────────────────────────
@@ -13,7 +13,7 @@ const S = {
   edge:        '#23262f',
   edgeStrong:  '#2e323d',
   accent:      '#7DD9A2', // brand green
-  agent:       '#3FB58F', // teal-green (agent UI) — Wash brand-family, distinct from consumer light green
+  agent:       '#3FB58F', // teal-green (agent UI) — MULU brand-family, distinct from consumer light green
   agentDeep:   '#1F7A5E',
   agentSoft:   'rgba(63,181,143,0.16)',
   success:     '#22c55e',
@@ -99,7 +99,7 @@ const LeftRail = ({ active = 'conv' }) => {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: '14px 0',
     }}>
-      {/* Logo — Wash mark (shared with main app) */}
+      {/* Logo — MULU mark (shared with main app) */}
       <div style={{ marginBottom: 18 }}>
         <WashLogo size={40}/>
       </div>

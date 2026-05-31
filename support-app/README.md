@@ -1,6 +1,6 @@
-# Wash Support App
+# MULU Support App
 
-Agent-facing support dashboard for the Wash platform. Reads and writes the same Supabase project as the main Wash app.
+Agent-facing support dashboard for the MULU platform. Reads and writes the same Supabase project as the main MULU app.
 
 ## Setup
 

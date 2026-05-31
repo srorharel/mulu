@@ -11,7 +11,7 @@ export const isSupabaseConfigured =
 
 if (!isSupabaseConfigured) {
   console.warn(
-    '[Wash] Supabase is not configured.\n' +
+    '[MULU] Supabase is not configured.\n' +
     'Copy .env.example to .env and fill in your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.\n' +
     'Get them from: Supabase dashboard → your project → Settings → API'
   )

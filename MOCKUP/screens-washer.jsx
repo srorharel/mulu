@@ -1,4 +1,4 @@
-// Wash — washer screens (Dashboard map, Active Job drawer, Plate states)
+// MULU — washer screens (Dashboard map, Active Job drawer, Plate states)
 
 // ───────────────────────────────────────────────────────────
 // Washer Dashboard — dark, with map and available jobs

@@ -1,6 +1,6 @@
 # DATABASE.md
 
-Deep reference for the Wash backend: Supabase Postgres + PostGIS, RPCs, migrations, storage buckets, the order state machine, pricing/payout, and migration discipline. See **CLAUDE.md** for the index and load-bearing gotchas, **ARCHITECTURE.md** for app structure, **NOTIFICATIONS.md** for push.
+Deep reference for the MULU backend: Supabase Postgres + PostGIS, RPCs, migrations, storage buckets, the order state machine, pricing/payout, and migration discipline. See **CLAUDE.md** for the index and load-bearing gotchas, **ARCHITECTURE.md** for app structure, **NOTIFICATIONS.md** for push.
 
 ## Tables
 

@@ -1,6 +1,6 @@
-# Wash Admin
+# MULU Admin
 
-Owner-facing super-admin console for the Wash platform. **Web-only** (no Capacitor, no Android APK) — deploys to its own Vercel project alongside the main app and support-app, against the same Supabase backend.
+Owner-facing super-admin console for the MULU platform. **Web-only** (no Capacitor, no Android APK) — deploys to its own Vercel project alongside the main app and support-app, against the same Supabase backend.
 
 ## Setup
 

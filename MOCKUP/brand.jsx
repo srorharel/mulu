@@ -1,4 +1,4 @@
-// Wash — shared primitives, mesh background, icons, glass cards
+// MULU — shared primitives, mesh background, icons, glass cards
 // Tokens from design.md (§2). Mobile-first 390px frame.
 
 // ─── Tokens ─────────────────────────────────────────────────
@@ -173,7 +173,7 @@ const BottomNav = ({ active = 'home' }) => {
   );
 };
 
-// ─── Wash wordmark ──────────────────────────────────────────
+// ─── MULU wordmark ──────────────────────────────────────────
 const WashMark = ({ size = 22, color = W.g800 }) => (
   <div style={{
     display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -192,7 +192,7 @@ const WashMark = ({ size = 22, color = W.g800 }) => (
         background: 'rgba(255,255,255,0.7)', filter: 'blur(1px)',
       }}/>
     </div>
-    wash
+    MULU
   </div>
 );
 

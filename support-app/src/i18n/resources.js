@@ -46,8 +46,8 @@ export const resources = {
           csatThisWeek: 'CSAT השבוע',
           agentsOnline: 'נציגים מחוברים',
         },
-        copyright: '© 2026 Wash · פלטפורמת תמיכה',
-        copyrightShort: '© 2026 Wash · תמיכה',
+        copyright: '© 2026 MULU · פלטפורמת תמיכה',
+        copyrightShort: '© 2026 MULU · תמיכה',
       },
 
       nav: {
@@ -393,8 +393,8 @@ export const resources = {
           csatThisWeek: 'CSAT this week',
           agentsOnline: 'Agents online',
         },
-        copyright: '© 2026 Wash · Support platform',
-        copyrightShort: '© 2026 Wash · Support',
+        copyright: '© 2026 MULU · Support platform',
+        copyrightShort: '© 2026 MULU · Support',
       },
 
       nav: {

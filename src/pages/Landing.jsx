@@ -40,7 +40,7 @@ export default function Landing() {
           <motion.div variants={itemVariants}>
             <img
               src={logoSrc}
-              alt="Wash"
+              alt="MULU"
               width={1104}
               height={975}
               loading="eager"

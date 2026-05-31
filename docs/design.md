@@ -1,4 +1,4 @@
-# Design System — Wash
+# Design System — MULU
 
 > Living document. Update alongside code changes.  
 > Covers: tokens, components, layout shells, consumer + washer flows, pricing, i18n, known design debt.

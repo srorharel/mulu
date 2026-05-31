@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse'
-const UA        = 'WashSupport/1.0'
+const UA        = 'MULUSupport/1.0'
 const cache     = new Map()
 
 function cacheKey(lat, lng) {

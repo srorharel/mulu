@@ -58,7 +58,7 @@ function Rail({ activeId, onNavigate, profile, i18n, t, toggleLocale, onExport, 
       <div className="px-5 py-4 border-b border-edge">
         <div className="flex items-center justify-between">
           <span className="text-[14px] font-extrabold tracking-[-0.3px]">
-            wash<span className="text-admin-deep">/admin</span>
+            MULU<span className="text-admin-deep">/admin</span>
           </span>
           <button
             onClick={toggleLocale}
@@ -198,7 +198,7 @@ export default function Dashboard() {
           </button>
           <div className="flex-1 min-w-0">
             <span className="text-[13px] font-extrabold tracking-[-0.3px]">
-              wash<span className="text-admin-deep">/admin</span>
+              MULU<span className="text-admin-deep">/admin</span>
             </span>
             <p className="text-[11px] text-ink-muted leading-tight truncate">{t(`dashboard.tabs.${activeId}`)}</p>
           </div>
