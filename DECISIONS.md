@@ -386,3 +386,25 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 - *Recreating full relational graph on user restore* — rejected as out of scope and dishonest to imply; the snapshot only holds the profile, and re-parenting cascaded rows after a hard delete isn't reliably possible.
 
 **Consequence:** Migrations 0092–0095 (0091 was already taken by `resolve_broadcast_segment_service_role`). The override tables now pay one extra trigger insert per write (negligible). Undo is safe and auditable; user restore is available but framed as a rescue with caveats, not a clean reversal.
+
+---
+
+## ADR-029: Super_admin read-only visibility into all support conversations
+**Date:** 2026-05-31
+**Status:** Accepted
+
+**Context:** The admin app (super_admin) had no way to see support conversations. Agents handle all support in the support app; the owner needs oversight — to read what consumers/washers and agents are discussing — without the ability to intervene (no reply, reassign, resolve, close, or delete from admin).
+
+**Decision:** Add a **read-only** "Chats" tab to the admin app (`admin-app/src/pages/Chats.jsx`, data layer `admin-app/src/lib/adminChats.js`). The super_admin can view every `support_conversations` row and its full `support_messages` history. There is **no write path** from the admin app: `adminChats.js` exposes only SELECT queries, two realtime SUBSCRIPTIONS, and pure display helpers — no insert/update/delete/upsert/RPC mutation. Replies remain exclusively in the support app; a banner in the thread says so.
+
+- **RLS-enforced, no new migration.** Reads go through PostgREST with the super_admin's JWT. Migration **0090** already granted `super_admin reads all support_conversations` and `super_admin reads all support_messages` SELECT policies (verified live in `pg_policies`); **0079** lets super_admin read every `profiles` row so the opener/agent/sender name embeds resolve. No 0102 was needed.
+- **Attachments via public URL, deliberately.** `support_messages.attachment_path` points into the `support-attachments` bucket, which is currently configured **public**; the thread links to the object via `getPublicUrl` (opens in a new tab). We do NOT use a signed URL: `storage.objects` has no `is_super_admin()` SELECT policy for this bucket (only participants + `is_agent()`), so `createSignedUrl` would fail RLS for a super_admin. If the bucket is ever made private, a super_admin storage SELECT policy (mirroring 0068) would be required to keep attachments viewable.
+
+**Privacy note (intentional, not silent):** these conversations contain consumer/washer PII and private support discussion. Super_admin read access is deliberate platform-owner oversight, enforced by RLS at the table layer, and is documented here so the access is on record rather than implicit. No admin code can mutate support conversations.
+
+**Alternatives considered:**
+- *Surface support chat inside the support app for admins* — rejected: agents and super_admins use separate, auth-isolated apps by design (ARCHITECTURE.md); admin oversight belongs in the admin app.
+- *Allow admin to reply / take over a thread* — rejected: muddies who-owns-the-conversation and the agent assignment model; oversight ≠ operation. Kept strictly read-only.
+- *Add a super_admin storage policy + signed URLs for attachments* — deferred: unnecessary while the bucket is public, and would expand a private-bucket access surface for marginal benefit. Revisit only if the bucket is locked down.
+
+**Consequence:** No schema change. One new admin tab, one read-only data module (guarded by `admin-app/src/__tests__/adminChats.test.js` asserting zero mutation exports and `Chats.test.jsx` asserting no compose/input affordance), and `scripts/smoke-chats.js` proving a super_admin can actually SELECT a conversation and its messages through RLS.

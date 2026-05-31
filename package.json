@@ -22,8 +22,9 @@
     "drift:config":   "node scripts/config-drift.js",
     "drift:design":   "node scripts/design-drift.js",
     "drift":          "npm run drift:content && npm run drift:branding && npm run drift:config && npm run drift:design",
-    "smoke":          "node scripts/smoke-p6-p7-p8.js && node scripts/smoke-history.js",
+    "smoke":          "node scripts/smoke-p6-p7-p8.js && node scripts/smoke-history.js && node scripts/smoke-chats.js",
     "smoke:history":  "node scripts/smoke-history.js",
+    "smoke:chats":    "node scripts/smoke-chats.js",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
     "update": "powershell -ExecutionPolicy Bypass -File ./update.ps1"

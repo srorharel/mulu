@@ -6,6 +6,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 // tab pages are stubbed to keep the test about the chrome, not their loaders.
 vi.mock('../pages/Jobs.jsx',         () => ({ default: () => <div>JobsStub</div> }))
 vi.mock('../pages/Users.jsx',        () => ({ default: () => <div>UsersStub</div> }))
+vi.mock('../pages/Chats.jsx',        () => ({ default: () => <div>ChatsStub</div> }))
 vi.mock('../pages/Content.jsx',      () => ({ default: () => <div>ContentStub</div> }))
 vi.mock('../pages/Branding.jsx',     () => ({ default: () => <div>BrandingStub</div> }))
 vi.mock('../pages/Broadcasts.jsx',   () => ({ default: () => <div>BroadcastsStub</div> }))

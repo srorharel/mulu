@@ -34,6 +34,7 @@ export const resources = {
         tabs: {
           jobs:       'Live Jobs',
           users:      'Users',
+          chats:      'Chats',
           content:    'Content',
           branding:   'Branding',
           broadcasts: 'Broadcasts',
@@ -79,6 +80,7 @@ export const resources = {
         tabs: {
           jobs:       'הזמנות חיות',
           users:      'משתמשים',
+          chats:      'צ׳אטים',
           content:    'תוכן',
           branding:   'מיתוג',
           broadcasts: 'התראות',
