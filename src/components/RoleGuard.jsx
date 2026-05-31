@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { homeForRole } from '../lib/roleHome.js'
 
 function Spinner() {
   return (
@@ -46,12 +47,11 @@ export default function RoleGuard({ allowedRoles }) {
     if (dest) return <Navigate to={dest} replace />
   }
 
-  // Wrong role — send each role to its correct home
+  // Wrong role — send each role to its correct home. Unservable roles
+  // (super_admin / admin / unknown) go to /profile, never a guarded route that
+  // would bounce them back into an infinite redirect loop (blank-page bug).
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    if (profile.role === 'agent')  return <Navigate to="/support" replace />
-    if (profile.role === 'admin')  return <Navigate to="/support" replace /> // stale data fallback
-    if (profile.role === 'washer') return <Navigate to="/washer" replace />
-    return <Navigate to="/home" replace />
+    return <Navigate to={homeForRole(profile.role)} replace />
   }
 
   return <Outlet />

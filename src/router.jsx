@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext.jsx'
 import { useToast } from './components/ui/Toast.jsx'
 import { initNotifications } from './lib/notifications.js'
 import RoleGuard from './components/RoleGuard.jsx'
+import { homeForRole } from './lib/roleHome.js'
 import WasherShell from './components/ui/WasherShell.jsx'
 import WasherMapShell from './components/ui/WasherMapShell.jsx'
 
@@ -65,9 +66,7 @@ function AuthRedirect({ children }) {
   const { user, profile, loading } = useAuth()
   if (loading) return null
   if (!user) return children
-  if (profile?.role === 'agent') return <Navigate to="/support" replace />
-  if (profile?.role === 'admin') return <Navigate to="/support" replace /> // stale data fallback
-  return <Navigate to={profile?.role === 'washer' ? '/washer' : '/home'} replace />
+  return <Navigate to={homeForRole(profile?.role)} replace />
 }
 
 export function AppRouter() {

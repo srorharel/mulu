@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { homeForRole } from '../lib/roleHome.js'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
@@ -56,10 +57,7 @@ export default function Login() {
     if (error) { setServerError(friendlyError(error.message)); return }
     const { data: prof } = await supabase.from('profiles').select('role').eq('id', result.user.id).single()
     const role = prof?.role ?? result.user?.user_metadata?.role ?? 'consumer'
-    if      (role === 'washer') navigate('/washer',  { replace: true })
-    else if (role === 'agent')  navigate('/support', { replace: true })
-    else if (role === 'admin')  navigate('/support', { replace: true }) // stale data fallback
-    else                        navigate('/home',    { replace: true })
+    navigate(homeForRole(role), { replace: true })
   }
 
   return (

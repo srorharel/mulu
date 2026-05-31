@@ -118,7 +118,14 @@ export function AuthProvider({ children }) {
     return supabase.auth.signUp({
       email,
       password,
-      options: { data: metadata },
+      options: {
+        data: metadata,
+        // Derive from the live origin so the email-confirmation link returns to
+        // wherever the app is actually served (localhost / *.vercel.app preview /
+        // prod) — never a hardcoded host. Lands on '/', a real route (Landing).
+        // The origin must also be in Supabase → Auth → URL Configuration allowlist.
+        emailRedirectTo: `${window.location.origin}/`,
+      },
     })
   }
 
