@@ -335,10 +335,10 @@ export default function WasherDashboard() {
         />
       </Suspense>
 
-      {/* ── Top chrome: online pill (start) + earnings widget (end) ── */}
+      {/* ── Top chrome: online pill (start) + earnings widget w/ Waze under it (end) ── */}
       {/* inset-x-4 (physical left/right) avoids inset-inline-* WebView gaps in RTL */}
       <div
-        className="fixed inset-x-4 flex items-center gap-3 z-40"
+        className="fixed inset-x-4 flex items-start gap-3 z-40"
         style={{ top: 'max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))' }}
       >
         <Editable id="washer.dashboard.onlinePill">
@@ -355,7 +355,12 @@ export default function WasherDashboard() {
           </div>
         </Editable>
         <div className="flex-1" />
-        <EarningsWidget t={t} />
+        {/* Earnings square, with the nav launcher anchored directly below it (same
+            outer edge in both LTR/RTL — top-left in he, top-right in en). */}
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <EarningsWidget t={t} />
+          <NavLauncher activeJob={activeJob} />
+        </div>
       </div>
 
       {/* ── GPS permission banners ── */}
@@ -384,8 +389,8 @@ export default function WasherDashboard() {
       <TierBanner profile={profile} t={t} />
 
       {/* ── Persistent components ── */}
+      {/* NavLauncher is mounted in the top-chrome (under EarningsWidget) above. */}
       <WasherMenu open={menuOpen} onClose={() => setMenuOpen(false)} online={online} />
-      <NavLauncher activeJob={activeJob} />
 
       {/* Recenter FAB: physical-left, bottom glued to the JobDrawer's top edge via
           the shared drawerY motion value. Hidden while a job is active. */}

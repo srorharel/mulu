@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion'
-import { Navigation } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
+import wazeLogo from '../../assets/waze.svg'
+import googleMapsLogo from '../../assets/google-maps.svg'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 28 }
 
+// Icon-only nav launcher, anchored by its parent (under the EarningsWidget in the
+// Dashboard top-chrome). The logo + deep-link follow the washer's nav_app_preference
+// (Waze by default; Google Maps if chosen) — so Google-Maps washers keep their choice.
 export default function NavLauncher({ activeJob }) {
   const { profile } = useAuth()
   const { t }       = useTranslation()
@@ -17,10 +21,12 @@ export default function NavLauncher({ activeJob }) {
     Number.isNaN(activeJob.lng)
   ) return null
 
-  const pref  = profile?.nav_app_preference ?? 'waze'
-  const label = pref === 'google' ? 'Google Maps' : 'Waze'
-
-  const url = pref === 'google'
+  const useGoogle = (profile?.nav_app_preference ?? 'waze') === 'google'
+  const logo  = useGoogle ? googleMapsLogo : wazeLogo
+  const label = useGoogle
+    ? t('washer.nav.openIn', { app: 'Google Maps' })
+    : t('washer.nav.openInWaze')
+  const url = useGoogle
     ? `https://www.google.com/maps/dir/?api=1&destination=${activeJob.lat},${activeJob.lng}&travelmode=driving`
     : `https://waze.com/ul?ll=${activeJob.lat},${activeJob.lng}&navigate=yes`
 
@@ -34,15 +40,10 @@ export default function NavLauncher({ activeJob }) {
       exit={{ opacity: 0, scale: 0.8 }}
       whileTap={{ scale: 0.92 }}
       transition={SPRING}
-      aria-label={t('washer.nav.openIn', { app: label })}
-      className="fixed z-40 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-semibold shadow-lg backdrop-blur-xl border bg-glass border-glass-border text-ink"
-      style={{
-        bottom: 'calc(var(--nav-height, 56px) + var(--drawer-collapsed-height, 120px) + var(--stack-gap, 12px))',
-        insetInlineEnd: '1rem',
-      }}
+      aria-label={label}
+      className="flex items-center justify-center w-11 h-11 rounded-2xl shadow-lg backdrop-blur-xl border bg-glass border-glass-border shrink-0"
     >
-      <Navigation className="h-4 w-4 text-accent" />
-      {label}
+      <img src={logo} alt="" aria-hidden="true" className="w-6 h-6" />
     </motion.a>
   )
 }

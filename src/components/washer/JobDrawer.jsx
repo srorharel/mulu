@@ -33,6 +33,9 @@ const ENTRY_SPRING  = { type: 'spring', stiffness: 420, damping: 32 }
 
 const CANCEL_STATUSES = ['accepted', 'en_route']
 
+// Statuses where the active-job drawer is a releasable/draggable sheet (Start Trip on).
+const RELEASABLE_STATUSES = ['en_route', 'arrived', 'in_progress']
+
 const TRANSITION_KEYS = {
   accepted:    { next: 'en_route',         key: 'washer.drawer.transitions.startDrive'        },
   en_route:    { next: 'arrived',          key: 'washer.drawer.transitions.markArrived'       },
@@ -955,6 +958,10 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
 
   const isActive   = !!activeJob
   const canCancel  = isActive && CANCEL_STATUSES.includes(order?.status)
+  // From Start Trip (en_route) onward the drawer becomes a releasable sheet: the
+  // washer can lower it to PEEK to see the map/route and pull it back up. Before
+  // en_route (accepted) it stays locked fully-expanded as before.
+  const releasable = isActive && RELEASABLE_STATUSES.includes(order?.status)
 
   async function cancelJob() {
     if (cancellingRef.current) return
@@ -989,8 +996,17 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   }, [selectedJobId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    animate(y, activeJob ? snaps.current.expanded : snaps.current.default, SPRING)
+    // No job → job-list default. Active but pre-en_route (accepted) → locked EXPANDED.
+    // Releasable (en_route+) is handled by the PEEK effect below.
+    if (!activeJob) { animate(y, snaps.current.default, SPRING); return }
+    if (!releasable) animate(y, snaps.current.expanded, SPRING)
   }, [activeJob?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Entering releasable mode (Start Trip → en_route) defaults the sheet to PEEK so the
+  // washer immediately sees the map + route; they can drag it back up to EXPANDED.
+  useEffect(() => {
+    if (releasable) animate(y, snaps.current.collapsed, SPRING)
+  }, [releasable]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function onDragEnd(_, info) {
     const s   = snaps.current
@@ -1029,18 +1045,18 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
 
   return (
     <motion.div
-      drag={isActive ? false : 'y'}
+      drag={(!isActive || releasable) ? 'y' : false}
       dragConstraints={{ top: 0, bottom: collapsed }}
       dragElastic={{ top: 0.05, bottom: 0.12 }}
       style={{ y, height: expandedH, bottom: 'var(--nav-height, 56px)' }}
       onDragEnd={onDragEnd}
       className="fixed inset-x-0 z-30 flex flex-col bg-glass border-t border-glass-border backdrop-blur-xl rounded-t-3xl"
     >
-      {/* Drag handle — visible only in job-list mode */}
-      <div className="flex justify-center pt-3 pb-2 shrink-0 touch-none" style={{ cursor: isActive ? 'default' : undefined }}>
-        {isActive
-          ? <div className="w-9 h-1" />
-          : <div className="w-9 h-1 bg-neutral-400/40 rounded-full cursor-grab active:cursor-grabbing" />
+      {/* Drag handle — shown in job-list mode AND in releasable active mode (en_route+) */}
+      <div className="flex justify-center pt-3 pb-2 shrink-0 touch-none" style={{ cursor: (!isActive || releasable) ? undefined : 'default' }}>
+        {(!isActive || releasable)
+          ? <div className="w-9 h-1 bg-neutral-400/40 rounded-full cursor-grab active:cursor-grabbing" />
+          : <div className="w-9 h-1" />
         }
       </div>
 

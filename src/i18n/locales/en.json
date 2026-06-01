@@ -530,7 +530,8 @@
       "cantGoOfflineActive": "You can't go offline while a job is active"
     },
     "nav": {
-      "openIn": "Open in {{app}}"
+      "openIn": "Open in {{app}}",
+      "openInWaze": "Open in Waze"
     },
     "tier": {
       "heading": {

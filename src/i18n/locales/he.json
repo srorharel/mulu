@@ -532,7 +532,8 @@
       "cantGoOfflineActive": "לא ניתן להיות לא מקוון בזמן עבודה פעילה"
     },
     "nav": {
-      "openIn": "פתח ב-{{app}}"
+      "openIn": "פתח ב-{{app}}",
+      "openInWaze": "פתח ב-Waze"
     },
     "tier": {
       "heading": {
