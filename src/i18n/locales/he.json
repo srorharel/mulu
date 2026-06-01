@@ -79,6 +79,7 @@
         "evening": "ערב טוב, {{name}}"
       },
       "pickupLocation": "מיקום איסוף",
+      "activeOrders": "הזמנות פעילות",
       "vehicle": "רכב",
       "available": "זמין",
       "notOnSite": "לא במיקום",
@@ -192,6 +193,9 @@
       "cancelOrder": "בטל הזמנה",
       "cancelling": "מבטל...",
       "total": "סה\"כ",
+      "etaAway": "בעוד כ-{{min}} דקות",
+      "locating": "מעדכן מיקום…",
+      "anotherCar": "רכב נוסף לשטיפה",
       "orderNotFound": "ההזמנה לא נמצאה",
       "step": {
         "requested": "הוגש",

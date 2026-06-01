@@ -51,6 +51,10 @@ vi.mock('../../../hooks/useOrderUnreadCount.js', () => ({
   useOrderUnreadCount: vi.fn(() => 0),
 }))
 
+vi.mock('../../../components/consumer/OrderTrackingMap.jsx', () => ({
+  default: () => null,
+}))
+
 vi.mock('../../../components/ui/MapBG.jsx', () => ({
   default: () => null,
 }))

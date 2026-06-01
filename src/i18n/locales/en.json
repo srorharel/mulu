@@ -79,6 +79,7 @@
         "evening": "Good evening, {{name}}"
       },
       "pickupLocation": "Pickup location",
+      "activeOrders": "Active orders",
       "vehicle": "Vehicle",
       "available": "Available",
       "notOnSite": "Not on site",
@@ -192,6 +193,9 @@
       "cancelOrder": "Cancel order",
       "cancelling": "Cancelling…",
       "total": "total",
+      "etaAway": "~{{min}} min away",
+      "locating": "Updating location…",
+      "anotherCar": "Another car to wash",
       "orderNotFound": "Order not found",
       "step": {
         "requested": "Requested",

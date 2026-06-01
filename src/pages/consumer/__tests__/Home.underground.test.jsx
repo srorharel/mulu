@@ -39,6 +39,9 @@ vi.mock('../../../context/AuthContext.jsx', () => ({
 vi.mock('../../../hooks/useGeolocation.js', () => ({
   useGeolocation: () => ({ position: { lat: 32.08, lng: 34.78 }, error: null, permissionState: 'granted', requestPermission: vi.fn() }),
 }))
+vi.mock('../../../hooks/useConsumerActiveOrders.js', () => ({
+  useConsumerActiveOrders: () => ({ orders: [], loading: false }),
+}))
 vi.mock('../../../hooks/useTheme.js', () => ({ useTheme: () => ({ isDark: false }) }))
 vi.mock('../../../components/ui/Toast.jsx', () => ({ useToast: () => vi.fn(), ToastProvider: ({ children }) => children }))
 vi.mock('../../../lib/geocode.js', () => ({

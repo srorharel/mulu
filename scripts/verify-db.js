@@ -322,6 +322,39 @@ if (nearbyJobsReturn.length === 0) {
   else                                       fail('nearby_jobs returns lng', 'lng column dropped from RETURNS — WorkerMap pins will break')
 }
 
+// ── 6b. get_order_washer_location return shape (live consumer tracking, 0106) ─
+//
+// useOrderWasherTracking + OrderTrackingMap read washer_id/lat/lng/updated_at/status
+// off these rows to animate the live washer marker and ETA. Mirror the nearby_jobs
+// guard so a future rewrite can't silently change this contract.
+
+console.log('\n── get_order_washer_location return shape ───────────────────')
+
+const orderWasherLocReturn = await q(`
+  SELECT pg_get_function_result(p.oid) AS returns
+  FROM   pg_proc p
+  JOIN   pg_namespace n ON n.oid = p.pronamespace
+  WHERE  n.nspname = 'public'
+    AND  p.proname = 'get_order_washer_location'
+`)
+
+if (orderWasherLocReturn.length === 0) {
+  fail('get_order_washer_location function', 'not found')
+} else {
+  const ret = orderWasherLocReturn[0].returns
+  const cols = [
+    ['washer_id',  /\bwasher_id uuid\b/],
+    ['lat',        /\blat double precision\b/],
+    ['lng',        /\blng double precision\b/],
+    ['updated_at', /\bupdated_at timestamp with time zone\b/],
+    ['status',     /\bstatus text\b/],
+  ]
+  for (const [col, re] of cols) {
+    if (re.test(ret)) pass(`get_order_washer_location returns ${col}`)
+    else              fail(`get_order_washer_location returns ${col}`, `${col} missing/changed in RETURNS — live tracking will break`)
+  }
+}
+
 // ── 7f. pg_net wiring on http_post-using functions (0080) ────────────────────
 //
 // Regression: trigger_broadcast (0074) called pg_net.http_post which fails

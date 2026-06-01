@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
 import { VAT_RATE, consumerBreakdown, priceForCategory } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
+import { useConsumerActiveOrders } from '../../hooks/useConsumerActiveOrders.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useTheme } from '../../hooks/useTheme.js'
 import { useToast } from '../../components/ui/Toast.jsx'
@@ -104,6 +105,9 @@ export default function ConsumerHome() {
 
   // Stable UUID for this booking session — used as storage folder for photos.
   const orderId = useMemo(() => crypto.randomUUID(), [])
+
+  // Active orders shown as a tappable list — /home is never hijacked by them.
+  const { orders: activeOrders } = useConsumerActiveOrders()
 
   const [pin, setPin]                   = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
@@ -352,6 +356,34 @@ export default function ConsumerHome() {
 
         {/* ── Scrollable cards ── */}
         <div className="flex-1 px-4 flex flex-col gap-3 pb-4">
+
+          {/* Active orders — tappable list (a consumer may have several at once) */}
+          {activeOrders.length > 0 && (
+            <div className="flex flex-col gap-2" data-testid="active-orders">
+              <p className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.4px] px-1">
+                {t('consumer.home.activeOrders')}
+              </p>
+              {activeOrders.map(o => (
+                <MotionButton
+                  key={o.id}
+                  type="button"
+                  onClick={() => navigate(`/order/${o.id}`)}
+                  className="flex items-center gap-3 w-full text-start rounded-glass bg-glass border border-glass-border backdrop-blur-xl shadow-glass px-4 py-3"
+                >
+                  <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-bold text-ink truncate">
+                      {t(`consumer.tracking.heading.${o.status}`, { defaultValue: o.status })}
+                    </p>
+                    {o.address_label && (
+                      <p className="text-[12px] text-ink-muted truncate">{o.address_label}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-ink-muted shrink-0 rtl:rotate-180" />
+                </MotionButton>
+              ))}
+            </div>
+          )}
 
           {/* Location permission banners */}
           {permissionState === 'idle' && (

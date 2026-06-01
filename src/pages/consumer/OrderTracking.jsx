@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, Fragment, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check, ParkingSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -12,8 +12,13 @@ import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
 import OrderChatSheet from '../../components/chat/OrderChatSheet.jsx'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
+import { useOrderWasherTracking } from '../../hooks/useOrderWasherTracking.js'
 import MapBG from '../../components/ui/MapBG.jsx'
 import Editable from '../../components/editable/Editable.jsx'
+
+// Lazy so Leaflet stays out of the eagerly-loaded main bundle (OrderTracking is a
+// static router import) — mirrors how WorkerMap/MapPicker are lazy-loaded.
+const OrderTrackingMap = lazy(() => import('../../components/consumer/OrderTrackingMap.jsx'))
 
 const CANCELLABLE = new Set(['pending', 'accepted'])
 
@@ -23,6 +28,13 @@ const STATUS_TO_STEP = {
 }
 
 const ACTIVE_STATUSES = new Set(['accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval'])
+
+// Statuses during which a washer-ETA makes sense (still travelling / just arrived).
+// Once in_progress the washer is on-site washing, so no "min away" is shown.
+const ETA_STATUSES = new Set(['accepted', 'en_route', 'arrived'])
+
+// Terminal statuses — the order is done; no "book another car" prompt.
+const TERMINAL_STATUSES = new Set(['completed', 'cancelled'])
 
 // Session-dismiss key — mirrors ConsumerLayout so we don't double-pop the modal
 // when the consumer is already on this screen watching the status change.
@@ -157,6 +169,14 @@ export default function OrderTracking() {
   const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
   const unreadCount  = useOrderUnreadCount(order?.id)
 
+  // Live washer position + ETA (polls the scoped get_order_washer_location RPC).
+  const { location: washerLocation, etaMin, stale: locationStale } = useOrderWasherTracking({
+    orderId: id,
+    status:  order?.status,
+    jobLat:  order?.lat,
+    jobLng:  order?.lng,
+  })
+
   useEffect(() => {
     if (!order?.washer_id) { setWasherProfile(null); return }
     supabase
@@ -237,34 +257,15 @@ export default function OrderTracking() {
 
       {/* ── Map area ─────────────────────────────────────────────────────── */}
       <div className="relative shrink-0 overflow-hidden h-[55vh] min-h-[200px]">
-        <MapBG className="absolute inset-0 w-full h-full" />
+        <Suspense fallback={<MapBG className="absolute inset-0 w-full h-full" />}>
+          <OrderTrackingMap
+            jobLat={order.lat}
+            jobLng={order.lng}
+            washerLocation={washerLocation}
+          />
+        </Suspense>
 
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 390 600"
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-        >
-          <path d="M 75 355 Q 135 285 180 250 T 210 195"
-            stroke="#26B55F" strokeWidth="4" strokeLinecap="round" fill="none" />
-          <path d="M 75 355 Q 135 285 180 250 T 210 195"
-            stroke="white" strokeWidth="1.5" strokeLinecap="round"
-            fill="none" strokeDasharray="2 6" />
-          <g transform="translate(210,195)">
-            <circle r="20" fill="rgba(125,217,162,0.22)" />
-            <circle r="13" fill="white" stroke="#26B55F" strokeWidth="2" />
-            <circle r="4" fill="#26B55F" />
-          </g>
-          <g transform="translate(75,355)">
-            <circle r="20" fill="#26B55F" stroke="white" strokeWidth="3" />
-            <text y="5" textAnchor="middle" fontSize="13" fill="white" fontWeight="800"
-              fontFamily="Inter,system-ui,sans-serif">
-              {getWasherInitials(washerProfile)}
-            </text>
-          </g>
-        </svg>
-
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-surface pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-surface pointer-events-none z-[400]" />
 
         <div
           className="absolute start-4 end-4 flex items-center justify-between z-20"
@@ -320,6 +321,18 @@ export default function OrderTracking() {
             ) : null}
           </div>
           </Editable>
+
+          {/* Live washer ETA — straight-line/avg-speed estimate (v1). */}
+          {ETA_STATUSES.has(order.status) && (locationStale || etaMin != null) && (
+            <div className="flex items-center gap-1.5 self-start px-3 py-1.5 rounded-full bg-primary-50 dark:bg-accent-muted border border-primary-200/60 dark:border-accent/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+              <span className="text-[13px] font-bold text-primary-700 dark:text-accent">
+                {locationStale
+                  ? t('consumer.tracking.locating')
+                  : t('consumer.tracking.etaAway', { min: etaMin })}
+              </span>
+            </div>
+          )}
 
           {order.is_underground_parking && (
             <div className="flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full bg-primary-50 dark:bg-accent-muted border border-primary-200/60 dark:border-accent/30">
@@ -424,21 +437,32 @@ export default function OrderTracking() {
             </p>
           )}
 
-          <div className="flex items-center justify-between pt-1 pb-2">
-            {CANCELLABLE.has(order.status) ? (
+          <div className="flex flex-col gap-3 pt-1 pb-2">
+            {/* Secondary, non-destructive: book another wash while this order runs. */}
+            {!TERMINAL_STATUSES.has(order.status) && (
               <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="text-[13px] font-semibold text-danger-500 disabled:opacity-50 text-start"
+                onClick={() => navigate('/home')}
+                className="w-full rounded-glass py-3 text-[14px] font-bold text-primary-700 dark:text-accent bg-primary-50 dark:bg-accent-muted border border-primary-200/60 dark:border-accent/30 active:scale-[0.99] transition"
               >
-                {cancelling ? t('consumer.tracking.cancelling') : t('consumer.tracking.cancelOrder')}
+                {t('consumer.tracking.anotherCar')}
               </button>
-            ) : (
-              <div />
             )}
-            <div className="text-end">
-              <p className="text-[11px] text-ink-muted font-medium">{t('consumer.tracking.total')}</p>
-              <p className="text-[16px] font-extrabold text-ink tracking-[-0.3px]">₪{order.total_price}</p>
+            <div className="flex items-center justify-between">
+              {CANCELLABLE.has(order.status) ? (
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                  className="text-[13px] font-semibold text-danger-500 disabled:opacity-50 text-start"
+                >
+                  {cancelling ? t('consumer.tracking.cancelling') : t('consumer.tracking.cancelOrder')}
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="text-end">
+                <p className="text-[11px] text-ink-muted font-medium">{t('consumer.tracking.total')}</p>
+                <p className="text-[16px] font-extrabold text-ink tracking-[-0.3px]">₪{order.total_price}</p>
+              </div>
             </div>
           </div>
         </div>
