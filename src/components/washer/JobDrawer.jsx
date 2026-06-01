@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, useMotionValue, animate } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2, Clock,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
@@ -26,6 +26,8 @@ import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
+// Snappy ~180ms spring for job-list entry/exit (no bounce — damping ≈ stiffness/13).
+const ENTRY_SPRING  = { type: 'spring', stiffness: 420, damping: 32 }
 
 const CANCEL_STATUSES = ['accepted', 'en_route']
 
@@ -812,10 +814,11 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
 
 // ── Main drawer component ──────────────────────────────────────────────────────
 export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone, position }) {
-  const navigate  = useNavigate()
-  const { t }     = useTranslation()
-  const showToast = useToast()
-  const snaps     = useRef(getSnaps())
+  const navigate     = useNavigate()
+  const { t }        = useTranslation()
+  const showToast    = useToast()
+  const reduceMotion = useReducedMotion()
+  const snaps        = useRef(getSnaps())
   const y         = useMotionValue(snaps.current.default)
   const listRef   = useRef(null)
   const cardRefs  = useRef({})
@@ -1003,18 +1006,27 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
             </div>
           )}
 
-          {jobs.map(job => (
-            <div
-              key={job.id}
-              ref={el => { cardRefs.current[job.id] = el }}
-            >
-              <JobCard
-                job={job}
-                onClick={() => navigate(`/washer/job/${job.id}`)}
-                highlight={selectedJobId === job.id}
-              />
-            </div>
-          ))}
+          {/* Stable per-id keys + AnimatePresence: new jobs pop in and removed
+              jobs fade out in place, without the list re-rendering as a block.
+              Reduced-motion: opacity-only, no transform (DESIGN.md §8). */}
+          <AnimatePresence initial={false}>
+            {jobs.map(job => (
+              <motion.div
+                key={job.id}
+                ref={el => { cardRefs.current[job.id] = el }}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
+                animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
+                transition={reduceMotion ? { duration: 0.15 } : ENTRY_SPRING}
+              >
+                <JobCard
+                  job={job}
+                  onClick={() => navigate(`/washer/job/${job.id}`)}
+                  highlight={selectedJobId === job.id}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
