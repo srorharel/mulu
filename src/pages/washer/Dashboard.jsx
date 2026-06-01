@@ -1,15 +1,19 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useMotionValue } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
+import { replayAll } from '../../lib/offlineSync/engine.js'
+import { subscribeOnline } from '../../lib/offlineSync/connectivity.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useTheme } from '../../hooks/useTheme.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useNearbyJobs } from '../../hooks/useNearbyJobs.js'
 import { payoutForTier } from '../../lib/payout.js'
-import JobDrawer from '../../components/washer/JobDrawer.jsx'
+import JobDrawer, { getSnaps } from '../../components/washer/JobDrawer.jsx'
+import RecenterButton from '../../components/washer/RecenterButton.jsx'
 import WasherMenu from '../../components/washer/WasherMenu.jsx'
 import NavLauncher from '../../components/washer/NavLauncher.jsx'
 import MapBG from '../../components/ui/MapBG.jsx'
@@ -192,6 +196,12 @@ export default function WasherDashboard() {
   const [selectedJobId, setSelectedJobId] = useState(null)
   const [menuOpen, setMenuOpen]           = useState(false)
 
+  // Drawer geometry + live translate-y are owned here and shared with both the
+  // JobDrawer (it drags/snaps this value) and the RecenterButton (it tracks it).
+  const drawerSnaps = useRef(getSnaps())
+  const drawerY     = useMotionValue(drawerSnaps.current.default)
+  const recenterRef = useRef(null)
+
   const { position, permissionState, requestPermission } = useGeolocation({ watch: online })
   const { jobs, loading } = useNearbyJobs(position, online)
 
@@ -232,6 +242,15 @@ export default function WasherDashboard() {
         }
       })
   }, [position?.lat, position?.lng, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Global underground-capture replay: flush any queued captures on app-init
+  // (the app may have been killed while underground) and whenever connectivity
+  // returns — runs regardless of whether the active-job panel is mounted.
+  useEffect(() => {
+    replayAll(supabase).catch(() => {})
+    const unsub = subscribeOnline(isOn => { if (isOn) replayAll(supabase).catch(() => {}) })
+    return unsub
+  }, [])
 
   // Apply accepted job passed via navigation state immediately.
   useEffect(() => {
@@ -312,6 +331,7 @@ export default function WasherDashboard() {
           jobs={jobs}
           activeJob={activeJob}
           onJobPinTap={handleJobPinTap}
+          recenterRef={recenterRef}
         />
       </Suspense>
 
@@ -366,6 +386,16 @@ export default function WasherDashboard() {
       {/* ── Persistent components ── */}
       <WasherMenu open={menuOpen} onClose={() => setMenuOpen(false)} online={online} />
       <NavLauncher activeJob={activeJob} />
+
+      {/* Recenter FAB: physical-left, bottom glued to the JobDrawer's top edge via
+          the shared drawerY motion value. Hidden while a job is active. */}
+      <RecenterButton
+        drawerY={drawerY}
+        expandedH={drawerSnaps.current.expandedH}
+        visible={!activeJob && !!(position && Number.isFinite(position.lat) && Number.isFinite(position.lng))}
+        onRecenter={() => recenterRef.current?.()}
+      />
+
       <JobDrawer
         jobs={jobs}
         loading={loading}
@@ -376,6 +406,8 @@ export default function WasherDashboard() {
         activeJob={activeJob}
         onJobDone={handleJobDone}
         position={position}
+        drawerY={drawerY}
+        snaps={drawerSnaps.current}
       />
     </div>
   )

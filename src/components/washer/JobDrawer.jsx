@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } fr
 import {
   MoonStar, Sparkles, ChevronRight, Loader2, Clock,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
-  Phone, Droplets, Zap, Star, ArrowLeft, Check,
+  Phone, Droplets, Zap, Star, ArrowLeft, Check, ParkingSquare, CloudOff,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +23,8 @@ import PhotoLightbox from '../ui/PhotoLightbox.jsx'
 import { VAT_RATE } from '../../lib/pricing.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
+import { useOfflineSync } from '../../hooks/useOfflineSync.js'
+import { putDraftAngle, commitCapture, getCapturesByOrder } from '../../lib/offlineSync/engine.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
@@ -111,7 +113,7 @@ function EvidencePhotoGrid({ setKey, order, uploadingSlot, uploadErrors, photoPr
   )
 }
 
-function getSnaps() {
+export function getSnaps() {
   const vh = window.innerHeight
   const EXPANDED_H  = vh * 0.80
   const DEFAULT_H   = vh * 0.40
@@ -418,6 +420,15 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const [orderChatOpen, setOrderChatOpen] = useState(false)
   const [consumerProfile, setConsumerProfile] = useState(null)
 
+  // ── Underground offline capture (ADR-035) ──────────────────────────────────
+  // For these orders the washer has no reception: photos are captured to
+  // IndexedDB and the status advances optimistically; the replay engine pushes
+  // everything to the server when connectivity returns.
+  const underground = order?.is_underground_parking === true
+  const [capturedSlots, setCapturedSlots] = useState({ arrival: new Set(), completion: new Set() })
+  const { syncing: offlineSyncing, pending: offlinePending, runReplay: runOfflineReplay } =
+    useOfflineSync(activeJob?.id, { enabled: underground })
+
   const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
   const unreadCount  = useOrderUnreadCount(activeJob?.id)
 
@@ -432,6 +443,29 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
       .eq('id', order.consumer_id).single()
       .then(({ data }) => setConsumerProfile(data ?? null))
   }, [order?.consumer_id])
+
+  // Restore captures persisted in IndexedDB (e.g. the app was reopened after
+  // being killed underground) so the washer sees their photos + progress again.
+  useEffect(() => {
+    if (!underground || !activeJob?.id) return undefined
+    let cancelled = false
+    getCapturesByOrder(activeJob.id).then(recs => {
+      if (cancelled) return
+      const previews = {}
+      const caps = { arrival: new Set(), completion: new Set() }
+      for (const r of recs) {
+        for (const slot of PHOTO_SLOTS) {
+          if (r.angles && r.angles[slot]) {
+            caps[r.type]?.add(slot)
+            previews[`${r.type}_${slot}`] = URL.createObjectURL(r.angles[slot])
+          }
+        }
+      }
+      setCapturedSlots(caps)
+      setPhotoPreviews(p => ({ ...previews, ...p }))
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [underground, activeJob?.id])
 
   // Realtime consumer-cancel detection + pending_approval auto-clear
   useEffect(() => {
@@ -470,6 +504,24 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
       return
     }
 
+    // Underground: never touch the network here. Persist the blob to IndexedDB
+    // and reflect it locally; the replay engine uploads it on reconnect.
+    if (underground) {
+      try {
+        await putDraftAngle(activeJob.id, setKey, slot, blob, Date.now())
+        setPhotoPreviews(p => ({ ...p, [slotKey]: URL.createObjectURL(blob) }))
+        setCapturedSlots(cs => {
+          const next = new Set(cs[setKey])
+          next.add(slot)
+          return { ...cs, [setKey]: next }
+        })
+      } catch (err) {
+        setUploadErrors(e => ({ ...e, [slotKey]: err.message }))
+      }
+      setUploadingSlot(null)
+      return
+    }
+
     const path = `${activeJob.id}/${setKey}/${slot}.jpg`
     const { error: uploadError } = await supabase.storage
       .from('job-evidence')
@@ -496,10 +548,45 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     setUploadingSlot(null)
   }
 
+  // Underground advance: optimistic local progression + durable queue. The
+  // replay engine pushes to the server when online (immediately if connected,
+  // later on reconnect). No server I/O happens here, so an offline tap never
+  // silently fails — it's queued and reconciled against live status on replay.
+  async function advanceUnderground(trans) {
+    if (advancingRef.current) return
+    advancingRef.current = true
+    setAdvancing(true)
+    try {
+      if (trans.next === 'arrived') {
+        await commitCapture(activeJob.id, 'arrival', Date.now())
+        mutateOrder({ status: 'arrived' })
+        showToast(t('washer.drawer.underground.queued'), 'success')
+        runOfflineReplay()
+      } else if (trans.next === 'in_progress') {
+        // No photos for this hop — local only; the completion replay performs
+        // arrived→in_progress→pending_approval on the server.
+        mutateOrder({ status: 'in_progress' })
+        showToast(t(ADVANCE_TOAST_KEYS.in_progress), 'success')
+      } else if (trans.next === 'pending_approval') {
+        await commitCapture(activeJob.id, 'completion', Date.now())
+        mutateOrder({ status: 'pending_approval' })
+        showToast(t('washer.drawer.underground.queued'), 'success')
+        runOfflineReplay()
+      }
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      advancingRef.current = false
+      setAdvancing(false)
+    }
+  }
+
   async function advance() {
     if (advancingRef.current || !order) return
     const trans = TRANSITION_KEYS[order.status]
     if (!trans) return
+
+    if (underground) { advanceUnderground(trans); return }
 
     advancingRef.current = true
     setAdvancing(true)
@@ -549,23 +636,31 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const isArriving   = trans?.next === 'arrived'
   const anyUploading = uploadingSlot !== null
 
-  // Client-side geofence
+  // Client-side geofence (skipped for underground orders — no GPS underground).
   const distanceM = (isArriving && position && order.lat && order.lng)
     ? Math.round(haversineKm(position.lat, position.lng, order.lat, order.lng) * 1000)
     : null
-  const isTooFar = isArriving && (distanceM === null || distanceM > 100)
-  const noGps    = isArriving && !position
+  const isTooFar = isArriving && !underground && (distanceM === null || distanceM > 100)
+  const noGps    = isArriving && !underground && !position
 
   const allArrivalUploaded    = PHOTO_SLOTS.every(s => order?.[`arrival_photo_${s}`])
   const allCompletionUploaded = PHOTO_SLOTS.every(s => order?.[`completion_photo_${s}`])
+  // Underground photos are captured to IndexedDB (not yet on the order row), so
+  // accept a locally-captured set for the gate as well.
+  const allArrivalReady    = underground
+    ? (allArrivalUploaded    || PHOTO_SLOTS.every(s => capturedSlots.arrival.has(s)))
+    : allArrivalUploaded
+  const allCompletionReady = underground
+    ? (allCompletionUploaded || PHOTO_SLOTS.every(s => capturedSlots.completion.has(s)))
+    : allCompletionUploaded
 
-  const noGpsSubmit      = isCompleting && !position
+  const noGpsSubmit      = isCompleting && !underground && !position
   const isActionDisabled = (
     advancing ||
     anyUploading ||
     (isArriving && isTooFar) ||
-    (isArriving && !allArrivalUploaded) ||
-    (isCompleting && !allCompletionUploaded) ||
+    (isArriving && !allArrivalReady) ||
+    (isCompleting && !allCompletionReady) ||
     noGpsSubmit
   )
 
@@ -580,6 +675,33 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
 
   return (
     <div className="flex flex-col gap-3 px-4 pb-6">
+
+      {/* ── Underground-parking banner — prominent; access notes shown in full ── */}
+      {order.is_underground_parking && (
+        <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-warning-500/10 border border-warning-500/35">
+          <ParkingSquare className="h-5 w-5 text-warning-500 shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-warning-500">{t('washer.drawer.underground.badge')}</p>
+            {order.access_notes
+              ? <p className="text-[12px] text-ink mt-1 leading-snug whitespace-pre-line">{order.access_notes}</p>
+              : <p className="text-[12px] text-ink-muted mt-1 leading-snug">{t('washer.drawer.underground.accessHint')}</p>
+            }
+          </div>
+        </div>
+      )}
+
+      {/* ── Offline-capture sync indicator (underground) ── */}
+      {underground && (offlinePending > 0 || offlineSyncing) && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-glass border border-glass-border">
+          {offlineSyncing
+            ? <Loader2 className="h-4 w-4 text-ink-muted animate-spin shrink-0" />
+            : <CloudOff className="h-4 w-4 text-ink-muted shrink-0" />
+          }
+          <span className="text-[12px] text-ink-muted">
+            {offlineSyncing ? t('washer.drawer.underground.syncing') : t('washer.drawer.underground.queued')}
+          </span>
+        </div>
+      )}
 
       {/* ── Vehicle card (IsraeliPlate + photos) ── */}
       <VehicleSection order={order} />
@@ -779,12 +901,12 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
               {t('washer.drawer.submit.gpsRequired')}
             </p>
           )}
-          {isArriving && !allArrivalUploaded && (
+          {isArriving && !allArrivalReady && (
             <p className="text-xs text-center text-ink-muted px-2">
               {t('washer.drawer.arrivalPhotos.subtitle')}
             </p>
           )}
-          {isCompleting && !allCompletionUploaded && (
+          {isCompleting && !allCompletionReady && (
             <p className="text-xs text-center text-ink-muted px-2">
               {t('washer.drawer.completionPhotos.subtitle')}
             </p>
@@ -813,13 +935,16 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
 }
 
 // ── Main drawer component ──────────────────────────────────────────────────────
-export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone, position }) {
+export default function JobDrawer({ jobs, loading, selectedJobId, online, onToggle, toggling, activeJob, onJobDone, position, drawerY, snaps: snapsProp }) {
   const navigate     = useNavigate()
   const { t }        = useTranslation()
   const showToast    = useToast()
   const reduceMotion = useReducedMotion()
-  const snaps        = useRef(getSnaps())
-  const y         = useMotionValue(snaps.current.default)
+  // Drawer geometry + position can be owned by Dashboard and shared (so the
+  // recenter button can track the sheet); fall back to local state otherwise.
+  const snaps        = useRef(snapsProp ?? getSnaps())
+  const localY       = useMotionValue(snaps.current.default)
+  const y            = drawerY ?? localY
   const listRef   = useRef(null)
   const cardRefs  = useRef({})
 

@@ -89,6 +89,12 @@
       "allowLocation": "או אפשר גישה למיקום לזיהוי אוטומטי",
       "carType": "סוג רכב",
       "optional": "(אופציונלי)",
+      "requiredField": "(חובה)",
+      "underground": {
+        "label": "חניון תת-קרקעי",
+        "hint": "אין GPS או קליטה — השוטף מצלם במצב לא מקוון ובדיקת מיקום ההגעה מדולגת.",
+        "notesRequired": "הוראות גישה הן חובה לחניון תת-קרקעי — תארו כיצד להגיע לרכב."
+      },
       "siteResources": "מה זמין במיקום?",
       "waterAccessible": "ברז מים",
       "powerAccessible": "שקע חשמל",
@@ -180,6 +186,7 @@
       "title": "סטטוס הזמנה",
       "back": "חזרה",
       "live": "חי",
+      "underground": "תת-קרקעי",
       "cancelled": "ההזמנה בוטלה",
       "completed": "הרכב שלך מבריק!",
       "cancelOrder": "בטל הזמנה",
@@ -426,6 +433,8 @@
       "noJobs": "אין עבודות בסביבתך כרגע",
       "noJobsHint": "נודיע לך כשתגיע עבודה.",
       "jobsNearbyCount_one": "עבודה אחת בסביבה",
+      "jobsNearbyCount_two": "שתי עבודות בסביבה",
+      "jobsNearbyCount_many": "{{count}} עבודות בסביבה",
       "jobsNearbyCount_other": "{{count}} עבודות בסביבה",
       "transitions": {
         "startDrive": "התחל נסיעה",
@@ -441,6 +450,13 @@
       "access": {
         "title": "הוראות גישה",
         "none": "אין הוראות גישה מיוחדות — פגוש את הלקוח במיקום."
+      },
+      "underground": {
+        "badge": "תת-קרקעי — ללא קליטה צפויה",
+        "accessHint": "אין GPS מתחת לאדמה — עקוב אחר ההוראות כדי להגיע לרכב.",
+        "queued": "בתור — יסונכרן כשתחזור לרשת",
+        "syncing": "מסנכרן את התמונות שצולמו…",
+        "synced": "כל הצילומים סונכרנו"
       },
       "earnings": {
         "label": "הכנסה",

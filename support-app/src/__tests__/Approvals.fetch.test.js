@@ -37,6 +37,11 @@ describe('fetchPendingApprovals', () => {
     expect(lastSelect).toMatch(/\bdecline_count\b/)
   })
 
+  it('includes is_underground_parking in the select (ADR-035 — drives the location-unavailable state)', async () => {
+    await fetchPendingApprovals()
+    expect(lastSelect).toMatch(/\bis_underground_parking\b/)
+  })
+
   it('filters to pending_approval status', async () => {
     await fetchPendingApprovals()
     expect(lastEqArgs).toEqual(['status', 'pending_approval'])

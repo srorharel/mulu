@@ -10,6 +10,7 @@ export async function fetchPendingApprovals() {
       completion_photo_front, completion_photo_back, completion_photo_driver, completion_photo_passenger,
       created_at, accepted_at,
       submitted_lat, submitted_lng, submitted_location_at,
+      is_underground_parking,
       decline_count, decline_reason,
       lat, lng, address_label,
       consumer_profile:profiles!consumer_id(full_name),

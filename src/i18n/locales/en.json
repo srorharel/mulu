@@ -89,6 +89,12 @@
       "allowLocation": "Or allow location access for auto-detect",
       "carType": "Car type",
       "optional": "(optional)",
+      "requiredField": "(required)",
+      "underground": {
+        "label": "Underground parking",
+        "hint": "No GPS or reception — your washer captures photos offline and the arrival location check is skipped.",
+        "notesRequired": "Access notes are required for underground parking — describe how to reach the car."
+      },
       "siteResources": "What's available at the location?",
       "waterAccessible": "Water tap",
       "powerAccessible": "Power outlet",
@@ -180,6 +186,7 @@
       "title": "Order status",
       "back": "Back",
       "live": "LIVE",
+      "underground": "Underground",
       "cancelled": "Order cancelled",
       "completed": "Your car is sparkling clean!",
       "cancelOrder": "Cancel order",
@@ -441,6 +448,13 @@
       "access": {
         "title": "Access notes",
         "none": "No special access notes — meet the customer at the location."
+      },
+      "underground": {
+        "badge": "Underground — no reception expected",
+        "accessHint": "No GPS underground — follow these directions to reach the car.",
+        "queued": "Queued — will sync when you're back online",
+        "syncing": "Syncing your captured photos…",
+        "synced": "All captures synced"
       },
       "earnings": {
         "label": "Earnings",

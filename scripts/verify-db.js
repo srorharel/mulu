@@ -204,6 +204,89 @@ for (const col of EXPECTED_COLS) {
   else                   fail(`orders.${col}`, 'missing — run npm run db:migrate')
 }
 
+// ── 5b. Underground parking column + relaxed transition (0103 / 0104) ────────
+//
+// 0103 adds orders.is_underground_parking boolean NOT NULL DEFAULT false. 0104
+// relaxes transition_order_status so a marked order can go en_route→arrived and
+// in_progress→pending_approval with NULL coords (no reception underground). We
+// assert the column shape, then exercise the relaxed transitions inside a
+// rolled-back transaction so live rows are untouched.
+
+console.log('\n── underground parking (0103 / 0104) ────────────────────────')
+
+const ugCol = await q(`
+  SELECT data_type, column_default, is_nullable
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'orders'
+    AND column_name = 'is_underground_parking'
+`)
+if (ugCol.length === 0) {
+  fail('orders.is_underground_parking', 'missing — check 0103')
+} else {
+  const c = ugCol[0]
+  if (c.data_type === 'boolean') pass('orders.is_underground_parking is boolean')
+  else                           fail('orders.is_underground_parking type', `expected boolean, got ${c.data_type}`)
+  if (/false/i.test(c.column_default || '')) pass('orders.is_underground_parking DEFAULT false')
+  else                                       fail('orders.is_underground_parking default', `expected false, got ${c.column_default}`)
+  if (c.is_nullable === 'NO') pass('orders.is_underground_parking is NOT NULL')
+  else                        fail('orders.is_underground_parking nullable', 'expected NOT NULL')
+}
+
+// Functional proof: a marked order accepts the two reception-dependent
+// transitions with NULL coords. Impersonate seed washer (33333333) who owns
+// seed order B (aa…002) by setting the request.jwt.claims GUC that auth.uid()
+// reads; mark the order underground with 4 photos; confirm the transitions that
+// would normally require GPS now succeed. Everything rolls back.
+const SEED_WASHER = '33333333-0000-0000-0000-000000000003'
+const SEED_ORDER  = 'aa000000-0000-0000-0000-000000000002'
+
+await client.query('BEGIN')
+try {
+  const exists = await q(
+    `SELECT 1 FROM public.orders WHERE id = $1 AND washer_id = $2`,
+    [SEED_ORDER, SEED_WASHER]
+  )
+  if (exists.length === 0) {
+    fail('null-coord transition test', `seed order ${SEED_ORDER} / washer missing — cannot exercise`)
+  } else {
+    await client.query(
+      `SELECT set_config('request.jwt.claims', $1, true)`,
+      [JSON.stringify({ sub: SEED_WASHER, role: 'authenticated' })]
+    )
+
+    // en_route → arrived with NULL coords (underground skips geofence + GPS;
+    // the 4 arrival photos are still required, so we set them first).
+    await client.query(`
+      UPDATE public.orders SET status = 'en_route', is_underground_parking = true,
+        arrival_photo_front = 't/arrival/front.jpg', arrival_photo_back = 't/arrival/back.jpg',
+        arrival_photo_driver = 't/arrival/driver.jpg', arrival_photo_passenger = 't/arrival/passenger.jpg'
+      WHERE id = $1`, [SEED_ORDER])
+    await client.query(`SELECT public.transition_order_status($1, 'arrived', NULL, NULL)`, [SEED_ORDER])
+    const r1 = await q(`SELECT status FROM public.orders WHERE id = $1`, [SEED_ORDER])
+    if (r1[0].status === 'arrived') pass('underground en_route→arrived accepted with NULL coords')
+    else                            fail('underground en_route→arrived', `status is ${r1[0].status}`)
+
+    // arrived → in_progress (no gate) → pending_approval with NULL coords +
+    // 4 completion photos; submitted coords must stay NULL.
+    await client.query(`SELECT public.transition_order_status($1, 'in_progress', NULL, NULL)`, [SEED_ORDER])
+    await client.query(`
+      UPDATE public.orders SET
+        completion_photo_front = 't/completion/front.jpg', completion_photo_back = 't/completion/back.jpg',
+        completion_photo_driver = 't/completion/driver.jpg', completion_photo_passenger = 't/completion/passenger.jpg'
+      WHERE id = $1`, [SEED_ORDER])
+    await client.query(`SELECT public.transition_order_status($1, 'pending_approval', NULL, NULL)`, [SEED_ORDER])
+    const r2 = await q(`SELECT status, submitted_lat, submitted_lng FROM public.orders WHERE id = $1`, [SEED_ORDER])
+    if (r2[0].status === 'pending_approval') pass('underground in_progress→pending_approval accepted with NULL coords')
+    else                                     fail('underground in_progress→pending_approval', `status is ${r2[0].status}`)
+    if (r2[0].submitted_lat === null && r2[0].submitted_lng === null) pass('underground submission leaves submitted_lat/lng NULL')
+    else                                                              fail('underground submitted coords', `expected NULL, got ${r2[0].submitted_lat}/${r2[0].submitted_lng}`)
+  }
+} catch (err) {
+  fail('null-coord transition test', err.message)
+} finally {
+  await client.query('ROLLBACK')
+}
+
 // ── 6. nearby_jobs return shape (regression guard for 0066 rewrite) ─────────
 //
 // The 0066 redeclaration originally dropped lat/lng from the RETURNS TABLE,

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { LocateFixed } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import 'leaflet/dist/leaflet.css'
 import './WasherMarker.css'
 import { useTheme } from '../../hooks/useTheme.js'
@@ -213,8 +211,9 @@ function FollowLayer({ washerPosition, activeJob, followPaused, setFollowPaused 
 //   jobs            array from useNearbyJobs
 //   activeJob       { lat, lng, id } | null
 //   onJobPinTap     (jobId) => void
-export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap }) {
-  const { t } = useTranslation()
+//   recenterRef     ref the parent calls to recenter the map (the FAB lives in
+//                   Dashboard now, so it can track the JobDrawer's height)
+export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap, recenterRef }) {
   const { isDark } = useTheme()
   const [followPaused, setFollowPaused] = useState(false)
   const mapRef = useRef(null)
@@ -243,6 +242,13 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
     )
     setFollowPaused(false)
   }
+
+  // Expose the (same) recenter handler to the Dashboard-owned FAB. No dep array:
+  // re-assign each render so the closure keeps the latest washerPosition.
+  useEffect(() => {
+    if (recenterRef) recenterRef.current = handleRecenter
+    return () => { if (recenterRef) recenterRef.current = null }
+  })
 
   return (
     <div dir="ltr" className={`absolute inset-0 isolate ${mapThemeClass(isDark)}`}>
@@ -301,23 +307,8 @@ export default function WorkerMap({ washerPosition, jobs, activeJob, onJobPinTap
           )
         })}
       </MapContainer>
-
-      {/* Recenter FAB — hidden while auto-fit owns the camera or coords unavailable */}
-      {!activeJob && washerCoordsValid && (
-        <button
-          onClick={handleRecenter}
-          aria-label={t('washer.dashboard.recenterMap')}
-          className="absolute z-[800] flex items-center justify-center rounded-2xl bg-glass border border-glass-border backdrop-blur-xl shadow-lg transition-transform active:scale-90"
-          style={{
-            bottom: 'calc(56px + 120px + 1.5rem)',
-            insetInlineEnd: '1rem',
-            width:  44,
-            height: 44,
-          }}
-        >
-          <LocateFixed className="h-5 w-5 text-ink" />
-        </button>
-      )}
+      {/* Recenter FAB now lives in Dashboard (RecenterButton) so it can track the
+          JobDrawer's height; it drives the map via the recenterRef handler above. */}
     </div>
   )
 }

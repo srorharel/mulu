@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle, Clock, Play, X, Camera } from 'lucide-react'
+import { CheckCircle, Clock, Play, X, Camera, ParkingSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { approveOrder, declineOrder, getSignedUrl } from '../lib/approvals.js'
 import i18n from '../i18n'
@@ -112,6 +112,10 @@ function LocationCard({ order }) {
   const { t, i18n } = useTranslation()
   const hasSubmitted = order.submitted_lat != null && order.submitted_lng != null
   const hasOrderLoc  = order.lat != null && order.lng != null
+  // ADR-035: underground orders are submitted with no GPS (no reception). Show a
+  // clear "location unavailable (underground)" state instead of a map — there
+  // are no coords to plot.
+  const underground  = order.is_underground_parking === true
 
   const submittedAddress = useReverseGeocode(
     hasSubmitted ? order.submitted_lat : null,
@@ -128,7 +132,12 @@ function LocationCard({ order }) {
         {t('approvals.location.title')}
       </p>
 
-      {!hasSubmitted ? (
+      {underground && !hasSubmitted ? (
+        <div className="flex items-center gap-2 rounded-lg border border-edge bg-surface-elevated px-2.5 py-2">
+          <ParkingSquare className="h-4 w-4 shrink-0" style={{ color: '#9CA3AF' }} />
+          <p className="text-sm text-ink-muted">{t('approvals.location.underground')}</p>
+        </div>
+      ) : !hasSubmitted ? (
         <p className="text-sm text-ink-muted">{t('approvals.location.notRecorded')}</p>
       ) : (
         <>

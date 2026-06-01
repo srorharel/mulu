@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2, Droplets, Zap } from 'lucide-react'
+import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2, Droplets, Zap, ParkingSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -75,6 +75,13 @@ export default function JobDetail() {
         </button>
 
         <h1 className="text-xl font-bold">{t('washer.jobDetail.title')}</h1>
+
+        {order.is_underground_parking && (
+          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-warning-50 border border-warning-200 text-warning-700">
+            <ParkingSquare className="h-4 w-4 shrink-0" />
+            <span className="text-sm font-semibold">{t('washer.drawer.underground.badge')}</span>
+          </div>
+        )}
 
         <div className="card flex flex-col gap-3">
           {/* Car + service */}

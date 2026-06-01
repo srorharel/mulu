@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, MapPin, Droplets, Zap, User, Check } from 'lucide-react'
+import { ChevronRight, Loader2, MapPin, Droplets, Zap, User, Check, ParkingSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
@@ -108,6 +108,7 @@ export default function ConsumerHome() {
   const [pin, setPin]                   = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
   const [accessNotes, setAccessNotes]   = useState('')
+  const [isUnderground, setIsUnderground] = useState(false)
   const [siteHasWater, setSiteHasWater] = useState(false)
   const [siteHasPower, setSiteHasPower] = useState(false)
   const [submitting, setSubmitting]     = useState(false)
@@ -202,7 +203,10 @@ export default function ConsumerHome() {
   const { total: consumerTotal, vat } = consumerBreakdown(licenseData.category || 'private')
   const uploadedCount      = Object.values(photos).filter(Boolean).length
   const allPhotosUploaded  = uploadedCount === 4
-  const canSubmit = !!effectivePin && licenseData.isValid && allPhotosUploaded
+  // Underground orders require access notes (no GPS arrival check — the washer
+  // needs written directions). Enforced client-side per ADR-035 (no DB CHECK).
+  const undergroundNotesMissing = isUnderground && !accessNotes.trim()
+  const canSubmit = !!effectivePin && licenseData.isValid && allPhotosUploaded && !undergroundNotesMissing
 
   const initials = getInitials(profile, user)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
@@ -258,6 +262,7 @@ export default function ConsumerHome() {
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
     if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
     if (!allPhotosUploaded) { setError(t('consumer.home.submit.needsPhotos')); return }
+    if (isUnderground && !accessNotes.trim()) { setError(t('consumer.home.underground.notesRequired')); return }
 
     setError('')
     submittingRef.current = true
@@ -287,6 +292,7 @@ export default function ConsumerHome() {
         status:        'pending',
         key_location:  null,
         access_notes:  accessNotes.trim() || null,
+        is_underground_parking: isUnderground,
         site_has_water:      siteHasWater,
         site_has_power:      siteHasPower,
         addon_wiper_fluid:   false,
@@ -478,11 +484,39 @@ export default function ConsumerHome() {
             />
           </div>
 
-          {/* ── Access notes ── */}
+          {/* ── Underground parking toggle ── */}
+          <GlassCard className="p-4">
+            <button
+              type="button"
+              onClick={() => setIsUnderground(v => !v)}
+              aria-pressed={isUnderground}
+              className="flex items-center gap-2.5 w-full text-start"
+            >
+              <div className={`w-[34px] h-[34px] rounded-[11px] flex items-center justify-center shrink-0 ${
+                isUnderground ? 'bg-primary-500 text-white' : 'bg-black/[0.06] text-ink-muted'
+              }`}>
+                <ParkingSquare className="h-[18px] w-[18px]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-ink leading-tight">{t('consumer.home.underground.label')}</p>
+                <p className="text-[11px] text-ink-muted mt-0.5 leading-snug">{t('consumer.home.underground.hint')}</p>
+              </div>
+              {/* Switch — flex justify keeps the knob on the correct inline edge in RTL */}
+              <span className={`flex items-center w-11 h-6 rounded-full border p-0.5 transition-colors shrink-0 ${
+                isUnderground ? 'justify-end bg-primary-500/20 border-primary-500/45' : 'justify-start bg-black/[0.06] border-glass-border'
+              }`}>
+                <span className={`w-5 h-5 rounded-full shadow-sm ${isUnderground ? 'bg-primary-500' : 'bg-neutral-400'}`} />
+              </span>
+            </button>
+          </GlassCard>
+
+          {/* ── Access notes — required when underground ── */}
           <GlassCard className="p-4">
             <label className="label">
               {t('consumer.home.fields.accessNotes')}{' '}
-              <span className="font-normal text-ink-muted">{t('consumer.home.optional')}</span>
+              <span className={`font-normal ${isUnderground ? 'text-danger-500' : 'text-ink-muted'}`}>
+                {isUnderground ? t('consumer.home.requiredField') : t('consumer.home.optional')}
+              </span>
             </label>
             <textarea
               className="input min-h-[76px] resize-none mt-1"
@@ -491,6 +525,9 @@ export default function ConsumerHome() {
               value={accessNotes}
               onChange={e => setAccessNotes(e.target.value)}
             />
+            {undergroundNotesMissing && (
+              <p className="text-[12px] text-ink-muted mt-1.5">{t('consumer.home.underground.notesRequired')}</p>
+            )}
           </GlassCard>
 
           {/* Error */}

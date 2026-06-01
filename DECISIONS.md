@@ -408,3 +408,35 @@ The filter icon button in the History header is a non-functional placeholder. Ne
 - *Add a super_admin storage policy + signed URLs for attachments* — deferred: unnecessary while the bucket is public, and would expand a private-bucket access surface for marginal benefit. Revisit only if the bucket is locked down.
 
 **Consequence:** No schema change. One new admin tab, one read-only data module (guarded by `admin-app/src/__tests__/adminChats.test.js` asserting zero mutation exports and `Chats.test.jsx` asserting no compose/input affordance), and `scripts/smoke-chats.js` proving a super_admin can actually SELECT a conversation and its messages through RLS.
+
+---
+
+## ADR-035: Underground-parking orders — offline capture + geofence/GPS bypass
+**Date:** 2026-06-01
+**Status:** Accepted
+
+**Context:** Many washes happen in covered/subterranean parking garages with no cellular or GPS reception. Two parts of the normal washer flow assume reception:
+1. `transition_order_status` rejects `en_route → arrived` unless the washer is within the arrival geofence (needs a GPS fix), and rejects `in_progress → pending_approval` unless GPS coords are supplied.
+2. The washer app uploads the 4 arrival + 4 completion photos to `job-evidence` and calls the RPC inline — both require network.
+
+A washer descending into a garage to do the job literally cannot satisfy either. Forcing it produces stuck jobs and support tickets.
+
+**Decision:** Add a per-order boolean `orders.is_underground_parking` (migration **0103**, `NOT NULL DEFAULT false`, back-filled in place; **no DB CHECK** — see below). The consumer sets it at booking; when ON the **access-notes field becomes required client-side** (a CHECK constraint would fail on every pre-existing `false`/null-notes row and, more to the point, "notes required" is a booking-time UX rule, not a storage invariant).
+
+Migration **0104** redefines `transition_order_status` (the highest-risk change) keeping the **identical 5-arg signature** `(uuid, text, double precision, double precision, boolean)`, the admin-override (force-stage) branch, its audit row, and the 0100 config-driven geofence all **byte-for-byte unchanged**. The only change: when `v_order.is_underground_parking` is true,
+- `en_route → arrived` skips the GPS-required + geofence checks (accepts null coords); the **4 arrival photos stay mandatory**;
+- `in_progress → pending_approval` skips the GPS-required check; the **4 completion photos stay mandatory**; `submitted_lat/lng` stay null.
+
+The function reads the flag from the order row itself — no new argument, so every existing null-coord caller keeps working. `admin_force_order_stage` (0101) calls `transition_order_status` by name; plpgsql creates no hard dependency, so the DROP-before-CREATE in 0104 does not break it and it is intentionally not recreated.
+
+**Offline capture (washer app, `src/lib/offlineSync/`):** engaged **only** when `order.is_underground_parking === true`; for every other order the existing online flow is byte-for-byte untouched. At arrival the 4 photos are resized to JPEG blobs and stored in **IndexedDB** (never localStorage — blobs), the local order state advances optimistically (`arrived` → `in_progress` → completion photos queued for `pending_approval`), and a "queued — will sync when online" indicator is shown. On reconnect (the DOM `online`/`offline` events + `navigator.onLine`, which fire in the Android WebView; @capacitor/network could not be installed in this environment due to an npm-registry TLS failure, and can be layered on later — it needs `npx cap sync android`) **and** on app init (in case the app was killed underground), the engine replays each queued task in order: upload photos to the deterministic `job-evidence/{order_id}/{set}/{angle}.jpg` paths (upsert → idempotent), then call `transition_order_status(orderId, 'arrived', null, null)` and later `(orderId, 'pending_approval', null, null)`. Replay is **resumable + idempotent**: it re-reads the live order status before each step and skips steps the server already applied, tolerates partial uploads, and clears blobs only after the server confirms. No optimistic write touches the server outside replay.
+
+**Agent display:** for `pending_approval` orders where `is_underground_parking` is true and `submitted_lat/lng` are null, the support-app `ApprovalRow` replaces the GPS/map card with a clear **"Location unavailable (underground)"** state (no coords, no map). `approvals.js` adds `is_underground_parking` to its SELECT (contract test updated).
+
+**Alternatives considered:**
+- *DB CHECK enforcing notes when underground* — rejected: fails on existing rows and conflates a UX rule with a storage invariant.
+- *A new RPC for underground transitions* — rejected: duplicates the state machine; a single in-function branch on the flag keeps one source of truth and preserves all callers.
+- *localStorage queue* — rejected: can't hold image blobs reliably; IndexedDB is the correct durable binary store.
+- *Trust client-supplied coords for underground* — rejected: there are none to trust; null is honest and the agent UI says so.
+
+**Consequence:** Migrations 0103 + 0104. The geofence/GPS bypass is scoped strictly to flagged orders; photo requirements are unchanged for everyone. **Hardware caveat:** the offline→reconnect path (airplane-mode toggle on a real device) cannot be fully proven in jsdom — it must be verified on-device before release.

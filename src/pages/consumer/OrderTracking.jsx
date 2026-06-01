@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check } from 'lucide-react'
+import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check, ParkingSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import IsraeliPlate from '../../components/ui/IsraeliPlate.jsx'
@@ -320,6 +320,13 @@ export default function OrderTracking() {
             ) : null}
           </div>
           </Editable>
+
+          {order.is_underground_parking && (
+            <div className="flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full bg-primary-50 dark:bg-accent-muted border border-primary-200/60 dark:border-accent/30">
+              <ParkingSquare className="h-3.5 w-3.5 text-primary-700 dark:text-accent shrink-0" />
+              <span className="text-[11px] font-bold text-primary-700 dark:text-accent">{t('consumer.tracking.underground')}</span>
+            </div>
+          )}
 
           <TrackingDots status={order.status} t={t} />
 
