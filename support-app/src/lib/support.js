@@ -74,7 +74,7 @@ export async function fetchOrderDetails(orderId) {
     .from('orders')
     .select(`
       id, status, car_type, service_type, base_price, total_price, created_at,
-      address_label, addon_wiper_fluid, addon_tire_pressure,
+      address_label, addon_wiper_fluid, addon_tire_pressure, is_underground_parking,
       car_plate, car_make, car_model, car_year, car_color, payout_amount,
       consumer:profiles!consumer_id(id, full_name, phone),
       washer:profiles!washer_id(id, full_name, phone, last_lat, last_lng, last_location_at)

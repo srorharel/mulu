@@ -37,3 +37,23 @@ describe('support i18n — approvals.location.underground completeness', () => {
     expect(hasBidiControl(resources.he.translation.approvals.location.underground)).toBe(false)
   })
 })
+
+describe('support i18n — orderActions.underground (agent toggle) completeness', () => {
+  const KEYS = ['mark', 'unmark', 'badge', 'confirmTitle', 'confirmBodyMark', 'confirmBodyUnmark', 'confirmYes', 'confirmNo']
+
+  it.each(['he', 'en'])('%s defines every orderActions.underground key + the toasts', (lng) => {
+    const u = resources[lng].translation.orderActions.underground
+    for (const k of KEYS) {
+      expect(u[k], `${lng} missing orderActions.underground.${k}`).toBeTypeOf('string')
+      expect(u[k].length).toBeGreaterThan(0)
+    }
+    const toasts = resources[lng].translation.orderActions.toasts
+    expect(toasts.marked).toBeTypeOf('string')
+    expect(toasts.regular).toBeTypeOf('string')
+  })
+
+  it('he values carry no bidi/zero-width control characters', () => {
+    const u = resources.he.translation.orderActions.underground
+    for (const k of KEYS) expect(hasBidiControl(u[k]), `orderActions.underground.${k}`).toBe(false)
+  })
+})

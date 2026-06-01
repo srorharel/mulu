@@ -155,6 +155,25 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
     }
   }
 
+  async function doSetUnderground(value) {
+    setActing(true)
+    const { error } = await supabase.rpc('agent_set_order_underground', {
+      p_order_id: orderId,
+      p_value:    value,
+    })
+    setActing(false)
+    setConfirming(null)
+    if (error) {
+      showToast('error', t('orderActions.error'))
+    } else {
+      showToast('success', value
+        ? t('orderActions.toasts.marked')
+        : t('orderActions.toasts.regular')
+      )
+      await load()
+    }
+  }
+
   function showToast(type, msg) {
     setToast({ type, msg })
     setTimeout(() => setToast(null), 3000)
@@ -195,9 +214,14 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
         </p>
         <div className="flex items-center justify-between mt-1">
           <span className="font-mono text-[15px] font-bold text-ink">{order.id?.slice(0, 8)}…</span>
-          <Pill color={statusPillColor(order.status)} dot>
-            {t(`orderStatus.${order.status}`)}
-          </Pill>
+          <div className="flex items-center gap-1.5">
+            {order.is_underground_parking && (
+              <Pill color="warning" dot>{t('orderActions.underground.badge')}</Pill>
+            )}
+            <Pill color={statusPillColor(order.status)} dot>
+              {t(`orderStatus.${order.status}`)}
+            </Pill>
+          </div>
         </div>
       </div>
 
@@ -309,23 +333,55 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
                   </button>
                 </div>
               </div>
+            ) : confirming === 'underground' ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-[12px] font-semibold text-ink">{t('orderActions.underground.confirmTitle')}</p>
+                <p className="text-[12px] text-ink-muted leading-snug">
+                  {order.is_underground_parking
+                    ? t('orderActions.underground.confirmBodyUnmark')
+                    : t('orderActions.underground.confirmBodyMark')}
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirming(null)} className="btn-ghost text-xs px-2 py-1 flex-1">
+                    {t('orderActions.underground.confirmNo')}
+                  </button>
+                  <button
+                    onClick={() => doSetUnderground(!order.is_underground_parking)}
+                    disabled={acting}
+                    className="flex-1 text-xs font-bold px-2 py-1 rounded-lg text-white disabled:opacity-50"
+                    style={{ background: 'var(--color-agent)' }}
+                  >
+                    {acting ? '…' : t('orderActions.underground.confirmYes')}
+                  </button>
+                </div>
+              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-2">
                 <button
-                  onClick={() => setConfirming('cancel')}
-                  className="text-[12px] font-bold px-3 py-2.5 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
+                  onClick={() => setConfirming('underground')}
+                  className="text-[12px] font-bold px-3 py-2.5 rounded-xl border border-edge text-ink hover:bg-surface-elevated transition-colors"
                 >
-                  {t('orderActions.cancel.button')}
+                  {order.is_underground_parking
+                    ? t('orderActions.underground.unmark')
+                    : t('orderActions.underground.mark')}
                 </button>
-                <button
-                  onClick={() => setConfirming('complete')}
-                  className="text-[12px] font-bold px-3 py-2.5 rounded-xl text-white transition-colors"
-                  style={{ background: 'var(--color-agent)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-agent-deep)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-agent)' }}
-                >
-                  {t('orderActions.complete.button')}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setConfirming('cancel')}
+                    className="text-[12px] font-bold px-3 py-2.5 rounded-xl border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
+                  >
+                    {t('orderActions.cancel.button')}
+                  </button>
+                  <button
+                    onClick={() => setConfirming('complete')}
+                    className="text-[12px] font-bold px-3 py-2.5 rounded-xl text-white transition-colors"
+                    style={{ background: 'var(--color-agent)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-agent-deep)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-agent)' }}
+                  >
+                    {t('orderActions.complete.button')}
+                  </button>
+                </div>
               </div>
             )}
           </div>

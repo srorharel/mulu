@@ -287,6 +287,14 @@ try {
   await client.query('ROLLBACK')
 }
 
+// agent_set_order_underground (0105) — agents flip a regular order to underground.
+const agentUgFn = await q(`
+  SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname = 'agent_set_order_underground'
+`)
+if (agentUgFn.length > 0) pass('agent_set_order_underground() exists')
+else                      fail('agent_set_order_underground()', 'missing — check 0105')
+
 // ── 6. nearby_jobs return shape (regression guard for 0066 rewrite) ─────────
 //
 // The 0066 redeclaration originally dropped lat/lng from the RETURNS TABLE,
