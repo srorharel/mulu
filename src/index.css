@@ -54,6 +54,18 @@
   --nav-height: env(safe-area-inset-bottom, 0px);
 }
 
+/* Washer light mode — dimmed to reduce outdoor glare (DESIGN.md §3/§14).
+   Scoped to washer light shells only: the :not(.dark) guard excludes every
+   .dark washer shell, and consumer/public routes never carry data-layout="washer",
+   so the global :root light values (shared by consumer GlassCard) stay untouched.
+   Cool-neutral, no warm tint; elevated stays lighter than surface to keep the
+   elevation hierarchy, and edge stays darker than both so dividers remain visible. */
+[data-layout="washer"]:not(.dark) {
+  --color-surface:          #e8eaee;   /* was #fafafa — page background */
+  --color-surface-elevated: #f3f4f7;   /* was #ffffff — cards, nav bar */
+  --color-edge:             #dfe2e8;    /* keep dividers visible on the dimmer bg */
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

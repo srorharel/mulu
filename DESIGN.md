@@ -110,6 +110,8 @@ Defined as CSS variables in `src/index.css`, mapped in `tailwind.config.js`. Use
 | `text-accent` / `bg-accent` | `#7DD9A2` | `#7DD9A2` | Mint accent (same in both modes) |
 | `bg-accent-muted` | `rgba(125,217,162,0.12)` | `rgba(125,217,162,0.18)` | Tinted mint backgrounds |
 
+**Washer light mode dimming:** When a washer opts into light mode, the non-map washer shell uses dimmed surface values — `--color-surface: #e8eaee`, `--color-surface-elevated: #f3f4f7` (with `--color-edge: #dfe2e8`) — instead of the bright `#fafafa`/`#ffffff` above, to cut outdoor glare. These are scoped via `[data-layout="washer"]:not(.dark)` in `src/index.css` and do NOT alter the global `:root` light values (consumer light is unchanged). Cool-neutral only — no warm tint. Accent, ink, glass, and status colors are untouched.
+
 **Legacy alias:** `bg-surface-glass` (maps to `--color-surface-glass`) still exists in the Tailwind config but is not used by any current component. It carries the old dark value of `rgba(26,29,39,0.72)`. Do not use it; use `bg-glass` instead.
 
 ### Semantic status colors
@@ -501,6 +503,8 @@ Target: Wolt-level, not Calm-level.
 **Consumer pages:** `.bg-mesh` — 4 radial gradients at up to 0.42 opacity over `var(--color-surface)`. Radials are top-left (green, 0.42), top-right (green, 0.22), bottom-right (amber, 0.16), bottom-left (green, 0.30). Glass cards sit in front. Do NOT use solid white backgrounds on consumer pages.
 
 **Washer dark screen surfaces (non-map):** `.bg-mesh-dark` — 2 subtle green radials (0.10–0.14 opacity) over `var(--color-surface)` (dark: `#0f1117`). Used on dark screens that don't have a full-bleed map (Active Job header area via `MeshDark` pattern from brand spec).
+
+**Washer light screen surfaces (non-map):** Dimmed cool-neutral surfaces (`--color-surface: #e8eaee`, `--color-surface-elevated: #f3f4f7`) scoped via `[data-layout="washer"]:not(.dark)` — no `bg-mesh` pattern, no warm tint. See §3 "Washer light mode dimming".
 
 **Washer map screens:** The `WorkerMap` is full-bleed. UI elements float above it; no surface class needed on the page root.
 
