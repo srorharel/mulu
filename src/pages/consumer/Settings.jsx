@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, Car } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Car, FileText, Shield, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -9,6 +10,7 @@ import PillRow from '../../components/settings/PillRow.jsx'
 import { useLocale } from '../../hooks/useLocale.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import Editable from '../../components/editable/Editable.jsx'
+import DeleteAccountModal from '../../components/account/DeleteAccountModal.jsx'
 
 const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
@@ -20,6 +22,7 @@ export default function ConsumerSettings() {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   const showToast = useToast()
+  const [showDelete, setShowDelete] = useState(false)
 
   return (
     <PageShell>
@@ -73,7 +76,47 @@ export default function ConsumerSettings() {
               <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
             </button>
           </GlassCard>
+
+          {/* Legal documents */}
+          <GlassCard className="p-0 overflow-hidden">
+            <button
+              onClick={() => navigate('/legal/terms')}
+              className="w-full flex items-center gap-3 px-4 py-4 text-start border-b border-glass-border"
+            >
+              <div className="w-9 h-9 rounded-[11px] bg-primary-100 flex items-center justify-center shrink-0">
+                <FileText className="h-[18px] w-[18px] text-primary-700" />
+              </div>
+              <span className="flex-1 text-sm font-semibold text-ink">{t('legal.links.terms')}</span>
+              <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+            </button>
+            <button
+              onClick={() => navigate('/legal/privacy')}
+              className="w-full flex items-center gap-3 px-4 py-4 text-start"
+            >
+              <div className="w-9 h-9 rounded-[11px] bg-primary-100 flex items-center justify-center shrink-0">
+                <Shield className="h-[18px] w-[18px] text-primary-700" />
+              </div>
+              <span className="flex-1 text-sm font-semibold text-ink">{t('legal.links.privacy')}</span>
+              <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+            </button>
+          </GlassCard>
+
+          {/* Danger zone — account deletion */}
+          <GlassCard className="p-0 overflow-hidden">
+            <button
+              onClick={() => setShowDelete(true)}
+              className="w-full flex items-center gap-3 px-4 py-4 text-start"
+            >
+              <div className="w-9 h-9 rounded-[11px] bg-danger-50 flex items-center justify-center shrink-0">
+                <Trash2 className="h-[18px] w-[18px] text-danger-500" />
+              </div>
+              <span className="flex-1 text-sm font-semibold text-danger-500">{t('account.delete.title')}</span>
+              <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+            </button>
+          </GlassCard>
         </div>
+
+        {showDelete && <DeleteAccountModal onClose={() => setShowDelete(false)} />}
       </div>
     </PageShell>
   )

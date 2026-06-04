@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { LogOut, User, MessageCircle, Settings } from 'lucide-react'
+import { LogOut, User, MessageCircle, Settings, FileText, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase.js'
@@ -116,6 +116,22 @@ export default function Profile() {
               </button>
             </>
           )}
+
+          {/* Legal documents — available to every role */}
+          <button onClick={() => navigate('/legal/terms')} className="btn-ghost w-full mt-2">
+            <FileText className="h-4 w-4" />
+            {t('legal.links.terms')}
+          </button>
+          {profile?.role === 'washer' && (
+            <button onClick={() => navigate('/legal/washer-terms')} className="btn-ghost w-full mt-2">
+              <FileText className="h-4 w-4" />
+              {t('legal.links.washerTerms')}
+            </button>
+          )}
+          <button onClick={() => navigate('/legal/privacy')} className="btn-ghost w-full mt-2">
+            <Shield className="h-4 w-4" />
+            {t('legal.links.privacy')}
+          </button>
 
           <button onClick={signOut} className="btn-ghost w-full mt-2 text-danger-500 hover:bg-danger-50">
             <LogOut className="h-4 w-4" />

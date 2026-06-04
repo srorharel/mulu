@@ -19,6 +19,7 @@ type EventType =
   | 'support_resolved'
   | 'tier_changed'
   | 'admin_broadcast'
+  | 'legal_update'
 
 interface SendPayload {
   user_id: string
@@ -151,6 +152,30 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
       body:  (d) => d.body_he  ?? d.body  ?? '',
     },
   },
+  legal_update: {
+    // doc_type drives the document name; title is constant. Phase 3 mounts the
+    // in-app acknowledgment modal, so the push just nudges the user to open it.
+    en: {
+      title: 'Legal document updated',
+      body: (d) => {
+        const name = d.doc_type === 'consumer_terms' ? 'Terms of Service'
+          : d.doc_type === 'privacy_policy'           ? 'Privacy Policy'
+          : d.doc_type === 'washer_terms'             ? 'Washer Terms'
+          : 'legal document'
+        return `Our ${name} was updated. Tap to review and accept.`
+      },
+    },
+    he: {
+      title: 'עודכן מסמך משפטי',
+      body: (d) => {
+        const name = d.doc_type === 'consumer_terms' ? 'תנאי השימוש'
+          : d.doc_type === 'privacy_policy'           ? 'מדיניות הפרטיות'
+          : d.doc_type === 'washer_terms'             ? 'תנאי השוטפים'
+          : 'מסמך משפטי'
+        return `עודכן מסמך: ${name}. יש לעיין ולאשר.`
+      },
+    },
+  },
 }
 
 // ── Route map (server-side fallback; trigger pre-computes data.route) ─────────
@@ -179,6 +204,10 @@ function routeFor(event_type: EventType, data: Record<string, string>): string {
       return '/washer/earnings'
     case 'admin_broadcast':
       return data.route ?? '/home'
+    case 'legal_update':
+      return data.doc_type === 'consumer_terms' ? '/legal/terms'
+           : data.doc_type === 'washer_terms'   ? '/legal/washer-terms'
+           : '/legal/privacy'
     default:
       return '/home'
   }

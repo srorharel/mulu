@@ -58,7 +58,7 @@ Deep reference for the MULU backend: Supabase Postgres + PostGIS, RPCs, migratio
 
 ## Migrations
 
-Migrations live in `supabase/migrations/` (0001–0095). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
+Migrations live in `supabase/migrations/` (0001–0110). Run `npm run db:migrate` to apply. `supabase/seed.sql` creates 5 test accounts (password `Test1234!`): `consumer1@test.dev`, `consumer2@test.dev`, `washer1@test.dev`, `washer2@test.dev`, `washer3@test.dev`.
 
 ### Notable recent migrations
 - `0066_approval_lifecycle.sql` — adds `orders.decline_count` and `orders.submitted_for_approval_at`, the `approval_audit` table + RLS + indexes, and the `washer_has_pending_approval` helper. Also redeclares `nearby_jobs` with the new busy-washer exclusion filter — **the redeclaration is a strict superset of the live shape and MUST keep `lat`/`lng` in the return** (a prior draft accidentally dropped them and would have killed the washer map). Uses `DROP FUNCTION IF EXISTS` before `CREATE OR REPLACE` to allow the redeclaration to succeed even if Postgres deems the shape changed.
@@ -95,6 +95,12 @@ Migrations live in `supabase/migrations/` (0001–0095). Run `npm run db:migrate
 - `0093_admin_activity_feed_view.sql` — `admin_activity_feed` view (UNION ALL of `admin_change_history` + `admin_order_audit` + `admin_user_audit` + sent `broadcast_notifications`, normalized + a computed `undoable`/`category`); SELECT revoked from anon/authenticated. `get_admin_activity_feed(limit, before, entity_type)` SECURITY DEFINER RPC is the only read path (gates on `is_super_admin()`, keyset-paginates on `occurred_at`).
 - `0094_admin_undo_rpcs.sql` — `admin_undo_change(p_history_id)` + internal `_admin_{source_row,update_source,insert_source,delete_source}` helpers (REVOKE'd from PUBLIC). Conflict guard compares the live row to the entry's `after_value`; pricing guard blocks pricing/payout undo while `pricing_source='config'`. The undo writes through the source table so the trigger logs the undo itself (tagged via the `app.change_note` GUC).
 - `0095_admin_restore_user.sql` — extends `admin_user_audit.action` CHECK with `restore_user`; adds `admin_get_deletion_snapshot(p_audit_id)`. The actual auth-user recreation lives in the `admin-user-mgmt` Edge Function (`restore_user` action) — best-effort only (new id possible, relational rows not reconnected; see ADR-028).
+
+### Legal docs / account deletion / UGC migrations (0107–0110, ADR-036–039)
+- `0107_legal_documents.sql` — `legal_documents` (versioned; partial unique index `one is_current per (doc_type,locale)`; unique `(doc_type,locale,version)`) + `user_legal_acknowledgments`. SECURITY DEFINER RPCs `publish_legal_document` (agent-gated, demote-before-insert), `get_current_legal_document` (he-fallback), `pending_legal_acknowledgments` (role-filtered), `acknowledge_legal_document`. Adds `legal_documents` to realtime; seeds v1 he skeletons for all three doc types.
+- `0108_legal_update_fanout.sql` — `legal_update_audience(doc_type)` (role + opt-in) + `notify_on_legal_publish()` AFTER-INSERT-`WHEN is_current` trigger → one `net.http_post` to `fan-out-legal-update` (Vault `fan_out_legal_update_url`).
+- `0109_account_deletion_fk_setnull.sql` — relaxes `orders.consumer_id` (drops NOT NULL), `orders.washer_id`, `order_events.actor_id` to **ON DELETE SET NULL** so a profile can be deleted while its orders/events are preserved (anonymized). Powers the `delete-account` Edge Function (ADR-038).
+- `0110_content_reports_blocks.sql` — `content_reports` (reporter own insert/read; agents read+update all via `is_agent()`; realtime) + `content_blocks` (owner-scoped). UGC report/block (ADR-039).
 
 ### Migration discipline (lessons from the 0066 saga)
 - `npm run db:migrate --bootstrap` records every migration as applied *without* executing its SQL. A subsequent normal `db:migrate` will then skip the file. If schema objects are missing despite a migration existing for them, add a new heal migration (idempotent `… IF NOT EXISTS`) rather than running raw `ALTER` in the dashboard — the runner will pick it up on the next deploy.

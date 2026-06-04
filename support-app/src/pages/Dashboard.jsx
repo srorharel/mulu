@@ -10,6 +10,7 @@ import { fetchPendingVerifications } from '../lib/washerVerifications.js'
 import { supabase } from '../lib/supabase.js'
 import LeftRail from '../components/LeftRail.jsx'
 import MobileTabBar from '../components/MobileTabBar.jsx'
+import ReportsView from '../components/ReportsView.jsx'
 import QueueList from '../components/QueueList.jsx'
 import UnassignedView from '../components/UnassignedView.jsx'
 import ChatPane from '../components/ChatPane.jsx'
@@ -380,6 +381,7 @@ export default function Dashboard() {
   const [pendingCount,       setPendingCount]       = useState(0)
   const [ticketCount,        setTicketCount]        = useState(0)
   const [verificationCount,  setVerificationCount]  = useState(0)
+  const [reportCount,        setReportCount]        = useState(0)
 
   // Count pending approvals for tab badge
   useEffect(() => {
@@ -429,6 +431,22 @@ export default function Dashboard() {
     return () => supabase.removeChannel(ch)
   }, [])
 
+  // Count open content reports for the tab badge
+  useEffect(() => {
+    async function countReports() {
+      const { count } = await supabase
+        .from('content_reports')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'open')
+      setReportCount(count ?? 0)
+    }
+    countReports()
+    const ch = supabase.channel('reports-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'content_reports' }, countReports)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [])
+
   // Auto-select conversation from URL on page load / refresh.
   useEffect(() => {
     if (!urlConvId || loading || selectedConv?.id === urlConvId || !conversations.length) return
@@ -460,6 +478,10 @@ export default function Dashboard() {
       navigate('/settings')
       return
     }
+    if (newTab === 'legal') {
+      navigate('/legal')
+      return
+    }
     if (newTab === 'unassigned') {
       navigate('/unassigned', { replace: true })
     } else {
@@ -485,6 +507,7 @@ export default function Dashboard() {
     approvals: pendingCount,
     tickets: ticketCount,
     washerVerifications: verificationCount,
+    reports: reportCount,
   }
 
   // On mobile, when a conversation is selected, show chat full-screen
@@ -501,6 +524,7 @@ export default function Dashboard() {
         approvalCount={pendingCount}
         ticketCount={ticketCount}
         washerVerificationCount={verificationCount}
+        reportCount={reportCount}
         profile={profile}
         onSettings={() => navigate('/settings')}
         onSignOut={signOut}
@@ -522,6 +546,10 @@ export default function Dashboard() {
         ) : tab === 'washerVerifications' ? (
           <div className="flex flex-1 overflow-hidden">
             <WasherVerificationsView />
+          </div>
+        ) : tab === 'reports' ? (
+          <div className="flex flex-1 overflow-hidden">
+            <ReportsView />
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">

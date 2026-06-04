@@ -44,6 +44,10 @@ import Earnings        from './pages/washer/Earnings.jsx'
 import Shop            from './pages/washer/Shop.jsx'
 import Settings        from './pages/washer/Settings.jsx'
 
+import LegalViewer       from './pages/legal/LegalViewer.jsx'
+import LegalUpdateModal  from './components/legal/LegalUpdateModal.jsx'
+import AccountDeletion   from './pages/AccountDeletion.jsx'
+
 // Initialises push notifications once a logged-in user is confirmed.
 // Renders nothing — exists only to call hooks inside the BrowserRouter context.
 function NotificationsInit() {
@@ -93,11 +97,16 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <NotificationsInit />
+      <LegalUpdateModal />
       <Routes>
         {/* Public — redirect away if already logged in */}
         <Route path="/"       element={<AuthRedirect><Landing /></AuthRedirect>} />
         <Route path="/signup" element={<AuthRedirect><SignUp /></AuthRedirect>} />
         <Route path="/login"  element={<AuthRedirect><Login /></AuthRedirect>} />
+
+        {/* Account deletion — public store URL; works logged-in (runs deletion)
+            or logged-out (shows instructions). No AuthRedirect/RoleGuard. */}
+        <Route path="/account/delete" element={<AccountDeletion />} />
 
         {/* Washer verification routes — accessible while role=washer regardless of verification status */}
         <Route element={<RoleGuard allowedRoles={['washer']} />}>
@@ -140,7 +149,14 @@ export function AppRouter() {
 
         {/* Any authenticated user */}
         <Route element={<RoleGuard />}>
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile"        element={<Profile />} />
+          <Route path="/legal/terms"    element={<LegalViewer docType="consumer_terms" />} />
+          <Route path="/legal/privacy"  element={<LegalViewer docType="privacy_policy" />} />
+        </Route>
+
+        {/* Washer-only legal viewer */}
+        <Route element={<RoleGuard allowedRoles={['washer']} />}>
+          <Route path="/legal/washer-terms" element={<LegalViewer docType="washer_terms" />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -925,6 +925,309 @@ else
   fail('storage.objects: agent_read_all_verification policy missing',
        'agents cannot read washer-verification selfie/ID/license — run npm run db:migrate')
 
+// ── 8. Legal documents (0107) ───────────────────────────────────────────────
+//
+// Versioned legal-docs store + acknowledgments. Asserts the tables/RLS, the
+// partial unique index (one current per type+locale), the four RPCs + the
+// pending return shape, realtime publication, and the three seeded he docs.
+// Then exercises two behaviours inside rolled-back transactions: a publish
+// flips v1→v2 (exactly one is_current), and pending_legal_acknowledgments
+// filters by role.
+
+console.log('\n── legal_documents + acknowledgments (0107) ─────────────────')
+
+const legalTables = await q(`
+  SELECT tablename, rowsecurity FROM pg_tables
+  WHERE schemaname = 'public'
+    AND tablename IN ('legal_documents', 'user_legal_acknowledgments')
+`)
+for (const t of ['legal_documents', 'user_legal_acknowledgments']) {
+  const row = legalTables.find(r => r.tablename === t)
+  if (!row)                  fail(`public.${t}`, 'table missing — check 0107')
+  else if (!row.rowsecurity) fail(`public.${t}`, 'RLS disabled')
+  else                       pass(`public.${t} exists, RLS enabled`)
+}
+
+const oneCurrentIdx = await q(`
+  SELECT indexdef FROM pg_indexes
+  WHERE schemaname='public' AND tablename='legal_documents'
+    AND indexname='legal_documents_one_current_idx'
+`)
+if (oneCurrentIdx.length && /WHERE is_current/i.test(oneCurrentIdx[0].indexdef))
+  pass('legal_documents_one_current_idx: partial unique index on is_current')
+else
+  fail('legal_documents_one_current_idx', 'missing or not partial-on-is_current — check 0107')
+
+const legalFns = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('publish_legal_document','get_current_legal_document',
+                      'pending_legal_acknowledgments','acknowledge_legal_document')
+`)
+const legalFnNames = new Set(legalFns.map(r => r.proname))
+for (const fn of ['publish_legal_document','get_current_legal_document',
+                  'pending_legal_acknowledgments','acknowledge_legal_document']) {
+  if (legalFnNames.has(fn)) pass(`${fn}() exists`)
+  else                      fail(`${fn}()`, 'missing — check 0107')
+}
+
+const pendingReturn = await q(`
+  SELECT pg_get_function_result(p.oid) AS returns
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname='public' AND p.proname='pending_legal_acknowledgments'
+`)
+if (pendingReturn.length === 0) {
+  fail('pending_legal_acknowledgments', 'not found')
+} else {
+  const ret = pendingReturn[0].returns
+  const cols = [
+    ['doc_type',       /\bdoc_type text\b/],
+    ['version',        /\bversion integer\b/],
+    ['locale',         /\blocale text\b/],
+    ['title',          /\btitle text\b/],
+    ['content',        /\bcontent text\b/],
+    ['effective_date', /\beffective_date date\b/],
+  ]
+  for (const [col, re] of cols) {
+    if (re.test(ret)) pass(`pending_legal_acknowledgments returns ${col}`)
+    else              fail(`pending_legal_acknowledgments returns ${col}`, `missing/changed in: ${ret}`)
+  }
+}
+
+const legalRealtime = await q(`
+  SELECT 1 FROM pg_publication_tables
+  WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='legal_documents'
+`)
+if (legalRealtime.length > 0) pass('legal_documents on supabase_realtime publication')
+else                          fail('legal_documents on supabase_realtime publication', 'missing — check 0107')
+
+const seedDocs = await q(`
+  SELECT doc_type, version, is_current FROM public.legal_documents
+  WHERE locale='he' AND is_current
+`)
+for (const dt of ['consumer_terms', 'privacy_policy', 'washer_terms']) {
+  const r = seedDocs.find(x => x.doc_type === dt)
+  if (r && r.version === 1 && r.is_current) pass(`seed ${dt} he v1 is_current`)
+  else fail(`seed ${dt} he`, r ? `version=${r.version} is_current=${r.is_current}` : 'missing — check 0107')
+}
+
+// Behavioural: agent publishes a new version → flips current (rolled back).
+await client.query('BEGIN')
+try {
+  const AGENT = '22222222-0000-0000-0000-000000000002'  // consumer seed, temporarily promoted
+  await client.query(`UPDATE public.profiles SET role='agent' WHERE id=$1`, [AGENT])
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`,
+    [JSON.stringify({ sub: AGENT, role: 'authenticated' })])
+
+  await client.query(
+    `SELECT public.publish_legal_document('consumer_terms', 'he', 'תנאי שימוש', 'v2 test body', NULL)`
+  )
+  const after = await q(`
+    SELECT version, is_current FROM public.legal_documents
+    WHERE doc_type='consumer_terms' AND locale='he' ORDER BY version
+  `)
+  const currents = after.filter(r => r.is_current)
+  const v2 = after.find(r => r.version === 2)
+  if (currents.length === 1 && v2 && v2.is_current)
+    pass('publish_legal_document: v2 published, exactly one is_current (v1 demoted)')
+  else
+    fail('publish flip', `currents=${currents.length} v2_is_current=${v2?.is_current}`)
+
+  const agentPending = await q(`SELECT doc_type FROM public.pending_legal_acknowledgments($1)`, [AGENT])
+  if (agentPending.length === 0) pass('pending_legal_acknowledgments: agent role gets none')
+  else                           fail('agent pending', `expected 0, got ${agentPending.map(r => r.doc_type).join(',')}`)
+} catch (err) {
+  fail('publish / agent behavioural test', err.message)
+} finally {
+  await client.query('ROLLBACK')
+}
+
+// Behavioural: pending filters by role for consumer + washer (rolled back).
+await client.query('BEGIN')
+try {
+  const CONSUMER = '11111111-0000-0000-0000-000000000001'
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`,
+    [JSON.stringify({ sub: CONSUMER, role: 'authenticated' })])
+  const cset = new Set((await q(`SELECT doc_type FROM public.pending_legal_acknowledgments($1)`, [CONSUMER])).map(r => r.doc_type))
+  if (cset.has('consumer_terms') && cset.has('privacy_policy') && !cset.has('washer_terms'))
+    pass('pending: consumer → consumer_terms + privacy_policy (no washer_terms)')
+  else fail('consumer role filter', `got {${[...cset].join(',')}}`)
+
+  const WASHER = '33333333-0000-0000-0000-000000000003'
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`,
+    [JSON.stringify({ sub: WASHER, role: 'authenticated' })])
+  const wset = new Set((await q(`SELECT doc_type FROM public.pending_legal_acknowledgments($1)`, [WASHER])).map(r => r.doc_type))
+  if (wset.has('washer_terms') && wset.has('privacy_policy') && !wset.has('consumer_terms'))
+    pass('pending: washer → washer_terms + privacy_policy (no consumer_terms)')
+  else fail('washer role filter', `got {${[...wset].join(',')}}`)
+} catch (err) {
+  fail('role-filter behavioural test', err.message)
+} finally {
+  await client.query('ROLLBACK')
+}
+
+// ── 9. Legal-update fan-out (0108) ───────────────────────────────────────────
+//
+// Audience RPC (role-based + opt-in) + the AFTER-INSERT trigger that fires one
+// pg_net call to fan-out-legal-update. (The net.http_post wiring of
+// notify_on_legal_publish is also validated by the pg_net section above, which
+// scans every http_post-using public function.)
+
+console.log('\n── legal_update fan-out (0108) ──────────────────────────────')
+
+const fanoutFns = await q(`
+  SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname='public' AND p.proname IN ('legal_update_audience','notify_on_legal_publish')
+`)
+const fanoutFnNames = new Set(fanoutFns.map(r => r.proname))
+for (const fn of ['legal_update_audience', 'notify_on_legal_publish']) {
+  if (fanoutFnNames.has(fn)) pass(`${fn}() exists`)
+  else                       fail(`${fn}()`, 'missing — check 0108')
+}
+
+const legalTrigger = await q(`
+  SELECT t.tgname FROM pg_trigger t
+  JOIN pg_class c     ON c.oid = t.tgrelid
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname='public' AND c.relname='legal_documents'
+    AND t.tgname='trg_notify_on_legal_publish' AND NOT t.tgisinternal
+`)
+if (legalTrigger.length > 0) pass('trg_notify_on_legal_publish trigger on legal_documents')
+else                         fail('trg_notify_on_legal_publish', 'missing — check 0108')
+
+// Behavioural: audience role selection + opt-out skip (rolled back). Impersonate
+// an agent (the RPC gate allows service_role OR agent).
+await client.query('BEGIN')
+try {
+  const AGENT = '22222222-0000-0000-0000-000000000002'
+  await client.query(`UPDATE public.profiles SET role='agent' WHERE id=$1`, [AGENT])
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`,
+    [JSON.stringify({ sub: AGENT, role: 'authenticated' })])
+
+  const aud = async (dt) =>
+    new Set((await q(`SELECT u AS uid FROM public.legal_update_audience($1) AS u`, [dt])).map(r => r.uid))
+
+  const CONSUMER = '11111111-0000-0000-0000-000000000001'
+  const WASHER   = '33333333-0000-0000-0000-000000000003'
+
+  const consumerAud = await aud('consumer_terms')
+  if (consumerAud.has(CONSUMER) && !consumerAud.has(WASHER))
+    pass('legal_update_audience(consumer_terms) → consumers only')
+  else fail('audience consumer_terms', `consumer∈=${consumerAud.has(CONSUMER)} washer∈=${consumerAud.has(WASHER)}`)
+
+  const washerAud = await aud('washer_terms')
+  if (washerAud.has(WASHER) && !washerAud.has(CONSUMER))
+    pass('legal_update_audience(washer_terms) → washers only')
+  else fail('audience washer_terms', `washer∈=${washerAud.has(WASHER)} consumer∈=${washerAud.has(CONSUMER)}`)
+
+  const privacyAud = await aud('privacy_policy')
+  if (privacyAud.has(CONSUMER) && privacyAud.has(WASHER))
+    pass('legal_update_audience(privacy_policy) → consumers + washers')
+  else fail('audience privacy_policy', `consumer∈=${privacyAud.has(CONSUMER)} washer∈=${privacyAud.has(WASHER)}`)
+
+  // opt-out: disable the consumer's notifications → excluded from the audience.
+  await client.query(
+    `INSERT INTO public.notification_preferences (user_id, enabled) VALUES ($1, false)
+     ON CONFLICT (user_id) DO UPDATE SET enabled=false`, [CONSUMER])
+  const afterOptOut = await aud('consumer_terms')
+  if (!afterOptOut.has(CONSUMER)) pass('legal_update_audience skips opt-out (enabled=false) users')
+  else                            fail('audience opt-out skip', 'disabled consumer still in audience')
+} catch (err) {
+  fail('legal_update_audience behavioural test', err.message)
+} finally {
+  await client.query('ROLLBACK')
+}
+
+// ── 10. Account-deletion FK relaxation (0109) ────────────────────────────────
+//
+// Anonymize-and-preserve-orders requires the order/order_events references to a
+// deleted profile to become NULL (not block, not cascade-delete). Assert the
+// three FKs are ON DELETE SET NULL and that orders.consumer_id is nullable.
+
+console.log('\n── account-deletion FKs (0109) ──────────────────────────────')
+
+const delFks = await q(`
+  SELECT conname, confdeltype FROM pg_constraint
+  WHERE conname IN ('orders_consumer_id_fkey','orders_washer_id_fkey','order_events_actor_id_fkey')
+`)
+const fkMap = Object.fromEntries(delFks.map(r => [r.conname, r.confdeltype]))
+for (const fk of ['orders_consumer_id_fkey', 'orders_washer_id_fkey', 'order_events_actor_id_fkey']) {
+  if (fkMap[fk] === 'n') pass(`${fk} is ON DELETE SET NULL`)
+  else                   fail(`${fk}`, `expected SET NULL ('n'), got '${fkMap[fk] ?? 'missing'}' — check 0109`)
+}
+const ccNull = await q(`
+  SELECT is_nullable FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='orders' AND column_name='consumer_id'
+`)
+if (ccNull[0]?.is_nullable === 'YES') pass('orders.consumer_id is nullable (anonymizable)')
+else                                  fail('orders.consumer_id nullable', `expected YES, got ${ccNull[0]?.is_nullable} — check 0109`)
+
+// ── 11. UGC content_reports + content_blocks (0110) ──────────────────────────
+
+console.log('\n── content_reports / content_blocks (0110) ──────────────────')
+
+const ugcTables = await q(`
+  SELECT tablename, rowsecurity FROM pg_tables
+  WHERE schemaname='public' AND tablename IN ('content_reports','content_blocks')
+`)
+for (const tname of ['content_reports', 'content_blocks']) {
+  const row = ugcTables.find(r => r.tablename === tname)
+  if (!row)                  fail(`public.${tname}`, 'table missing — check 0110')
+  else if (!row.rowsecurity) fail(`public.${tname}`, 'RLS disabled')
+  else                       pass(`public.${tname} exists, RLS enabled`)
+}
+
+const crPolicies = await q(`SELECT policyname FROM pg_policies WHERE schemaname='public' AND tablename='content_reports'`)
+const crNames = new Set(crPolicies.map(r => r.policyname))
+for (const p of ['Reporters insert own reports', 'Reporters read own reports', 'Agents read all reports', 'Agents update reports']) {
+  if (crNames.has(p)) pass(`content_reports policy: ${p}`)
+  else                fail(`content_reports policy: ${p}`, 'missing — check 0110')
+}
+
+const crRealtime = await q(`
+  SELECT 1 FROM pg_publication_tables
+  WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='content_reports'
+`)
+if (crRealtime.length > 0) pass('content_reports on supabase_realtime publication')
+else                       fail('content_reports on supabase_realtime publication', 'missing — check 0110')
+
+// Behavioural RLS (rolled back): a reporter sees ONLY their own reports; an agent
+// sees all. Exercised as the `authenticated` role so RLS actually applies (the
+// migration connection is the owner and would otherwise bypass it).
+await client.query('BEGIN')
+try {
+  const A = '11111111-0000-0000-0000-000000000001' // consumer
+  const B = '33333333-0000-0000-0000-000000000003' // washer
+  const AG = '22222222-0000-0000-0000-000000000002' // temporarily promoted to agent
+
+  // Seed two reports from two different reporters (owner insert, RLS bypassed).
+  await client.query(
+    `INSERT INTO public.content_reports (reporter_id, reported_user_id, context, reason)
+     VALUES ($1,$2,'support_chat','a-report'), ($2,$1,'order_chat','b-report')`, [A, B])
+  await client.query(`UPDATE public.profiles SET role='agent' WHERE id=$1`, [AG])
+
+  // Reporter A (consumer) — must see only their own report.
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: A, role: 'authenticated' })])
+  await client.query('SET LOCAL ROLE authenticated')
+  const aSees = (await client.query('SELECT count(*)::int c FROM public.content_reports')).rows[0].c
+  await client.query('RESET ROLE')
+  if (aSees === 1) pass('content_reports RLS: reporter sees only their own report')
+  else             fail('content_reports RLS reporter scope', `expected 1, saw ${aSees}`)
+
+  // Agent — must see all reports.
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: AG, role: 'authenticated' })])
+  await client.query('SET LOCAL ROLE authenticated')
+  const agSees = (await client.query('SELECT count(*)::int c FROM public.content_reports')).rows[0].c
+  await client.query('RESET ROLE')
+  if (agSees >= 2) pass('content_reports RLS: agent reads all reports')
+  else             fail('content_reports RLS agent scope', `expected >=2, saw ${agSees}`)
+} catch (err) {
+  await client.query('RESET ROLE').catch(() => {})
+  fail('content_reports RLS behavioural test', err.message)
+} finally {
+  await client.query('ROLLBACK')
+}
+
 // ── Done ──────────────────────────────────────────────────────────────────────
 
 await client.end()

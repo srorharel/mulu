@@ -1,4 +1,53 @@
 {
+  "legal": {
+    "modal": {
+      "badge": "Updated document",
+      "acknowledge": "I have read and accept",
+      "queue": "{{count}} documents to review"
+    },
+    "viewer": {
+      "consumer_terms": "Terms of Service",
+      "privacy_policy": "Privacy Policy",
+      "washer_terms": "Washer Terms",
+      "notFound": "This document has not been published yet."
+    },
+    "links": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "washerTerms": "Washer Terms",
+      "section": "Legal"
+    }
+  },
+  "account": {
+    "delete": {
+      "title": "Delete account",
+      "intro": "This permanently deletes your account and personal data. This cannot be undone.",
+      "consequences": {
+        "profile": "Your profile, vehicles, chats, ratings and saved settings are deleted.",
+        "media": "Your uploaded photos and verification documents are removed.",
+        "retained": "Past order and payment records are kept (anonymized) as required by law, with no link to you."
+      },
+      "confirmWord": "DELETE",
+      "confirmPrompt": "Type {{word}} to confirm",
+      "confirmInputLabel": "Confirmation text",
+      "confirmButton": "Permanently delete my account",
+      "error": "Could not delete your account. Please try again or contact support.",
+      "webTitle": "Delete your MULU account",
+      "webLoggedInIntro": "You are signed in. You can delete your account and data below.",
+      "webInstructions": "To delete your MULU account, sign in to the app, then open Settings → Delete account. You can also email us and we will process the deletion.",
+      "webRetained": "We delete your profile, photos and personal data. Past order and payment records are retained in anonymized form (no link to you) as required by law.",
+      "webSupport": "Need help? Contact"
+    }
+  },
+  "moderation": {
+    "actions": "Message options",
+    "report": "Report message",
+    "block": "Block user",
+    "unblock": "Unblock",
+    "reported": "Reported. Our team will review it.",
+    "blocked": "User blocked. You won't see their messages.",
+    "blockedBanner": "You blocked this user. Messages are hidden."
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

@@ -442,3 +442,45 @@ The function reads the flag from the order row itself — no new argument, so ev
 **Agent control (migration 0105):** customers often only report a no-reception garage *after* booking, via support chat. `agent_set_order_underground(p_order_id, p_value)` (SECURITY DEFINER, `is_agent()`-gated, blocked on terminal orders — mirrors how agents already act via `transition_order_status`) lets a support agent flip a regular order to underground (or back) from the support-app `OrderPanel`. The washer app then switches that order to offline capture + skips the GPS arrival gate. Being SECURITY DEFINER, the UPDATE bypasses RLS, so no agent UPDATE policy on `orders` is needed.
 
 **Consequence:** Migrations 0103 + 0104 (+ 0105 for the agent control). The geofence/GPS bypass is scoped strictly to flagged orders; photo requirements are unchanged for everyone. **Hardware caveat:** the offline→reconnect path (airplane-mode toggle on a real device) cannot be fully proven in jsdom — it must be verified on-device before release.
+
+## ADR-036: DB-backed versioned legal documents + acknowledgment model
+**Date:** 2026-06-04
+**Status:** Accepted
+
+**Context:** Consumer terms, privacy policy, and washer terms must be editable by staff (not hardcoded), versioned, and re-acknowledged by users when they change — an App Store / Play store and privacy-law expectation.
+
+**Decision:** Content lives in `legal_documents` (migration **0107**) — one row per (`doc_type` ∈ consumer_terms/privacy_policy/washer_terms, `locale` ∈ he/en, `version`), with a **partial unique index** guaranteeing at most one `is_current` per (doc_type, locale). Agents publish via `publish_legal_document(...)` (SECURITY DEFINER, `is_agent()`-gated): it computes the next version, **demotes the current row before inserting** the new one (so the partial unique index never sees two currents), and stamps `published_at`/`published_by`. Reads go through `get_current_legal_document(doc_type, locale)` (he-fallback when a locale has no current version). `user_legal_acknowledgments` (PK `user_id`,`doc_type`) records the version each user accepted; `pending_legal_acknowledgments(user_id)` returns the unacknowledged current docs **filtered by role** (consumer → consumer_terms+privacy; washer → washer_terms+privacy; agents → none). A global `LegalUpdateModal` (mounted once in `src/router.jsx` beside `NotificationsInit`) gates consumers/washers until they acknowledge; read-only viewers live at `/legal/terms`, `/legal/privacy`, `/legal/washer-terms`. `legal_documents` is in the realtime publication so a live publish surfaces without reload.
+
+**RLS:** any authenticated user reads `is_current` rows; an additive agent-only policy reads **all** versions (powers the support-app history list). No client writes — only the SECURITY DEFINER publish RPC.
+
+**Consequence:** Three doc types seeded v1 he as `[למילוי]` skeletons (privacy + washer) and a labelled consumer placeholder; Harel fills them via the support-app editor. Guarded by `legalDocuments.contract.test.js`, `LegalUpdateModal.test.jsx`, and live checks in `verify-db.js`.
+
+## ADR-037: legal_update push fan-out (trigger → one Edge Function → per-user send)
+**Date:** 2026-06-04
+**Status:** Accepted
+
+**Context:** Publishing a legal document should push-notify the affected users, mirroring the existing new-job-nearby / broadcast fan-out architecture rather than looping per-user inside a trigger.
+
+**Decision:** An `AFTER INSERT … WHEN (NEW.is_current)` trigger on `legal_documents` (migration **0108**) makes **one** `net.http_post` to the `fan-out-legal-update` Edge Function (Vault secret `fan_out_legal_update_url`; `net.http_post` with `net` in `search_path`, per the 0080 gotcha). That function resolves the audience via `legal_update_audience(doc_type)` (role-based + opt-in pre-filter on `notification_preferences.enabled`; service_role/agent-gated) and fans out to `send-notification` once per user in chunks. The new `legal_update` event type is added to the send-notification COPY map (he+en) and `routeFor` (deep-links to the matching `/legal/*` viewer). `send-notification` re-checks `enabled` per user, so the audience filter is a pre-filter, not the only gate.
+
+**Consequence:** Reuses `TRIGGER_SECRET` auth and the `notification_log` write path. Actual push **delivery is device-test-only**. Guarded by `legalUpdateFanout.contract.test.js` + audience/opt-out behavioural checks in `verify-db.js`.
+
+## ADR-038: Account deletion — anonymize orders, delete the user (FK SET NULL)
+**Date:** 2026-06-04
+**Status:** Accepted
+
+**Context:** In-app + web account deletion is a store blocker. We must delete the user and their personal data but **retain order/payment records** for legal/tax purposes. The original FKs made this impossible: `orders.consumer_id` was `NOT NULL` with no ON-DELETE action, so deleting a profile that has orders is rejected.
+
+**Decision:** Migration **0109** relaxes `orders.consumer_id` (drops NOT NULL), `orders.washer_id`, and `order_events.actor_id` to **ON DELETE SET NULL**. The `delete-account` Edge Function (service-role; authenticates the caller's JWT; consumer/washer only) then: purges per-user storage (`washer-verification/{uid}`, `car-photos/{uid}`, `job-evidence` for the caller's own orders); **anonymizes** the caller's orders (nulls car PII, photo paths, access notes, submitted coords — keeps `base_price`/`platform_fee`/`total_price`/`payout_amount`/`status`/timestamps); deletes blocking child rows (order/support messages, conversations, ratings, vehicles, verifications, tokens, prefs, logs, legal acks, content reports/blocks); deletes the `profiles` row (SET NULL nulls the order/event references); and deletes the auth user. The in-app flow (consumer + washer settings) uses **type-to-confirm**, then `unregisterToken()` + `signOut()`. A public `/account/delete` route (no auth guard) runs the flow when logged in and shows instructions + support contact when logged out — this is the Play deletion URL.
+
+**Consequence:** Orphaned (deleted-user) orders carry NULL `consumer_id`, which no RLS policy or app query matches; active orders always set it. `job-evidence` for *other* consumers' orders is retained on a washer deletion (it belongs to the consumer's preserved record) — a deliberate integrity choice over a literal "delete all my jobs' evidence" reading. Guarded by `DeleteAccountModal.test.jsx`, `AccountDeletion.test.jsx`, `deleteAccount.contract.test.js`, and FK checks in `verify-db.js`. **Token/auth revocation is device-test-only.**
+
+## ADR-039: UGC moderation — content_reports view, not support_tickets
+**Date:** 2026-06-04
+**Status:** Accepted
+
+**Context:** Apple/Google require reporting objectionable content and blocking abusive users. The obvious "route reports into `support_tickets`" path is blocked: `support_tickets.order_id` is `NOT NULL` **and** `UNIQUE`, which cannot represent a support-chat report (no order) or a second report on an already-ticketed order.
+
+**Decision:** Migration **0110** adds `content_reports` (reporter, reported user, context order_chat/support_chat, optional order/message ids, reason, `open→reviewed→actioned` status) and `content_blocks` (per-user block list). RLS: reporters insert/read **only their own** reports; agents read + action **all** (`is_agent()` — no same-table subquery, so no policy recursion); block lists are owner-scoped. Reports surface in a **dedicated Reports view** in the support app with a live open-count badge (`content_reports` is in the realtime publication) — **not** funneled into `support_tickets`. In the main app, a per-message menu (`MessageActions`) reports any counterpart message; in order chat it can also block the counterpart (their messages stop rendering, composing disabled, unblock available) — blocking is client-enforced (hide + disable), not server-delivery-blocked. Blocking is intentionally not offered against support agents.
+
+**Consequence:** Guarded by `contentReports.contract.test.js`, `MessageActions.test.jsx` (main), `ReportsView.test.jsx` (support), and behavioural RLS checks in `verify-db.js`.

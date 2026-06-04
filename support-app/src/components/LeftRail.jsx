@@ -1,4 +1,4 @@
-import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck } from 'lucide-react'
+import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck, Scale, Flag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import useBrandAsset from '../hooks/useBrandAsset.js'
 import { supabase } from '../lib/supabase.js'
@@ -24,6 +24,8 @@ const TABS = [
   { id: 'approvals',           Icon: CheckSquare,  labelKey: 'nav.approvals',            inactiveBadge: 'var(--color-danger)'  },
   { id: 'tickets',             Icon: Ticket,       labelKey: 'nav.tickets',              inactiveBadge: 'var(--color-danger)'  },
   { id: 'washerVerifications', Icon: ShieldCheck,  labelKey: 'nav.washerVerifications',  inactiveBadge: 'var(--color-warning)' },
+  { id: 'reports',             Icon: Flag,         labelKey: 'nav.reports',              inactiveBadge: 'var(--color-danger)'  },
+  { id: 'legal',               Icon: Scale,        labelKey: 'nav.legal',                inactiveBadge: 'var(--color-agent)'   },
 ]
 
 function Badge({ count, active, inactiveBadge, t }) {
@@ -47,13 +49,14 @@ export default function LeftRail({
   approvalCount = 0,
   ticketCount = 0,
   washerVerificationCount = 0,
+  reportCount = 0,
   profile,
   onSettings,
   onSignOut,
 }) {
   const { t } = useTranslation()
   const logoSrc = useBrandAsset('support_logo', '/wash-logo.png', supabase)
-  const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount, washerVerifications: washerVerificationCount }
+  const counts = { unassigned: unassignedCount, conv: convCount, approvals: approvalCount, tickets: ticketCount, washerVerifications: washerVerificationCount, reports: reportCount }
   const displayName = profile?.agent_display_name || profile?.full_name || ''
   const hue = nameToHue(displayName)
   const initials = nameInitials(displayName) || '?'

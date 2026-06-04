@@ -5,6 +5,8 @@ import { X, Send } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import MessageActions from './MessageActions.jsx'
+import { listMyBlocks, unblockUser } from '../../lib/moderation.js'
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
 const CHAR_LIMIT = 2000
@@ -15,18 +17,21 @@ function formatTime(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function ChatBubble({ message, isOwn, senderName }) {
+function ChatBubble({ message, isOwn, senderName, actions }) {
   return (
     <div className={`flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
       {!isOwn && (
         <span className="text-xs font-medium text-ink-muted px-1 mb-0.5">{senderName}</span>
       )}
-      <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
-        isOwn
-          ? 'bg-accent text-white rounded-ee-sm'
-          : 'bg-glass border border-glass-border backdrop-blur-sm text-ink rounded-es-sm'
-      }`}>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.body}</p>
+      <div className={`flex items-center gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+        <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+          isOwn
+            ? 'bg-accent text-white rounded-ee-sm'
+            : 'bg-glass border border-glass-border backdrop-blur-sm text-ink rounded-es-sm'
+        }`}>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.body}</p>
+        </div>
+        {actions}
       </div>
       <span className="text-[11px] text-ink-muted/50 px-1">{formatTime(message.created_at)}</span>
     </div>
@@ -43,8 +48,29 @@ export default function OrderChatSheet({ open, orderId, orderStatus, otherPartyN
   const [loading, setLoading]   = useState(false)
   const [text, setText]         = useState('')
   const [sending, setSending]   = useState(false)
+  const [blockedSet, setBlockedSet] = useState(() => new Set())
   const scrollRef  = useRef(null)
   const textareaRef = useRef(null)
+
+  // Load the user's block list when the sheet opens.
+  useEffect(() => {
+    if (!open || !user) return
+    let active = true
+    listMyBlocks().then(set => { if (active) setBlockedSet(set) })
+    return () => { active = false }
+  }, [open, user])
+
+  // 1:1 chat: the counterpart is the first non-own sender. Derived from the
+  // unfiltered list so a blocked counterpart is still detectable.
+  const counterpartId    = messages.find(m => m.sender_id !== user?.id)?.sender_id ?? null
+  const counterpartBlocked = !!counterpartId && blockedSet.has(counterpartId)
+  const visibleMessages  = messages.filter(m => !blockedSet.has(m.sender_id))
+
+  async function handleUnblock() {
+    if (!counterpartId || !user) return
+    const { error } = await unblockUser(user.id, counterpartId)
+    if (!error) setBlockedSet(prev => { const n = new Set(prev); n.delete(counterpartId); return n })
+  }
 
   const isReadOnly   = READ_ONLY_STATUSES.has(orderStatus)
   const charsLeft    = CHAR_LIMIT - text.length
@@ -187,26 +213,50 @@ export default function OrderChatSheet({ open, orderId, orderStatus, otherPartyN
                 </div>
               )}
 
-              {!loading && messages.length === 0 && (
+              {!loading && visibleMessages.length === 0 && (
                 <div className="flex-1 flex items-center justify-center">
                   <p className="text-sm text-ink-muted">{t('chat.emptyState')}</p>
                 </div>
               )}
 
-              {messages.map(msg => (
-                <ChatBubble
-                  key={msg.id}
-                  message={msg}
-                  isOwn={msg.sender_id === user?.id}
-                  senderName={otherPartyName}
-                />
-              ))}
+              {visibleMessages.map(msg => {
+                const isOwn = msg.sender_id === user?.id
+                return (
+                  <ChatBubble
+                    key={msg.id}
+                    message={msg}
+                    isOwn={isOwn}
+                    senderName={otherPartyName}
+                    actions={!isOwn ? (
+                      <MessageActions
+                        reporterId={user?.id}
+                        reportedUserId={msg.sender_id}
+                        context="order_chat"
+                        orderId={orderId}
+                        messageId={msg.id}
+                        allowBlock
+                        onBlocked={(id) => setBlockedSet(prev => new Set(prev).add(id))}
+                      />
+                    ) : null}
+                  />
+                )
+              })}
             </div>
 
-            {/* Read-only banner or composer */}
+            {/* Read-only banner, blocked banner, or composer */}
             {isReadOnly ? (
               <div className="px-4 py-3 border-t border-edge text-center shrink-0">
                 <p className="text-xs text-ink-muted">{t('chat.readOnly')}</p>
+              </div>
+            ) : counterpartBlocked ? (
+              <div className="px-4 py-3 border-t border-edge flex items-center justify-between gap-3 shrink-0">
+                <p className="text-xs text-ink-muted">{t('moderation.blockedBanner')}</p>
+                <button
+                  onClick={handleUnblock}
+                  className="text-xs font-semibold text-accent shrink-0"
+                >
+                  {t('moderation.unblock')}
+                </button>
               </div>
             ) : (
               <div className="border-t border-edge bg-surface-elevated px-3 py-2 shrink-0">

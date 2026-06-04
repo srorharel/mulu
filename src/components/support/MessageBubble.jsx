@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getAttachmentSignedUrl } from '../../lib/support.js'
 import AttachmentPreview from './AttachmentPreview.jsx'
+import MessageActions from '../chat/MessageActions.jsx'
 
 function formatTime(iso) {
   const d = new Date(iso)
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-export default function MessageBubble({ message, isOwn, showSeen, seenAt }) {
+export default function MessageBubble({ message, isOwn, showSeen, seenAt, reportProps }) {
   const { t } = useTranslation()
   const isAgent  = message.sender_role === 'agent'
   const isSystem = message.sender_role === 'system'
@@ -46,19 +47,22 @@ export default function MessageBubble({ message, isOwn, showSeen, seenAt }) {
         </div>
       )}
 
-      <div
-        className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
-          isOwn
-            ? 'bg-accent text-white rounded-br-sm'
-            : 'bg-glass border border-glass-border backdrop-blur-sm text-ink rounded-bl-sm'
-        }`}
-      >
-        {message.body && (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.body}</p>
-        )}
-        {imgUrl && (
-          <AttachmentPreview url={imgUrl} className={message.body ? 'mt-2' : ''} />
-        )}
+      <div className={`flex items-center gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+        <div
+          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+            isOwn
+              ? 'bg-accent text-white rounded-br-sm'
+              : 'bg-glass border border-glass-border backdrop-blur-sm text-ink rounded-bl-sm'
+          }`}
+        >
+          {message.body && (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.body}</p>
+          )}
+          {imgUrl && (
+            <AttachmentPreview url={imgUrl} className={message.body ? 'mt-2' : ''} />
+          )}
+        </div>
+        {!isOwn && reportProps && <MessageActions {...reportProps} />}
       </div>
 
       <div className={`flex items-center gap-1.5 px-1 mt-0.5 ${isOwn ? 'flex-row-reverse' : ''}`}>

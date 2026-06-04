@@ -54,7 +54,13 @@ UI to main/support.
 - **ARCHITECTURE.md** — routing/auth, booking, washer dashboard, approval workflow, verification, support + admin apps, design editor, dark mode, i18n, realtime, mobile, deployment, tests.
 - **DATABASE.md** — tables, RPCs, migrations, buckets, order state machine, pricing/payout, RLS, **migration discipline**.
 - **NOTIFICATIONS.md** — FCM push: edge functions, triggers, channels, broadcasts, deep links.
-- **DECISIONS.md** — ADRs.   **DESIGN.md** — visual/design system.
+- **DECISIONS.md** — ADRs.   **DESIGN.md** — visual/design system.   **STORE_COMPLIANCE.md** — permission strings, Data Safety / Privacy Label, deletion URL, UGC.
+
+## Legal docs / account deletion / UGC (Jun 2026, migrations through 0110; ADR-036–039)
+
+- **Legal docs (ADR-036/037):** `legal_documents` (versioned, one `is_current` per doc_type×locale) + `user_legal_acknowledgments`. RPCs `publish_legal_document` (agent-only), `get_current_legal_document` (he-fallback), `pending_legal_acknowledgments` (role-filtered), `acknowledge_legal_document`. Agents edit/publish in support-app `/legal`; main app gates via `LegalUpdateModal` (mounted in `src/router.jsx`) + viewers `/legal/{terms,privacy,washer-terms}`. Publish fires trigger → Edge Fn `fan-out-legal-update` → `send-notification` event type **`legal_update`**. **New Vault secret: `fan_out_legal_update_url`.**
+- **Account deletion (ADR-038):** Edge Fn `delete-account` (service-role; consumer/washer only) — **anonymizes orders** (PII nulled, financials/`order_events` kept), purges per-user storage + child rows, deletes profile + auth user. Migration 0109 set `orders.consumer_id`/`washer_id` + `order_events.actor_id` to **ON DELETE SET NULL** (consumer_id now nullable). In-app (both settings) type-to-confirm; public store URL **`/account/delete`** (logged-in runs it, logged-out shows instructions). Needs Edge secret `SUPABASE_SERVICE_ROLE_KEY`.
+- **UGC (ADR-039):** `content_reports` (agents triage in support-app **Reports** tab, live badge) + `content_blocks` (order-chat block = hide + disable compose). Per-message `MessageActions` in `OrderChatSheet` + support chat. **NOT** routed into `support_tickets` (its `order_id` is NOT NULL+UNIQUE).
 
 ## Load-bearing gotchas (do not remove)
 

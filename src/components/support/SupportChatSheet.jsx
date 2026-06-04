@@ -229,6 +229,14 @@ export default function SupportChatSheet({ open, convId, onClose }) {
                         ? conversation?.agent_last_read_at
                         : conversation?.opener_last_read_at
                     }
+                    reportProps={item.msg.sender_id && item.msg.sender_id !== user?.id ? {
+                      reporterId: user?.id,
+                      reportedUserId: item.msg.sender_id,
+                      context: 'support_chat',
+                      orderId: conversation?.order_id ?? null,
+                      messageId: item.msg.id,
+                      allowBlock: false,
+                    } : undefined}
                   />
                 ),
               )}

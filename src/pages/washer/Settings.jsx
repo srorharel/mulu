@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion, LayoutGroup } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { ChevronRight, FileText, Shield, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import PageShell from '../../components/ui/PageShell.jsx'
+import DeleteAccountModal from '../../components/account/DeleteAccountModal.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../../components/ui/Toast.jsx'
@@ -47,6 +50,7 @@ export default function Settings() {
   const { locale, setLocale } = useLocale()
   const showToast = useToast()
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   const RINGTONE_OPTIONS = [
     { value: 'default', label: t('washer.settings.ringtone.default') },
@@ -76,6 +80,7 @@ export default function Settings() {
     display:  'dark',
     nav:      'waze',
   })
+  const [showDelete, setShowDelete] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -162,7 +167,41 @@ export default function Settings() {
 
         {/* ── 5. Push notifications (OS-level sound, both roles) ────── */}
         <NotificationsSection />
+
+        {/* ── 6. Legal documents ────────────────────────────────────── */}
+        <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-2 flex flex-col">
+          <button
+            onClick={() => navigate('/legal/washer-terms')}
+            className="w-full flex items-center gap-3 px-3 py-3 text-start rounded-xl hover:bg-surface/50"
+          >
+            <FileText className="h-[18px] w-[18px] text-ink-muted shrink-0" />
+            <span className="flex-1 text-sm font-semibold text-ink">{t('legal.links.washerTerms')}</span>
+            <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+          </button>
+          <button
+            onClick={() => navigate('/legal/privacy')}
+            className="w-full flex items-center gap-3 px-3 py-3 text-start rounded-xl hover:bg-surface/50"
+          >
+            <Shield className="h-[18px] w-[18px] text-ink-muted shrink-0" />
+            <span className="flex-1 text-sm font-semibold text-ink">{t('legal.links.privacy')}</span>
+            <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+          </button>
+        </section>
+
+        {/* ── 7. Danger zone — account deletion ─────────────────────── */}
+        <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-2">
+          <button
+            onClick={() => setShowDelete(true)}
+            className="w-full flex items-center gap-3 px-3 py-3 text-start rounded-xl hover:bg-danger-50/50"
+          >
+            <Trash2 className="h-[18px] w-[18px] text-danger-500 shrink-0" />
+            <span className="flex-1 text-sm font-semibold text-danger-500">{t('account.delete.title')}</span>
+            <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+          </button>
+        </section>
       </div>
+
+      {showDelete && <DeleteAccountModal onClose={() => setShowDelete(false)} />}
     </PageShell>
   )
 }

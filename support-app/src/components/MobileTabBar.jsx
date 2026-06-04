@@ -1,4 +1,4 @@
-import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, ShieldCheck } from 'lucide-react'
+import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, ShieldCheck, Scale, Flag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Editable from './editable/Editable.jsx'
 
@@ -8,6 +8,8 @@ const TABS = [
   { id: 'approvals',           Icon: CheckSquare,   labelKey: 'nav.approvals' },
   { id: 'tickets',             Icon: Ticket,        labelKey: 'nav.tickets' },
   { id: 'washerVerifications', Icon: ShieldCheck,   labelKey: 'nav.verify' },
+  { id: 'reports',             Icon: Flag,          labelKey: 'nav.reports' },
+  { id: 'legal',               Icon: Scale,         labelKey: 'nav.legal' },
   { id: 'settings',            Icon: Settings,      labelKey: 'nav.settings' },
 ]
 
@@ -25,7 +27,7 @@ export default function MobileTabBar({ activeTab, onTabChange, counts = {} }) {
   return (
     <Editable id="support.dashboard.tabBar">
     <nav
-      className="md:hidden flex items-end justify-around border-t border-edge bg-surface-elevated shrink-0"
+      className="md:hidden flex items-end justify-around overflow-x-auto border-t border-edge bg-surface-elevated shrink-0"
       style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
     >
       {TABS.map(({ id, Icon, labelKey }) => {
@@ -34,7 +36,7 @@ export default function MobileTabBar({ activeTab, onTabChange, counts = {} }) {
           <button
             key={id}
             onClick={() => onTabChange(id)}
-            className="relative flex flex-col items-center gap-0.5 pt-2 pb-1 px-2 min-w-[48px] transition-colors"
+            className="relative flex flex-col items-center gap-0.5 pt-2 pb-1 px-2 min-w-[48px] shrink-0 transition-colors"
             style={{ color: isActive ? 'var(--color-agent)' : 'var(--color-ink-subtle)' }}
           >
             <div className="relative">
