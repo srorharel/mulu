@@ -462,6 +462,14 @@ export default function OrderTracking() {
               <div className="text-end">
                 <p className="text-[11px] text-ink-muted font-medium">{t('consumer.tracking.total')}</p>
                 <p className="text-[16px] font-extrabold text-ink tracking-[-0.3px]">₪{order.total_price}</p>
+                {Number(order.discount_amount) > 0 && (
+                  <p className="text-[11px] font-semibold text-primary-600 dark:text-accent">
+                    {t('consumer.tracking.firstWashDiscount', {
+                      percent: order.discount_percent,
+                      amount:  Number(order.discount_amount),
+                    })}
+                  </p>
+                )}
               </div>
             </div>
           </div>

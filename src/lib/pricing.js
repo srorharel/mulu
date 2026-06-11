@@ -15,6 +15,16 @@ export function priceForCategory(category) {
   return PRICING[category] || PRICING.private
 }
 
+// First-wash discount (ADR-040). Display-only mirror of the server-side
+// validate_order_prices trigger (migration 0111) — the DB is the source of
+// truth at insert time. Rounding matches SQL ROUND(total * 0.30, 2).
+export const FIRST_WASH_DISCOUNT_PERCENT = 30
+
+export function applyFirstWashDiscount(total) {
+  const discount = Math.round(total * FIRST_WASH_DISCOUNT_PERCENT) / 100
+  return { total: total - discount, discount }
+}
+
 export function priceBreakdown(totalIncludingVat) {
   const preVat = totalIncludingVat / (1 + VAT_RATE)
   const vat    = totalIncludingVat - preVat

@@ -1,8 +1,10 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Waves, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import GlassCard from '../components/ui/GlassCard.jsx'
+import WelcomeIntroModal from '../components/landing/WelcomeIntroModal.jsx'
 import useBrandAsset from '../hooks/useBrandAsset.js'
 
 const FEATURE_ICONS = [MapPin, Waves, Clock]
@@ -19,7 +21,9 @@ const tapProps = { whileTap: { scale: 0.97 }, transition: { type: 'spring', stif
 
 export default function Landing() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const logoSrc = useBrandAsset('main_logo', '/logo.png')
+  const [introOpen, setIntroOpen] = useState(false)
 
   const FEATURES = [
     { icon: FEATURE_ICONS[0], text: t('landing.feature1') },
@@ -70,9 +74,13 @@ export default function Landing() {
         {/* CTAs */}
         <motion.div variants={itemVariants} className="flex flex-col gap-3 mt-auto">
           <motion.div {...tapProps}>
-            <Link to="/signup" className="btn-primary w-full justify-center">
+            <button
+              type="button"
+              onClick={() => setIntroOpen(true)}
+              className="btn-primary w-full justify-center"
+            >
               {t('auth.signup')}
-            </Link>
+            </button>
           </motion.div>
           <motion.div {...tapProps}>
             <Link
@@ -84,6 +92,12 @@ export default function Landing() {
           </motion.div>
         </motion.div>
       </motion.div>
+
+      <WelcomeIntroModal
+        open={introOpen}
+        onClose={() => setIntroOpen(false)}
+        onContinue={() => { setIntroOpen(false); navigate('/signup') }}
+      />
     </div>
   )
 }

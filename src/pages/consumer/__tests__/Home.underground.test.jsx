@@ -42,6 +42,9 @@ vi.mock('../../../hooks/useGeolocation.js', () => ({
 vi.mock('../../../hooks/useConsumerActiveOrders.js', () => ({
   useConsumerActiveOrders: () => ({ orders: [], loading: false }),
 }))
+vi.mock('../../../hooks/useFirstWashDiscount.js', () => ({
+  useFirstWashDiscount: () => ({ eligible: false, loading: false }),
+}))
 vi.mock('../../../hooks/useTheme.js', () => ({ useTheme: () => ({ isDark: false }) }))
 vi.mock('../../../components/ui/Toast.jsx', () => ({ useToast: () => vi.fn(), ToastProvider: ({ children }) => children }))
 vi.mock('../../../lib/geocode.js', () => ({

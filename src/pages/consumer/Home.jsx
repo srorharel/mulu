@@ -4,8 +4,9 @@ import { ChevronRight, Loader2, MapPin, Droplets, Zap, User, Check, ParkingSquar
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
-import { VAT_RATE, consumerBreakdown, priceForCategory } from '../../lib/pricing.js'
+import { VAT_RATE, consumerBreakdown, priceForCategory, priceBreakdown, applyFirstWashDiscount, FIRST_WASH_DISCOUNT_PERCENT } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
+import { useFirstWashDiscount } from '../../hooks/useFirstWashDiscount.js'
 import { useConsumerActiveOrders } from '../../hooks/useConsumerActiveOrders.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useTheme } from '../../hooks/useTheme.js'
@@ -204,7 +205,10 @@ export default function ConsumerHome() {
 
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
-  const { total: consumerTotal, vat } = consumerBreakdown(licenseData.category || 'private')
+  const { eligible: firstWashEligible } = useFirstWashDiscount(user?.id)
+  const { total: fullTotal } = consumerBreakdown(licenseData.category || 'private')
+  const consumerTotal = firstWashEligible ? applyFirstWashDiscount(fullTotal).total : fullTotal
+  const { vat } = priceBreakdown(consumerTotal)
   const uploadedCount      = Object.values(photos).filter(Boolean).length
   const allPhotosUploaded  = uploadedCount === 4
   // Underground orders require access notes (no GPS arrival check — the washer
@@ -579,10 +583,18 @@ export default function ConsumerHome() {
                 </p>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[26px] font-extrabold text-ink tracking-[-0.6px] leading-none">₪{consumerTotal}</span>
+                  {firstWashEligible && (
+                    <span className="text-[14px] font-semibold text-ink-muted line-through">₪{fullTotal}</span>
+                  )}
                   <span className="text-[11px] text-ink-muted">
                     {t('consumer.home.price.vatBreakdown', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
                   </span>
                 </div>
+                {firstWashEligible && (
+                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-700 dark:text-accent text-[11px] font-bold">
+                    {t('consumer.home.price.firstWashBadge', { percent: FIRST_WASH_DISCOUNT_PERCENT })}
+                  </span>
+                )}
               </div>
               <Editable id="consumer.home.bookCta">
                 <MotionButton

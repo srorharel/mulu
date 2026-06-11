@@ -190,6 +190,8 @@ const EXPECTED_COLS = [
   'evidence_wash_path', 'evidence_wiper_fluid_path', 'evidence_tire_pressure_path',
   // 0066 / 0067 — required by support-app Approvals query
   'decline_count',
+  // 0111 — first-wash discount (ADR-040)
+  'discount_percent', 'discount_amount',
 ]
 
 const colRows = await q(`

@@ -101,6 +101,7 @@ Migrations live in `supabase/migrations/` (0001–0110). Run `npm run db:migrate
 - `0108_legal_update_fanout.sql` — `legal_update_audience(doc_type)` (role + opt-in) + `notify_on_legal_publish()` AFTER-INSERT-`WHEN is_current` trigger → one `net.http_post` to `fan-out-legal-update` (Vault `fan_out_legal_update_url`).
 - `0109_account_deletion_fk_setnull.sql` — relaxes `orders.consumer_id` (drops NOT NULL), `orders.washer_id`, `order_events.actor_id` to **ON DELETE SET NULL** so a profile can be deleted while its orders/events are preserved (anonymized). Powers the `delete-account` Edge Function (ADR-038).
 - `0110_content_reports_blocks.sql` — `content_reports` (reporter own insert/read; agents read+update all via `is_agent()`; realtime) + `content_blocks` (owner-scoped). UGC report/block (ADR-039).
+- `0111_first_wash_discount.sql` — `orders.discount_percent`/`discount_amount` columns + `validate_order_prices` applies a 30% first-wash discount (ADR-040): consumer's first non-cancelled order, platform absorbs (base_price/payout untouched, platform_fee shrinks), advisory xact lock per consumer against concurrent double-claims. Pinned by `firstWashDiscount.contract.test.js`.
 
 ### Migration discipline (lessons from the 0066 saga)
 - `npm run db:migrate --bootstrap` records every migration as applied *without* executing its SQL. A subsequent normal `db:migrate` will then skip the file. If schema objects are missing despite a migration existing for them, add a new heal migration (idempotent `… IF NOT EXISTS`) rather than running raw `ALTER` in the dashboard — the runner will pick it up on the next deploy.
@@ -156,6 +157,8 @@ Prices vary by vehicle category. Set by the `validate_order_prices` Postgres tri
 | `pickup` | ₪130 | ₪90 | ₪40 |
 
 **VAT:** 18% (included in all prices above).
+
+**First-wash discount (ADR-040, 0111):** every consumer's first non-cancelled order gets **30% off `total_price`**, applied inside `validate_order_prices` at insert (cancelled orders don't burn it). The platform absorbs it: `base_price` and the tier-locked `payout_amount` are untouched; `platform_fee` shrinks by the discount, preserving `total_price = base_price + platform_fee`. `orders.discount_percent`/`discount_amount` record what was applied. Client mirror: `applyFirstWashDiscount` in `src/lib/pricing.js` + `useFirstWashDiscount` hook (display-only — the trigger decides). Guarded by `firstWashDiscount.contract.test.js`.
 
 **Washer payout is tiered** and locked at the `pending → accepted` transition. `payout_amount` is written to the order row and never changed. Tier constants live in `src/lib/payout.js`:
 

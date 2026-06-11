@@ -31,6 +31,9 @@ vi.mock('../../../lib/supabase.js', () => {
 vi.mock('../../../hooks/useConsumerActiveOrders.js', () => ({
   useConsumerActiveOrders: () => ({ orders: ordersRef.current, loading: false }),
 }))
+vi.mock('../../../hooks/useFirstWashDiscount.js', () => ({
+  useFirstWashDiscount: () => ({ eligible: false, loading: false }),
+}))
 vi.mock('../../../context/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'u1' }, profile: { full_name: 'Test User' } }),
 }))
