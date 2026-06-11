@@ -243,7 +243,7 @@ The Approvals / Verification / nearby_jobs / state-machine contracts have dedica
 
 ## i18n
 
-**Main app:** `i18next` with English and Hebrew. Locale persisted in `localStorage` and stored on `profiles.locale`. Loaded in `src/main.jsx` before React renders. Locale files in `src/i18n/locales/en.json` and `he.json`.
+**Main app:** `i18next` with English and Hebrew. Locale persisted in `localStorage` and stored on `profiles.locale`. Loaded in `src/main.jsx` before React renders. Locale files in `src/i18n/locales/en.json` and `he.json`. **Storage key is `wash_locale_v2`** (Jun 2026) — deliberately a fresh key with NO migration from `wash_locale`/`sparklego_locale`: SparkleGo-era devices had `'en'` persisted by the old default, which kept whole devices (and via `syncLocale` write-back, profiles) in English forever. Old keys are deleted on boot; every device starts in Hebrew unless the user explicitly picks English (which writes the v2 key). Don't reintroduce a migration from the old keys.
 
 **Support app:** i18n resources defined inline in `support-app/src/main.jsx` (no separate locale files). `fallbackLng: 'he'`. Locale key in localStorage: `support_locale`.
 

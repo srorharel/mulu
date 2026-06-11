@@ -6,15 +6,16 @@ import he from './locales/he.json'
 import { loadOverrides, subscribeContentOverrides } from '../lib/contentOverrides.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js'
 
-export const LOCALE_STORAGE_KEY = 'wash_locale'
+// v2 (Jun 2026): deliberately a NEW key with NO migration from 'wash_locale' /
+// 'sparklego_locale'. Devices from the SparkleGo era have 'en' persisted by the
+// old default — importing it kept whole devices in English forever (and
+// syncLocale would push 'en' back onto the profile). One-time reset: every
+// device starts in Hebrew; choosing English in settings writes the v2 key.
+export const LOCALE_STORAGE_KEY = 'wash_locale_v2'
 
-// Migrate saved locale from old key so existing users keep their preference.
 try {
-  const old = localStorage.getItem('sparklego_locale')
-  if (old && !localStorage.getItem(LOCALE_STORAGE_KEY)) {
-    localStorage.setItem(LOCALE_STORAGE_KEY, old)
-  }
-  if (old) localStorage.removeItem('sparklego_locale')
+  localStorage.removeItem('sparklego_locale')
+  localStorage.removeItem('wash_locale')
 } catch { /* private browsing — ignore */ }
 
 function resolveInitialLocale() {
