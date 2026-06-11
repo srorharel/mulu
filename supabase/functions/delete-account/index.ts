@@ -123,6 +123,13 @@ Deno.serve(async (req) => {
     await svc.from('orders').update(ORDER_PII_NULLS).eq('consumer_id', userId)
   }
 
+  // 3b. Anonymize receipts the same way (0113): keep the financial record
+  //     (number, amounts, business snapshot) but strip the consumer snapshot.
+  //     consumer_id itself goes NULL via ON DELETE SET NULL at step 5.
+  await svc.from('receipts')
+    .update({ consumer_name: null, consumer_email: null })
+    .eq('consumer_id', userId)
+
   // 4. Delete child rows. order_messages / support_messages / support_conversations
   //    have RESTRICT/NO-ACTION FKs that would otherwise block the profile delete;
   //    the rest CASCADE but are removed explicitly for completeness.

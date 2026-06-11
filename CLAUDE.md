@@ -56,12 +56,13 @@ UI to main/support.
 - **NOTIFICATIONS.md** — FCM push: edge functions, triggers, channels, broadcasts, deep links.
 - **DECISIONS.md** — ADRs.   **DESIGN.md** — visual/design system.   **STORE_COMPLIANCE.md** — permission strings, Data Safety / Privacy Label, deletion URL, UGC.
 
-## Legal docs / account deletion / UGC (Jun 2026, migrations through 0111; ADR-036–040)
+## Legal docs / account deletion / UGC (Jun 2026, migrations through 0113; ADR-036–041)
 
 - **Legal docs (ADR-036/037):** `legal_documents` (versioned, one `is_current` per doc_type×locale) + `user_legal_acknowledgments`. RPCs `publish_legal_document` (agent-only), `get_current_legal_document` (he-fallback), `pending_legal_acknowledgments` (role-filtered), `acknowledge_legal_document`. Agents edit/publish in support-app `/legal`; main app gates via `LegalUpdateModal` (mounted in `src/router.jsx`) + viewers `/legal/{terms,privacy,washer-terms}`. Publish fires trigger → Edge Fn `fan-out-legal-update` → `send-notification` event type **`legal_update`**. **New Vault secret: `fan_out_legal_update_url`.**
 - **Account deletion (ADR-038):** Edge Fn `delete-account` (service-role; consumer/washer only) — **anonymizes orders** (PII nulled, financials/`order_events` kept), purges per-user storage + child rows, deletes profile + auth user. Migration 0109 set `orders.consumer_id`/`washer_id` + `order_events.actor_id` to **ON DELETE SET NULL** (consumer_id now nullable). In-app (both settings) type-to-confirm; public store URL **`/account/delete`** (logged-in runs it, logged-out shows instructions). Needs Edge secret `SUPABASE_SERVICE_ROLE_KEY`.
 - **UGC (ADR-039):** `content_reports` (agents triage in support-app **Reports** tab, live badge) + `content_blocks` (order-chat block = hide + disable compose). Per-message `MessageActions` in `OrderChatSheet` + support chat. **NOT** routed into `support_tickets` (its `order_id` is NOT NULL+UNIQUE).
 - **First-wash discount (ADR-040):** 30% off a consumer's first non-cancelled order, applied **inside `validate_order_prices`** (0111) — platform absorbs (washer payout untouched). Client (`useFirstWashDiscount` + `applyFirstWashDiscount`) is display-only. Pinned by `firstWashDiscount.contract.test.js`.
+- **Receipts (ADR-041):** order → `completed` issues a `receipts` row (sequential #, config snapshot) + emails the customer via Edge Fn `send-receipt` (Resend). Config in admin **Receipts** tab (9 `app_config` keys incl. עוסק מורשה + sender email). **New Vault secret: `send_receipt_url`; new Edge secret: `RESEND_API_KEY`.** Pinned by `receipts.contract.test.js`.
 
 ## Load-bearing gotchas (do not remove)
 

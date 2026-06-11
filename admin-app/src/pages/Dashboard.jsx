@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FileText, Image, Megaphone, SlidersHorizontal, LogOut, Download, ClipboardList, Users as UsersIcon, Palette, Menu, History as HistoryIcon, MessagesSquare, Settings as SettingsIcon } from 'lucide-react'
+import { FileText, Image, Megaphone, SlidersHorizontal, LogOut, Download, ClipboardList, Users as UsersIcon, Palette, Menu, History as HistoryIcon, MessagesSquare, Settings as SettingsIcon, ReceiptText } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import AdminBackground from '../components/AdminBackground.jsx'
@@ -15,6 +15,7 @@ import Chats from './Chats.jsx'
 import DesignEditor from './DesignEditor.jsx'
 import History from './History.jsx'
 import Settings from './Settings.jsx'
+import Receipts from './Receipts.jsx'
 
 const TABS = [
   { id: 'jobs',       icon: ClipboardList,      page: Jobs       },
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'broadcasts', icon: Megaphone,          page: Broadcasts },
   { id: 'design',     icon: Palette,            page: DesignEditor },
   { id: 'config',     icon: SlidersHorizontal,  page: Config     },
+  { id: 'receipts',   icon: ReceiptText,        page: Receipts   },
   { id: 'history',    icon: HistoryIcon,        page: History    },
   { id: 'appearance', icon: SettingsIcon,       page: Settings   },
 ]

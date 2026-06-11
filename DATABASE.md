@@ -103,6 +103,7 @@ Migrations live in `supabase/migrations/` (0001–0110). Run `npm run db:migrate
 - `0110_content_reports_blocks.sql` — `content_reports` (reporter own insert/read; agents read+update all via `is_agent()`; realtime) + `content_blocks` (owner-scoped). UGC report/block (ADR-039).
 - `0111_first_wash_discount.sql` — `orders.discount_percent`/`discount_amount` columns + `validate_order_prices` applies a 30% first-wash discount (ADR-040): consumer's first non-cancelled order, platform absorbs (base_price/payout untouched, platform_fee shrinks), advisory xact lock per consumer against concurrent double-claims. Pinned by `firstWashDiscount.contract.test.js`.
 - `0112_backfill_locale_hebrew.sql` — backfills legacy `profiles.locale='en'` rows (pre-0064 default, incl. seed test accounts) to `'he'`. Logging into such an account flipped the whole device to English via `AuthContext.syncLocale`, which then persists to localStorage.
+- `0113_receipts.sql` — `receipts` table (sequential `receipt_number_seq` from 1001, UNIQUE order_id, consumer + business + financial snapshots) + 9 admin-editable `app_config` receipt keys + `issue_receipt_on_completion` SECURITY DEFINER trigger (orders → `'completed'`: insert receipt, ONE `net.http_post` to `send-receipt` via Vault **`send_receipt_url`**) + `admin_resend_receipt(uuid)` (super_admin-gated re-fire). RLS: consumer own SELECT + super_admin SELECT. Receipt email = Resend API (ADR-041). Pinned by `receipts.contract.test.js`.
 
 ### Migration discipline (lessons from the 0066 saga)
 - `npm run db:migrate --bootstrap` records every migration as applied *without* executing its SQL. A subsequent normal `db:migrate` will then skip the file. If schema objects are missing despite a migration existing for them, add a new heal migration (idempotent `… IF NOT EXISTS`) rather than running raw `ALTER` in the dashboard — the runner will pick it up on the next deploy.
@@ -175,6 +176,12 @@ Prices vary by vehicle category. Set by the `validate_order_prices` Postgres tri
 `RATING_GATE_JOBS = 3`: a washer needs 3 rated jobs before their tier activates. Until then they earn the unrated default (₪50).
 
 Service type is always `wash` (single product; no add-ons, no interior vs exterior distinction).
+
+### Receipts (ADR-041, 0113)
+
+When an order transitions INTO `completed`, the `issue_receipt_on_completion` trigger issues a row in `receipts` — sequential `receipt_number` (seq starts 1001), amounts + VAT split, and a **snapshot of the business config at issue time** (admin edits never rewrite history) — then fires ONE `net.http_post` to the `send-receipt` Edge Function, which emails the customer a Hebrew RTL receipt + wash confirmation via the **Resend API** and writes back `status` (`pending`/`sent`/`failed`). Idempotent (UNIQUE order_id), kill-switched by `app_config.receipts_enabled`, exception-safe (never aborts the transition), skips consumer-less orders. The 9 `receipt_*`/`receipts_enabled` config keys are edited in the admin **Receipts** tab; `admin_resend_receipt(uuid)` re-fires the email server-side so Vault secrets never reach the client. `delete-account` anonymizes `receipts.consumer_name/email` (financial record retained, like orders).
+
+**One-time setup (done 2026-06-12 unless noted):** Vault secret `send_receipt_url` ✓; `send-receipt` deployed ✓ (smoke-tested via pg_net: auth + 404 on bogus id); `TRIGGER_SECRET` ✓. **Still required by a human: `RESEND_API_KEY` Edge secret + Resend-verified sender domain + sender email/dealer number in the admin Receipts tab.** Until then sends fail soft (`failed`/`no_resend_api_key` — resend from the admin tab after setup). Same date: `delete-account` + `fan-out-legal-update` were found **never deployed** and are now deployed, with Vault `fan_out_legal_update_url` created.
 
 ### Config note — `pricing_source`
 

@@ -76,11 +76,11 @@ const tables = await q(`
   SELECT tablename, rowsecurity
   FROM pg_tables
   WHERE schemaname = 'public'
-    AND tablename IN ('profiles', 'orders', 'order_events')
+    AND tablename IN ('profiles', 'orders', 'order_events', 'receipts')
   ORDER BY tablename
 `)
 
-for (const expected of ['order_events', 'orders', 'profiles']) {
+for (const expected of ['order_events', 'orders', 'profiles', 'receipts']) {
   const row = tables.find(r => r.tablename === expected)
   if (!row)
     fail(`Table public.${expected}`, 'not found — run migrations')
@@ -99,11 +99,11 @@ const funcs = await q(`
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public'
-    AND p.proname IN ('nearby_jobs', 'transition_order_status', 'validate_order_prices')
+    AND p.proname IN ('nearby_jobs', 'transition_order_status', 'validate_order_prices', 'issue_receipt_on_completion', 'admin_resend_receipt')
 `)
 
 const funcNames = new Set(funcs.map(r => r.proname))
-for (const fn of ['nearby_jobs', 'transition_order_status', 'validate_order_prices']) {
+for (const fn of ['nearby_jobs', 'transition_order_status', 'validate_order_prices', 'issue_receipt_on_completion', 'admin_resend_receipt']) {
   if (funcNames.has(fn)) pass(fn)
   else                   fail(fn, 'not found — check 0003_functions.sql')
 }
