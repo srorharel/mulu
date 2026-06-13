@@ -9,7 +9,7 @@ vi.mock('../context/AuthContext.jsx', () => ({
 }))
 
 const { state } = vi.hoisted(() => ({
-  state: { configRows: [], receiptRows: [], updates: [], rpcCalls: [] },
+  state: { configRows: [], receiptRows: [], updates: [], rpcCalls: [], signedUrlCalls: [] },
 }))
 
 vi.mock('../lib/supabase.js', () => {
@@ -38,6 +38,14 @@ vi.mock('../lib/supabase.js', () => {
         state.rpcCalls.push({ fn, args })
         return Promise.resolve({ data: null, error: null })
       },
+      storage: {
+        from: (bucket) => ({
+          createSignedUrl: (path, ttl) => {
+            state.signedUrlCalls.push({ bucket, path, ttl })
+            return Promise.resolve({ data: { signedUrl: `https://signed/${path}` }, error: null })
+          },
+        }),
+      },
     },
   }
 })
@@ -62,13 +70,15 @@ beforeEach(() => {
     cfg('receipt_footer_text', ''),
     cfg('receipt_vat_rate_percent', 18),
   ]
+  state.signedUrlCalls.length = 0
   state.receiptRows = [
     { id: 'r1', receipt_number: 1002, consumer_name: 'Dana', consumer_email: 'dana@x.com',
       total: '70.00', discount_amount: '30.00', status: 'sent', error_detail: null,
-      sent_at: '2026-06-11T10:00:00Z', created_at: '2026-06-11T10:00:00Z' },
+      sent_at: '2026-06-11T10:00:00Z', created_at: '2026-06-11T10:00:00Z',
+      pdf_path: '2026/invoice-receipt-1002.pdf' },
     { id: 'r2', receipt_number: 1001, consumer_name: 'Yossi', consumer_email: 'yossi@x.com',
       total: '100.00', discount_amount: '0.00', status: 'failed', error_detail: 'no_sender_configured',
-      sent_at: null, created_at: '2026-06-10T09:00:00Z' },
+      sent_at: null, created_at: '2026-06-10T09:00:00Z', pdf_path: null },
   ]
 })
 
@@ -118,6 +128,22 @@ describe('admin Receipts — issued list', () => {
     expect(screen.getAllByText('sent').length).toBeGreaterThan(0)
     expect(screen.getAllByText('failed').length).toBeGreaterThan(0)
     expect(screen.getAllByText(/no_sender_configured/).length).toBeGreaterThan(0)
+  })
+
+  it('download opens a signed URL from the private receipts bucket (only when a backup exists)', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<Receipts />)
+    await screen.findAllByText('#1002')
+    // r1 has a backed-up PDF, r2 does not — one button per layout (card + table)
+    const pdfButtons = screen.getAllByTitle('Download PDF')
+    expect(pdfButtons.length).toBe(2)
+    fireEvent.click(pdfButtons[0])
+    await waitFor(() => expect(state.signedUrlCalls.length).toBe(1))
+    expect(state.signedUrlCalls[0]).toMatchObject({
+      bucket: 'receipts', path: '2026/invoice-receipt-1002.pdf',
+    })
+    expect(openSpy).toHaveBeenCalledWith('https://signed/2026/invoice-receipt-1002.pdf', '_blank', 'noopener')
+    openSpy.mockRestore()
   })
 
   it('resend calls the admin_resend_receipt RPC with the receipt id', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { latestMigrationDefining, normalize } from './helpers/migrations.js'
+import { latestMigrationDefining, normalize, migrationFiles, readMigration } from './helpers/migrations.js'
 
 // CRITICAL guard — receipt issuing (ADR-041, migration 0113).
 //
@@ -72,6 +72,26 @@ describe(`receipts contract (latest def: ${file})`, () => {
     expect(migration).toContain('admin_resend_receipt')
     expect(migration).toContain('not_super_admin')
     expect(migration).toContain('revoke all on function public.admin_resend_receipt(uuid) from public')
+  })
+
+  it('archives every PDF: private receipts bucket + super_admin read + pdf_path (0114)', () => {
+    const file = migrationFiles().find(f => /receipts_backup/.test(f))
+    expect(file, 'expected a receipts_backup migration').toBeTruthy()
+    const backup = normalize(readMigration(file))
+    expect(backup).toContain('add column if not exists pdf_path')
+    // bucket is PRIVATE (public=false) and PDF-only
+    expect(backup).toMatch(/values \('receipts', 'receipts', false/)
+    expect(backup).toContain("array['application/pdf']")
+    // super_admin storage SELECT — signed URLs silently fail without it (0090 lesson)
+    expect(backup).toContain('"super_admin_read_receipts"')
+    expect(backup).toContain("bucket_id = 'receipts'")
+    expect(backup).toContain('public.is_super_admin()')
+  })
+
+  it('receipt PDFs are retained on account deletion (bucket NOT in the purge list)', () => {
+    const file = migrationFiles().find(f => /receipts_backup/.test(f))
+    const backup = normalize(readMigration(file))
+    expect(backup).toContain('not purged by delete-account')
   })
 
   it('seeds every admin-configurable receipt key', () => {

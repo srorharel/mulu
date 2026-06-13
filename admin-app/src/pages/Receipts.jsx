@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ReceiptText, Save, AlertCircle, Send, Info } from 'lucide-react'
+import { ReceiptText, Save, AlertCircle, Send, Info, Download } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
@@ -55,7 +55,7 @@ export default function Receipts() {
         .select('key, value, value_type, updated_at, editor:updated_by(full_name)')
         .in('key', keys).order('key'),
       supabase.from('receipts')
-        .select('id, receipt_number, consumer_name, consumer_email, total, discount_amount, status, error_detail, sent_at, created_at')
+        .select('id, receipt_number, consumer_name, consumer_email, total, discount_amount, status, error_detail, sent_at, created_at, pdf_path')
         .order('receipt_number', { ascending: false })
         .limit(100),
     ])
@@ -96,6 +96,15 @@ export default function Receipts() {
     setResending(null)
     if (err) { setError(err.message); return }
     refresh()
+  }
+
+  // Archived PDFs (0114) live in the private 'receipts' bucket — download via
+  // a short-lived signed URL (super_admin storage SELECT policy).
+  async function downloadPdf(path) {
+    setError(null)
+    const { data, error: err } = await supabase.storage.from('receipts').createSignedUrl(path, 600)
+    if (err) { setError(err.message); return }
+    window.open(data.signedUrl, '_blank', 'noopener')
   }
 
   return (
@@ -203,10 +212,19 @@ export default function Receipts() {
                 {r.error_detail && <p className="text-[10.5px] text-danger font-mono truncate" title={r.error_detail}>{r.error_detail}</p>}
                 <div className="flex items-center gap-2">
                   <span className="text-[10.5px] text-ink-subtle">{relativeTime(r.created_at)}</span>
+                  {r.pdf_path && (
+                    <button
+                      onClick={() => downloadPdf(r.pdf_path)}
+                      className="ms-auto btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]"
+                      title="Download PDF"
+                    >
+                      <Download size={12} /> PDF
+                    </button>
+                  )}
                   <button
                     onClick={() => resend(r.id)}
                     disabled={busy || resending === r.id}
-                    className="ms-auto btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]"
+                    className={`${r.pdf_path ? '' : 'ms-auto '}btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]`}
                     title="Resend email"
                   >
                     <Send size={12} /> {resending === r.id ? 'Sending…' : 'Resend'}
@@ -248,14 +266,25 @@ export default function Receipts() {
                   </td>
                   <td className="py-1.5 text-[11.5px] text-ink-subtle">{relativeTime(r.created_at)}</td>
                   <td className="py-1.5 text-end">
-                    <button
-                      onClick={() => resend(r.id)}
-                      disabled={busy || resending === r.id}
-                      className="btn-ghost px-2 py-1 text-[11px] flex items-center gap-1 ms-auto"
-                      title="Resend email"
-                    >
-                      <Send size={11} /> {resending === r.id ? 'Sending…' : 'Resend'}
-                    </button>
+                    <div className="flex items-center gap-1 justify-end">
+                      {r.pdf_path && (
+                        <button
+                          onClick={() => downloadPdf(r.pdf_path)}
+                          className="btn-ghost px-2 py-1 text-[11px] flex items-center gap-1"
+                          title="Download PDF"
+                        >
+                          <Download size={11} /> PDF
+                        </button>
+                      )}
+                      <button
+                        onClick={() => resend(r.id)}
+                        disabled={busy || resending === r.id}
+                        className="btn-ghost px-2 py-1 text-[11px] flex items-center gap-1"
+                        title="Resend email"
+                      >
+                        <Send size={11} /> {resending === r.id ? 'Sending…' : 'Resend'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
