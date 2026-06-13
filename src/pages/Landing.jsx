@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import WelcomeIntroModal from '../components/landing/WelcomeIntroModal.jsx'
-import useBrandAsset from '../hooks/useBrandAsset.js'
+import WashMark from '../components/ui/WashMark.jsx'
 
 const FEATURE_ICONS = [MapPin, Waves, Clock]
 
@@ -22,7 +22,6 @@ const tapProps = { whileTap: { scale: 0.97 }, transition: { type: 'spring', stif
 export default function Landing() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const logoSrc = useBrandAsset('main_logo', '/logo.png')
   const [introOpen, setIntroOpen] = useState(false)
 
   const FEATURES = [
@@ -42,15 +41,8 @@ export default function Landing() {
         {/* Hero glass card */}
         <GlassCard className="p-6 flex flex-col items-center gap-4 text-center">
           <motion.div variants={itemVariants}>
-            <img
-              src={logoSrc}
-              alt="MULU"
-              width={1104}
-              height={975}
-              loading="eager"
-              className="w-[140px] md:w-[180px] h-auto mx-auto"
-            />
-            <p className="text-neutral-500 text-sm mt-1 max-w-xs">
+            <WashMark size={150} className="w-[120px] md:w-[150px] h-auto mx-auto drop-shadow-[0_8px_20px_rgba(38,181,95,0.3)]" />
+            <p className="text-neutral-500 text-sm mt-3 max-w-xs">
               {t('landing.tagline')}
             </p>
           </motion.div>

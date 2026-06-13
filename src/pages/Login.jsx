@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Waves, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { homeForRole } from '../lib/roleHome.js'
 import GlassCard from '../components/ui/GlassCard.jsx'
+import WashMark from '../components/ui/WashMark.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
 const schema = z.object({
@@ -69,11 +70,8 @@ export default function Login() {
         animate="visible"
       >
         {/* Logo */}
-        <motion.div variants={itemVariants} className="flex items-center gap-2">
-          <div className="rounded-xl bg-primary-500 p-2">
-            <Waves className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-primary-600">MULU</span>
+        <motion.div variants={itemVariants} className="flex items-center">
+          <WashMark size={44} />
         </motion.div>
 
         {/* Glass form card */}
