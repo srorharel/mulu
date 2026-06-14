@@ -108,6 +108,12 @@ export function AppRouter() {
             or logged-out (shows instructions). No AuthRedirect/RoleGuard. */}
         <Route path="/account/delete" element={<AccountDeletion />} />
 
+        {/* Legal viewers — PUBLIC so the signup consent links work while logged-out.
+            Published legal docs are public info; get_current_legal_document is granted
+            to anon (migration 0119). The washer contract stays gated below. */}
+        <Route path="/legal/terms"   element={<LegalViewer docType="consumer_terms" />} />
+        <Route path="/legal/privacy" element={<LegalViewer docType="privacy_policy" />} />
+
         {/* Washer verification routes — accessible while role=washer regardless of verification status */}
         <Route element={<RoleGuard allowedRoles={['washer']} />}>
           <Route path="/signup/washer/verify"  element={<PageSuspense><WasherVerify /></PageSuspense>} />
@@ -150,8 +156,6 @@ export function AppRouter() {
         {/* Any authenticated user */}
         <Route element={<RoleGuard />}>
           <Route path="/profile"        element={<Profile />} />
-          <Route path="/legal/terms"    element={<LegalViewer docType="consumer_terms" />} />
-          <Route path="/legal/privacy"  element={<LegalViewer docType="privacy_policy" />} />
         </Route>
 
         {/* Washer-only legal viewer */}

@@ -378,10 +378,14 @@ export default function SignUp() {
                     className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border-neutral-300 cursor-pointer accent-primary-600"
                   />
                   <span className="text-[13px] leading-snug text-neutral-600">
+                    {/* Terms of Use + Privacy Policy apply to BOTH roles (a washer is
+                        also a platform user). The washer contract (חוזה לשוטף) is
+                        separate and acknowledged post-approval — see migration 0118 +
+                        LegalUpdateModal — so it is NOT linked here. */}
                     <Trans
                       i18nKey="signup.terms.label"
                       components={{
-                        terms:   <Link to={selectedRole === 'washer' ? '/legal/washer-terms' : '/legal/terms'} className="text-primary-600 font-medium underline" />,
+                        terms:   <Link to="/legal/terms" className="text-primary-600 font-medium underline" />,
                         privacy: <Link to="/legal/privacy" className="text-primary-600 font-medium underline" />,
                       }}
                     />
