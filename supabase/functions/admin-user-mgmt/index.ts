@@ -45,6 +45,73 @@ function randomPassword(): string {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
+// Recursively delete every object under a storage prefix. Folders come back with
+// id === null; files have a non-null id. (Same helper as delete-account.)
+async function removePrefix(bucket: string, prefix: string): Promise<number> {
+  const { data: entries, error } = await svc.storage.from(bucket).list(prefix, { limit: 1000 })
+  if (error || !entries) return 0
+  const files: string[] = []
+  let removed = 0
+  for (const e of entries) {
+    const path = prefix ? `${prefix}/${e.name}` : e.name
+    if ((e as { id: string | null }).id === null) removed += await removePrefix(bucket, path)
+    else files.push(path)
+  }
+  if (files.length) { await svc.storage.from(bucket).remove(files); removed += files.length }
+  return removed
+}
+
+// Consumer PII nulled on the user's orders — financial/status/timestamp columns
+// are intentionally absent so they survive (anonymize-vs-delete; ADR-038).
+const ORDER_PII_NULLS = {
+  car_make: null, car_model: null, car_year: null, car_color: null, car_plate: null,
+  car_photo_1_path: null, car_photo_2_path: null,
+  car_photo_front: null, car_photo_back: null, car_photo_driver: null, car_photo_passenger: null,
+  arrival_photo_front: null, arrival_photo_back: null, arrival_photo_driver: null, arrival_photo_passenger: null,
+  completion_photo_front: null, completion_photo_back: null, completion_photo_driver: null, completion_photo_passenger: null,
+  evidence_before_path: null, evidence_after_path: null,
+  evidence_wash_path: null, evidence_wiper_fluid_path: null, evidence_tire_pressure_path: null,
+  access_notes: null,
+  submitted_lat: null, submitted_lng: null, submitted_location_at: null,
+}
+
+// Anonymize + purge a (consumer/washer/agent) user's data the same way the in-app
+// delete-account function does, so the subsequent profiles delete doesn't trip an
+// ON DELETE RESTRICT FK (support_conversations.opener_id / support_messages.sender_id
+// — migrations 0012/0013) or a NO-ACTION order_messages.sender_id FK. WITHOUT this,
+// deleting any user who has support-chat history fails with profile_delete_failed.
+async function purgeUserData(userId: string): Promise<void> {
+  // Caller's consumer-side orders (for storage purge + PII anonymization).
+  const { data: consumerOrders } = await svc.from('orders').select('id').eq('consumer_id', userId)
+  const orderIds = (consumerOrders ?? []).map((o: { id: string }) => o.id)
+
+  // Storage purge (best-effort).
+  await removePrefix('washer-verification', userId)
+  await removePrefix('car-photos', userId)
+  for (const oid of orderIds) await removePrefix('job-evidence', oid)
+
+  // Anonymize orders + receipts (preserve financial/audit columns).
+  if (orderIds.length) await svc.from('orders').update(ORDER_PII_NULLS).eq('consumer_id', userId)
+  await svc.from('receipts').update({ consumer_name: null, consumer_email: null }).eq('consumer_id', userId)
+
+  // Delete child rows. order_messages (NO ACTION) + support_messages /
+  // support_conversations (RESTRICT) MUST go before the profile delete; the rest
+  // CASCADE but are cleared explicitly for completeness.
+  await svc.from('order_messages').delete().eq('sender_id', userId)
+  await svc.from('support_messages').delete().eq('sender_id', userId)
+  await svc.from('support_conversations').delete().eq('opener_id', userId)
+  await svc.from('washer_ratings').delete().eq('consumer_id', userId)
+  await svc.from('washer_ratings').delete().eq('washer_id', userId)
+  await svc.from('vehicles').delete().eq('consumer_id', userId)
+  await svc.from('washer_verifications').delete().eq('washer_id', userId)
+  await svc.from('user_legal_acknowledgments').delete().eq('user_id', userId)
+  await svc.from('device_tokens').delete().eq('user_id', userId)
+  await svc.from('notification_preferences').delete().eq('user_id', userId)
+  await svc.from('notification_log').delete().eq('user_id', userId)
+  await svc.from('content_reports').delete().eq('reporter_id', userId)
+  await svc.from('content_blocks').delete().eq('blocker_id', userId)
+}
+
 async function authorizeSuperAdmin(req: Request): Promise<{ adminId: string } | Response> {
   const auth = req.headers.get('authorization') ?? ''
   const m = auth.match(/^Bearer\s+(.+)$/i)
@@ -262,7 +329,13 @@ Deno.serve(async (req) => {
       before_snapshot: snapshot,
     })
 
-    // Delete profile first so dependent rows ON DELETE CASCADE; then auth user.
+    // Anonymize orders + clear the RESTRICT/NO-ACTION child rows (support chat,
+    // order chat, ratings, etc.) BEFORE the profile delete. Without this, any user
+    // with support-chat history can't be deleted (FK violation → the bug this fixes).
+    await purgeUserData(userId)
+
+    // Delete profile (orders/order_events references now NULL via ON DELETE SET
+    // NULL; remaining child rows CASCADE); then the auth user.
     const { error: pDel } = await svc.from('profiles').delete().eq('id', userId)
     if (pDel) return json({ error: 'profile_delete_failed', detail: pDel.message }, 500)
 
