@@ -1003,14 +1003,18 @@ const legalRealtime = await q(`
 if (legalRealtime.length > 0) pass('legal_documents on supabase_realtime publication')
 else                          fail('legal_documents on supabase_realtime publication', 'missing — check 0107')
 
+// Invariant: exactly one current he version per doc_type (version may be > 1
+// once real content has been published over the 0107 v1 placeholder).
 const seedDocs = await q(`
-  SELECT doc_type, version, is_current FROM public.legal_documents
+  SELECT doc_type, count(*)::int AS currents, max(version) AS version
+  FROM public.legal_documents
   WHERE locale='he' AND is_current
+  GROUP BY doc_type
 `)
 for (const dt of ['consumer_terms', 'privacy_policy', 'washer_terms']) {
   const r = seedDocs.find(x => x.doc_type === dt)
-  if (r && r.version === 1 && r.is_current) pass(`seed ${dt} he v1 is_current`)
-  else fail(`seed ${dt} he`, r ? `version=${r.version} is_current=${r.is_current}` : 'missing — check 0107')
+  if (r && r.currents === 1) pass(`${dt} he: exactly one current version (v${r.version})`)
+  else fail(`${dt} he current`, r ? `currents=${r.currents}` : 'missing — check 0107')
 }
 
 // Behavioural: agent publishes a new version → flips current (rolled back).
@@ -1022,18 +1026,18 @@ try {
     [JSON.stringify({ sub: AGENT, role: 'authenticated' })])
 
   await client.query(
-    `SELECT public.publish_legal_document('consumer_terms', 'he', 'תנאי שימוש', 'v2 test body', NULL)`
+    `SELECT public.publish_legal_document('consumer_terms', 'he', 'תנאי שימוש', 'newer test body', NULL)`
   )
   const after = await q(`
     SELECT version, is_current FROM public.legal_documents
     WHERE doc_type='consumer_terms' AND locale='he' ORDER BY version
   `)
   const currents = after.filter(r => r.is_current)
-  const v2 = after.find(r => r.version === 2)
-  if (currents.length === 1 && v2 && v2.is_current)
-    pass('publish_legal_document: v2 published, exactly one is_current (v1 demoted)')
+  const maxVer = Math.max(...after.map(r => r.version))
+  if (currents.length === 1 && currents[0].version === maxVer)
+    pass('publish_legal_document: new version published, exactly one is_current (prior demoted)')
   else
-    fail('publish flip', `currents=${currents.length} v2_is_current=${v2?.is_current}`)
+    fail('publish flip', `currents=${currents.length} current_is_latest=${currents[0]?.version === maxVer}`)
 
   const agentPending = await q(`SELECT doc_type FROM public.pending_legal_acknowledgments($1)`, [AGENT])
   if (agentPending.length === 0) pass('pending_legal_acknowledgments: agent role gets none')
@@ -1058,10 +1062,21 @@ try {
   const WASHER = '33333333-0000-0000-0000-000000000003'
   await client.query(`SELECT set_config('request.jwt.claims', $1, true)`,
     [JSON.stringify({ sub: WASHER, role: 'authenticated' })])
+
+  // 0118: washer_terms is gated to post-approval; privacy applies from first use.
+  // Approved washer → contract + privacy.
+  await client.query(`UPDATE public.profiles SET washer_verification_status='approved' WHERE id=$1`, [WASHER])
   const wset = new Set((await q(`SELECT doc_type FROM public.pending_legal_acknowledgments($1)`, [WASHER])).map(r => r.doc_type))
   if (wset.has('washer_terms') && wset.has('privacy_policy') && !wset.has('consumer_terms'))
-    pass('pending: washer → washer_terms + privacy_policy (no consumer_terms)')
-  else fail('washer role filter', `got {${[...wset].join(',')}}`)
+    pass('pending: approved washer → washer_terms + privacy_policy (no consumer_terms)')
+  else fail('washer role filter (approved)', `got {${[...wset].join(',')}}`)
+
+  // Unapproved washer → privacy only (contract withheld until support approves).
+  await client.query(`UPDATE public.profiles SET washer_verification_status='pending_review' WHERE id=$1`, [WASHER])
+  const wset2 = new Set((await q(`SELECT doc_type FROM public.pending_legal_acknowledgments($1)`, [WASHER])).map(r => r.doc_type))
+  if (wset2.has('privacy_policy') && !wset2.has('washer_terms'))
+    pass('pending: unapproved washer → privacy only (washer_terms gated post-approval)')
+  else fail('washer gate (unapproved)', `got {${[...wset2].join(',')}}`)
 } catch (err) {
   fail('role-filter behavioural test', err.message)
 } finally {

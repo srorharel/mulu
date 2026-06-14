@@ -61,10 +61,12 @@ describe(`legal documents migration contract (${file})`, () => {
     expect(insertIdx).toBeGreaterThan(demoteIdx)
   })
 
-  it('pending_legal_acknowledgments filters by role (consumer / washer / agent-none)', () => {
+  it('pending_legal_acknowledgments filters by role + gates washer_terms to post-approval (0118)', () => {
     const body = normalize(stripComments(latestMigrationDefining('pending_legal_acknowledgments').body))
     expect(body).toMatch(/if v_role = 'consumer' then v_types := array\['consumer_terms','privacy_policy'\]/)
-    expect(body).toMatch(/elsif v_role = 'washer' then v_types := array\['washer_terms','privacy_policy'\]/)
+    // washer: privacy always; the CONTRACT only once support has approved them
+    expect(body).toMatch(/elsif v_role = 'washer' then if v_verif = 'approved' then v_types := array\['washer_terms','privacy_policy'\]/)
+    expect(body).toMatch(/else v_types := array\['privacy_policy'\]/)
     // agents / super_admins fall through to an early return (nothing to acknowledge)
     expect(body).toMatch(/else return;/)
   })
