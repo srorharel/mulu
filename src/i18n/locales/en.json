@@ -113,7 +113,12 @@
     "creatingAccount": "Creating account…",
     "checkEmail": "Check your email",
     "confirmationSent": "We sent a confirmation link to <bold>{{email}}</bold>. Click it to activate your account, then sign in.",
-    "backToSignIn": "Back to sign in"
+    "backToSignIn": "Back to sign in",
+    "terms": {
+      "label": "I confirm that I have read and agree to the <terms>Terms of Use</terms> and the <privacy>Privacy Policy</privacy>.",
+      "aria": "I have read and agree to the Terms of Use and Privacy Policy",
+      "required": "Please confirm you have read and agree to the terms to continue"
+    }
   },
   "profile": {
     "title": "Your profile",

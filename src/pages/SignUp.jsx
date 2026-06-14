@@ -21,6 +21,7 @@ const schema = z.object({
   role:            z.enum(['consumer', 'washer']),
   serviceAreas:    z.array(z.string()).optional(),
   dealerNumber:    z.string().optional(),
+  acceptedTerms:   z.boolean(),
 }).refine(d => d.password === d.confirmPassword, {
   message: 'validation.passwordsDoNotMatch',
   path: ['confirmPassword'],
@@ -36,6 +37,9 @@ const schema = z.object({
 }, {
   message: 'washerSignup.dealerNumber.error',
   path: ['dealerNumber'],
+}).refine(d => d.acceptedTerms === true, {
+  message: 'signup.terms.required',
+  path: ['acceptedTerms'],
 })
 
 const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
@@ -75,6 +79,7 @@ export default function SignUp() {
       confirmPassword: '',
       serviceAreas: savedDraft?.serviceAreas ?? [],
       dealerNumber: savedDraft?.dealerNumber ?? '',
+      acceptedTerms: false,
     },
   })
   const selectedRole  = watch('role')
@@ -360,6 +365,31 @@ export default function SignUp() {
                   </button>
                 </div>
                 {errors.confirmPassword && <p className="field-error">{errors.confirmPassword.message}</p>}
+              </div>
+
+              {/* Terms & privacy consent — required before account creation */}
+              <div>
+                <div className="flex items-start gap-2.5">
+                  <input
+                    id="acceptedTerms"
+                    type="checkbox"
+                    {...register('acceptedTerms')}
+                    aria-label={t('signup.terms.aria')}
+                    className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border-neutral-300 cursor-pointer accent-primary-600"
+                  />
+                  <span className="text-[13px] leading-snug text-neutral-600">
+                    <Trans
+                      i18nKey="signup.terms.label"
+                      components={{
+                        terms:   <Link to={selectedRole === 'washer' ? '/legal/washer-terms' : '/legal/terms'} className="text-primary-600 font-medium underline" />,
+                        privacy: <Link to="/legal/privacy" className="text-primary-600 font-medium underline" />,
+                      }}
+                    />
+                  </span>
+                </div>
+                {errors.acceptedTerms && (
+                  <p className="field-error mt-1">{t(errors.acceptedTerms.message)}</p>
+                )}
               </div>
 
               {serverError && (

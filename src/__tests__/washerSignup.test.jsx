@@ -237,6 +237,7 @@ describe('SignUp — washer submit flow', () => {
     await user.type(screen.getByPlaceholderText('you@example.com'), 'washer@test.com')
     await user.type(screen.getByPlaceholderText('8+ characters'), 'password123')
     await user.type(screen.getByPlaceholderText('Repeat your password'), 'password123')
+    await user.click(screen.getByRole('checkbox'))  // accept terms & privacy (required)
 
     await user.click(screen.getByRole('button', { name: /Create account/i }))
 
@@ -266,5 +267,32 @@ describe('SignUp — washer submit flow', () => {
       expect(screen.getByText('Select at least one area')).toBeInTheDocument()
     })
     expect(mockSignUp).not.toHaveBeenCalled()
+  })
+})
+
+describe('SignUp — terms & privacy consent gate', () => {
+  beforeEach(() => {
+    mockSignUp.mockReset()
+    mockNavigate.mockReset()
+  })
+
+  it('blocks customer signup until the consent box is checked', async () => {
+    const user = userEvent.setup()
+    render(<SignUp />, { wrapper })
+
+    await user.type(screen.getByPlaceholderText('Avi Cohen'), 'Test User')
+    await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')
+    await user.type(screen.getByPlaceholderText('8+ characters'), 'password123')
+    await user.type(screen.getByPlaceholderText('Repeat your password'), 'password123')
+
+    // Unchecked → submit is blocked (no account created).
+    await user.click(screen.getByRole('button', { name: /Create account/i }))
+    await waitFor(() => expect(mockSignUp).not.toHaveBeenCalled())
+
+    // Checked → signup proceeds.
+    mockSignUp.mockResolvedValue({ data: { session: { user: { id: 'c1' } } }, error: null })
+    await user.click(screen.getByRole('checkbox'))
+    await user.click(screen.getByRole('button', { name: /Create account/i }))
+    await waitFor(() => expect(mockSignUp).toHaveBeenCalledTimes(1))
   })
 })
