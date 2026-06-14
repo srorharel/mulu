@@ -25,6 +25,19 @@ export function applyFirstWashDiscount(total) {
   return { total: total - discount, discount }
 }
 
+// Consumer cancellation fee (Consumer Terms §7.2). Display-only mirror of the
+// server-side rule in transition_order_status (migration 0116): a fixed 50 ₪ —
+// capped at the order total — when the consumer cancels after the washer is
+// already en_route or arrived. The DB (config key cancellation_fee_ils, default
+// 50) is the source of truth; this is just what the confirm dialog shows.
+export const CANCELLATION_FEE_ILS = 50
+
+export function cancellationFeeFor(status, total) {
+  return (status === 'en_route' || status === 'arrived')
+    ? Math.min(CANCELLATION_FEE_ILS, Number(total) || 0)
+    : 0
+}
+
 export function priceBreakdown(totalIncludingVat) {
   const preVat = totalIncludingVat / (1 + VAT_RATE)
   const vat    = totalIncludingVat - preVat

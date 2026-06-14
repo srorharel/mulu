@@ -47,8 +47,10 @@ const REQUIRED_RULES = [
     'completion photos required'],
 
   // ── cancellation scope by role ───────────────────────────────────────────
-  ['consumer can only cancel pending/accepted',
-    "v_order.status in ('pending', 'accepted') and v_actor_role = 'consumer'"],
+  // 0116: consumers may also cancel from en_route/arrived (with a 50 ₪ fee,
+  // computed below); pending/accepted stay free.
+  ['consumer can cancel pending/accepted/en_route/arrived',
+    "v_order.status in ('pending', 'accepted', 'en_route', 'arrived') and v_actor_role = 'consumer'"],
   ['washer can only cancel accepted/en_route',
     "v_order.status in ('accepted', 'en_route') and v_actor_role = 'washer'"],
   ['agent can cancel any non-terminal order',

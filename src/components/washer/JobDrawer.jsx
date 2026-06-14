@@ -20,6 +20,7 @@ import StatusTimeline from '../StatusTimeline.jsx'
 import Editable from '../editable/Editable.jsx'
 import OrderChatSheet from '../chat/OrderChatSheet.jsx'
 import PhotoLightbox from '../ui/PhotoLightbox.jsx'
+import InAppCamera from '../shared/InAppCamera.jsx'
 import { VAT_RATE } from '../../lib/pricing.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
@@ -53,15 +54,18 @@ const ADVANCE_TOAST_KEYS = {
 const PHOTO_SLOTS = ['front', 'back', 'driver', 'passenger']
 
 function EvidencePhotoSlot({ label, path, preview, isUploading, error, onSelect }) {
-  const { t }    = useTranslation()
-  const inputRef = useRef(null)
+  const { t } = useTranslation()
+  // In-app camera only — never a <input capture>/gallery picker. Washers are
+  // legally forbidden from saving customer car photos + plates to their device,
+  // so evidence capture goes straight to a RAM Blob (InAppCamera) → upload.
+  const [cameraOpen, setCameraOpen] = useState(false)
   return (
     <div className="flex flex-col gap-1">
       <span className="text-[11px] font-semibold text-ink-muted text-center truncate">{label}</span>
       <button
         type="button"
         disabled={isUploading}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => setCameraOpen(true)}
         className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1.5 relative overflow-hidden transition-colors ${
           (path || preview)
             ? 'border-accent/30 bg-accent-muted'
@@ -85,14 +89,13 @@ function EvidencePhotoSlot({ label, path, preview, isUploading, error, onSelect 
         )}
       </button>
       {error && <p className="text-[10px] text-danger-500 text-center leading-snug">{error}</p>}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={e => { if (e.target.files[0]) { onSelect(e.target.files[0]); e.target.value = '' } }}
-      />
+      {cameraOpen && (
+        <InAppCamera
+          title={label}
+          onCapture={blob => { setCameraOpen(false); onSelect(blob) }}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
     </div>
   )
 }

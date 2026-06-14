@@ -10,6 +10,9 @@ import { useReverseGeocode, looksLikeCoords } from '../../lib/geocode.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
 import OrderChatSheet from '../../components/chat/OrderChatSheet.jsx'
+import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
+import TipCard from '../../components/consumer/TipCard.jsx'
+import { cancellationFeeFor } from '../../lib/pricing.js'
 import { getOrCreateOrderConversation } from '../../lib/support.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import { useOrderWasherTracking } from '../../hooks/useOrderWasherTracking.js'
@@ -20,7 +23,11 @@ import Editable from '../../components/editable/Editable.jsx'
 // static router import) — mirrors how WorkerMap/MapPicker are lazy-loaded.
 const OrderTrackingMap = lazy(() => import('../../components/consumer/OrderTrackingMap.jsx'))
 
-const CANCELLABLE = new Set(['pending', 'accepted'])
+// Consumer Terms §7.1–7.2: free to cancel while pending/accepted; cancellable
+// with a 50 ₪ fee once the washer is en_route/arrived (the fee is enforced
+// server-side in transition_order_status — migration 0116).
+const CANCELLABLE     = new Set(['pending', 'accepted', 'en_route', 'arrived'])
+const CANCEL_FEE_SET  = new Set(['en_route', 'arrived'])
 
 const STATUS_TO_STEP = {
   pending: 0, accepted: 1, en_route: 2, arrived: 2,
@@ -159,6 +166,7 @@ export default function OrderTracking() {
   const { t } = useTranslation()
 
   const [cancelling, setCancelling]         = useState(false)
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
   const [supportConvId, setSupportConvId]   = useState(null)
   const [supportOpen, setSupportOpen]       = useState(false)
   const [openingSupport, setOpeningSupport] = useState(false)
@@ -217,15 +225,24 @@ export default function OrderTracking() {
   }
 
   async function handleCancel() {
+    // Capture the fee-bearing status before the row flips to 'cancelled'.
+    const fee = cancellationFeeFor(order?.status, order?.total_price)
     setCancelling(true)
     const { error: rpcError } = await supabase.rpc('transition_order_status', {
       order_id: id, new_status: 'cancelled',
     })
     setCancelling(false)
     if (rpcError) { showToast(rpcError.message, 'error'); return }
-    showToast(t('consumer.tracking.cancelled'), 'success')
+    showToast(
+      fee > 0
+        ? t('consumer.tracking.cancelledWithFee', { fee })
+        : t('consumer.tracking.cancelled'),
+      'success',
+    )
     navigate('/history')
   }
+
+  const cancelFee = cancellationFeeFor(order?.status, order?.total_price)
 
   if (loading) {
     return (
@@ -405,6 +422,11 @@ export default function OrderTracking() {
             </div>
           )}
 
+          {/* Tip the washer — gratuity, stored separately from the wash price (§6.7) */}
+          {order.status === 'completed' && order.washer_id && (
+            <TipCard order={order} />
+          )}
+
           {/* Read-only rating badge — shown after consumer has rated */}
           {order.rated_at && (
             <div className="flex items-center justify-center gap-1.5 py-2">
@@ -450,7 +472,7 @@ export default function OrderTracking() {
             <div className="flex items-center justify-between">
               {CANCELLABLE.has(order.status) ? (
                 <button
-                  onClick={handleCancel}
+                  onClick={() => setCancelConfirmOpen(true)}
                   disabled={cancelling}
                   className="text-[13px] font-semibold text-danger-500 disabled:opacity-50 text-start"
                 >
@@ -475,6 +497,19 @@ export default function OrderTracking() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onConfirm={() => { setCancelConfirmOpen(false); handleCancel() }}
+        onCancel={() => setCancelConfirmOpen(false)}
+        title={t('consumer.tracking.cancelConfirm.title')}
+        message={cancelFee > 0
+          ? t('consumer.tracking.cancelConfirm.messageFee', { fee: cancelFee })
+          : t('consumer.tracking.cancelConfirm.messageFree')}
+        confirmLabel={t('consumer.tracking.cancelConfirm.confirm')}
+        cancelLabel={t('consumer.tracking.cancelConfirm.keep')}
+        destructive
+      />
 
       <SupportChatSheet
         open={supportOpen}

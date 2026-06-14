@@ -1,10 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Camera, X, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Capacitor } from '@capacitor/core'
-import { Camera as NativeCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { supabase } from '../../lib/supabase.js'
-import { resizeToBlob, MAX_BYTES, MAX_EDGE_PX } from '../../lib/imageResize.js'
+import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
+import InAppCamera from '../shared/InAppCamera.jsx'
 import { useToast } from '../ui/Toast.jsx'
 
 const BUCKET = 'car-photos'
@@ -13,9 +12,9 @@ const SLOTS  = ['front', 'back', 'driver', 'passenger']
 function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved }) {
   const { t }           = useTranslation()
   const showToast       = useToast()
-  const inputRef        = useRef(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr]   = useState('')
+  const [cameraOpen, setCameraOpen] = useState(false)
 
   async function uploadBlob(blob) {
     setErr('')
@@ -46,34 +45,6 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
       return
     }
     onUploaded(slot, path, URL.createObjectURL(resized))
-  }
-
-  async function handleOpen() {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const result = await NativeCamera.getPhoto({
-          quality:            85,
-          allowEditing:       false,
-          resultType:         CameraResultType.DataUrl,
-          source:             CameraSource.Camera,
-          width:              MAX_EDGE_PX,
-          height:             MAX_EDGE_PX,
-          correctOrientation: true,
-        })
-        if (result.dataUrl) {
-          const blob = await fetch(result.dataUrl).then(r => r.blob())
-          await uploadBlob(blob)
-        }
-      } catch (e) {
-        if (!e?.message?.toLowerCase().includes('cancel')) {
-          const msg = t('consumer.home.photos.uploadFailed')
-          setErr(msg)
-          showToast(msg, 'error')
-        }
-      }
-    } else {
-      inputRef.current?.click()
-    }
   }
 
   async function handleRemove() {
@@ -107,7 +78,7 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
       <button
         type="button"
         disabled={busy}
-        onClick={handleOpen}
+        onClick={() => setCameraOpen(true)}
         className="aspect-square rounded-xl border-2 border-dashed border-neutral-300 dark:border-edge bg-neutral-50 dark:bg-surface flex flex-col items-center justify-center gap-2 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-60"
       >
         {busy
@@ -119,14 +90,13 @@ function PhotoSlot({ slot, label, orderId, userId, photo, onUploaded, onRemoved 
         </span>
       </button>
       {err && <p className="text-xs text-danger-500">{err}</p>}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        capture="environment"
-        className="hidden"
-        onChange={e => { if (e.target.files[0]) uploadBlob(e.target.files[0]); e.target.value = '' }}
-      />
+      {cameraOpen && (
+        <InAppCamera
+          title={label}
+          onCapture={blob => { setCameraOpen(false); uploadBlob(blob) }}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
     </div>
   )
 }

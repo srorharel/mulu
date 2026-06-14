@@ -23,12 +23,14 @@ describe('0103 — orders.is_underground_parking column', () => {
   })
 })
 
-describe('0104 — transition_order_status underground relaxation', () => {
+describe('transition_order_status underground relaxation (0104, reproduced verbatim by 0116)', () => {
   const { file, body } = latestMigrationDefining('transition_order_status')
   const sql = normalize(body)
 
-  it('the latest definition of transition_order_status is 0104', () => {
-    expect(file).toMatch(/^0104_/)
+  // 0116 (cancellation fee) reproduces the 0104 underground relaxation verbatim;
+  // this guard rides the latest definition and re-asserts the relaxation survived.
+  it('the latest definition of transition_order_status is 0116', () => {
+    expect(file).toMatch(/^0116_/)
   })
 
   it('branches on the order row flag (reads it, not a new argument)', () => {

@@ -65,6 +65,18 @@
     "close": "Close",
     "emoji": "Emoji"
   },
+  "camera": {
+    "starting": "Starting camera…",
+    "permissionDenied": "Camera access is required. Enable it in your device settings to take photos.",
+    "noCamera": "No camera was found on this device.",
+    "unsupported": "The in-app camera isn't supported on this device.",
+    "tryAgain": "Try again",
+    "retake": "Retake",
+    "use": "Use photo",
+    "cancel": "Cancel",
+    "capture": "Take photo",
+    "hint": "Photos are captured inside the app and uploaded securely. They are never saved to your device gallery."
+  },
   "auth": {
     "login": "Log in",
     "signup": "Sign up",
@@ -233,6 +245,15 @@
         "cityPlaceholder": "e.g. Jerusalem"
       }
     },
+    "tip": {
+      "title": "Add a tip",
+      "subtitle": "100% of your tip goes to your washer.",
+      "send": "Send",
+      "customPlaceholder": "Other",
+      "invalid": "Enter a valid tip amount",
+      "thanks": "Thanks! ₪{{amount}} tip sent to your washer",
+      "added": "You tipped ₪{{amount}} — thank you!"
+    },
     "tracking": {
       "title": "Order status",
       "back": "Back",
@@ -242,6 +263,14 @@
       "completed": "Your car is sparkling clean!",
       "cancelOrder": "Cancel order",
       "cancelling": "Cancelling…",
+      "cancelledWithFee": "Order cancelled · ₪{{fee}} cancellation fee charged",
+      "cancelConfirm": {
+        "title": "Cancel this order?",
+        "messageFree": "Your order will be cancelled at no charge.",
+        "messageFee": "Your washer is already on the way, so a ₪{{fee}} cancellation fee applies. Do you still want to cancel?",
+        "confirm": "Cancel order",
+        "keep": "Keep order"
+      },
       "total": "total",
       "firstWashDiscount": "Includes {{percent}}% first-wash discount (−₪{{amount}})",
       "etaAway": "~{{min}} min away",
