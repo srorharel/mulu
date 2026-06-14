@@ -111,6 +111,11 @@ export default function SignUp() {
     const { data: result, error } = await signUp(data.email, data.password, {
       full_name: data.fullName,
       role:      data.role,
+      // Consent given here (the form gates submit on it). handle_new_user reads
+      // this flag and records the Terms+Privacy acknowledgment at account
+      // creation, so the user is NOT re-prompted by LegalUpdateModal right after
+      // registering — it reappears only when a doc version is published.
+      accepted_legal: data.acceptedTerms === true,
     })
     if (error) { setServerError(error.message); return }
 

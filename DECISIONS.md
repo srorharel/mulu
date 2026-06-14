@@ -455,6 +455,8 @@ The function reads the flag from the order row itself — no new argument, so ev
 
 **Consequence:** Three doc types seeded v1 he as `[למילוי]` skeletons (privacy + washer) and a labelled consumer placeholder; Harel fills them via the support-app editor. Guarded by `legalDocuments.contract.test.js`, `LegalUpdateModal.test.jsx`, and live checks in `verify-db.js`.
 
+**Amendment (2026-06-15, migration 0121):** the signup Terms+Privacy checkbox was purely client-side gating — consent was never persisted, so `pending_legal_acknowledgments` re-reported the docs and `LegalUpdateModal` re-prompted the user on their very first login, right after they had accepted at registration. Fix: `handle_new_user` now seeds `user_legal_acknowledgments` at account creation when the signup form passes `accepted_legal` in `raw_user_meta_data` (consumer → consumer_terms+privacy_policy; washer → privacy_policy only — the washer **contract** is still acknowledged post-approval via the modal). This fires for both the auto-login and the email-confirmation signup flows (the `auth.users` row is inserted at signUp regardless of confirmation). The migration also one-time-backfills existing consumer/washer accounts at the current version (non-destructive — `on conflict do nothing`), so already-registered users are not prompted for docs they already accepted. Net behavior: the modal appears **only** when a new doc version is published. Guarded by `legalConsentOnSignup.contract.test.js`.
+
 ## ADR-037: legal_update push fan-out (trigger → one Edge Function → per-user send)
 **Date:** 2026-06-04
 **Status:** Accepted
