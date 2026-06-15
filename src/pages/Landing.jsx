@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import GlassCard from '../components/ui/GlassCard.jsx'
 import WelcomeIntroModal from '../components/landing/WelcomeIntroModal.jsx'
-import WashMark from '../components/ui/WashMark.jsx'
+import LogoSpotlight from '../components/ui/LogoSpotlight.jsx'
 
 const FEATURE_ICONS = [MapPin, Waves, Clock]
 
@@ -40,9 +40,9 @@ export default function Landing() {
       >
         {/* Hero glass card */}
         <GlassCard className="p-6 flex flex-col items-center gap-4 text-center">
-          <motion.div variants={itemVariants}>
-            <WashMark size={150} className="w-[120px] md:w-[150px] h-auto mx-auto drop-shadow-[0_8px_20px_rgba(38,181,95,0.3)]" />
-            <p className="text-neutral-500 text-sm mt-3 max-w-xs">
+          <motion.div variants={itemVariants} className="flex flex-col items-center">
+            <LogoSpotlight size={156} />
+            <p className="text-neutral-500 text-sm mt-4 max-w-xs">
               {t('landing.tagline')}
             </p>
           </motion.div>
