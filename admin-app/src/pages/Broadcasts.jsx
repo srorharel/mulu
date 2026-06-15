@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Megaphone, Send, Users, AlertCircle, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
+import { Megaphone, Send, Users, AlertCircle, AlertTriangle, CheckCircle2, Clock, Link2 } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import PageHeader from '../components/PageHeader.jsx'
@@ -39,7 +39,7 @@ export default function Broadcasts() {
   async function loadHistory() {
     const { data } = await supabase
       .from('broadcast_notifications')
-      .select('id, title_en, segment_type, sent_at, scheduled_at, sent_count, failed_count, created_at')
+      .select('id, title_en, title_he, body_en, deep_link_route, segment_type, sent_at, scheduled_at, sent_count, failed_count, created_at')
       .order('created_at', { ascending: false })
       .limit(50)
     setHistory(data ?? [])
@@ -260,25 +260,33 @@ export default function Broadcasts() {
           ) : (
             <div className="flex flex-col divide-y divide-edge">
               {history.map(h => (
-                <div key={h.id} className="py-2.5 flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3">
-                  <span className="font-medium text-ink truncate sm:flex-1">{h.title_en}</span>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-ink-muted px-2 py-0.5 rounded bg-surface">{h.segment_type}</span>
-                    {h.sent_at ? (
-                      <span className="text-[11px] text-success font-mono tabular-nums">
-                        {h.sent_count}↑ / {h.failed_count}↓
+                <div key={h.id} className="py-2.5 flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                    <span className="font-medium text-ink truncate text-sm sm:flex-1">{h.title_en || h.title_he || '—'}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] text-ink-muted px-2 py-0.5 rounded bg-surface">{h.segment_type}</span>
+                      {h.sent_at ? (
+                        <span className="text-[11px] text-success font-mono tabular-nums">
+                          {h.sent_count}↑ / {h.failed_count}↓
+                        </span>
+                      ) : h.scheduled_at ? (
+                        <span className="text-[11px] text-warning flex items-center gap-1">
+                          <Clock size={10} /> {new Date(h.scheduled_at).toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-ink-subtle">draft</span>
+                      )}
+                      <span className="text-[10px] text-ink-subtle whitespace-nowrap sm:ms-auto">
+                        {new Date(h.created_at).toLocaleString()}
                       </span>
-                    ) : h.scheduled_at ? (
-                      <span className="text-[11px] text-warning flex items-center gap-1">
-                        <Clock size={10} /> {new Date(h.scheduled_at).toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-ink-subtle">draft</span>
-                    )}
-                    <span className="text-[10px] text-ink-subtle whitespace-nowrap sm:ms-auto">
-                      {new Date(h.created_at).toLocaleString()}
-                    </span>
+                    </div>
                   </div>
+                  {h.body_en && <p className="text-[12px] text-ink-muted line-clamp-2">{h.body_en}</p>}
+                  {h.deep_link_route && (
+                    <span className="inline-flex items-center gap-1 self-start text-[10.5px] text-ink-subtle font-mono px-1.5 py-0.5 rounded bg-surface border border-edge">
+                      <Link2 size={10} /> {h.deep_link_route}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

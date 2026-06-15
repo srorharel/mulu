@@ -150,6 +150,8 @@ function ConversationRow({ conversation, active, onOpen }) {
   const party     = partyOf(conversation)
   const agentName = agentNameOf(conversation)
   const preview   = (conversation.last_message_body || '').trim() || 'No messages yet'
+  const phone     = conversation.opener?.phone
+  const av = (party.name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
   return (
     <button
       onClick={onOpen}
@@ -159,19 +161,32 @@ function ConversationRow({ conversation, active, onOpen }) {
           : 'border-edge bg-surface-elevated hover:bg-surface-elevated-2'
       }`}
     >
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-ink truncate flex-1 text-[13.5px]">{party.name}</span>
-        {party.role && (
-          <span className={`shrink-0 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider rounded border ${roleBadgeClass(party.role)}`}>
-            {party.role}
-          </span>
-        )}
+      <div className="flex items-start gap-2.5">
+        <div className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center text-[11px] font-bold ${roleBadgeClass(party.role)}`}>
+          {av}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-ink truncate flex-1 text-[13.5px]">{party.name}</span>
+            {party.role && (
+              <span className={`shrink-0 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider rounded border ${roleBadgeClass(party.role)}`}>
+                {party.role}
+              </span>
+            )}
+          </div>
+          {phone && <p className="text-[11px] text-ink-subtle tabular-nums truncate">{phone}</p>}
+          <p className="text-[12px] text-ink-muted truncate mt-0.5">{preview}</p>
+        </div>
       </div>
-      <p className="text-[12px] text-ink-muted truncate mt-1">{preview}</p>
-      <div className="flex items-center gap-2 mt-1.5">
+      <div className="flex items-center gap-2 mt-2">
         <span className={`px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider rounded border ${conversationStatusClass(conversation.status)}`}>
           {conversation.status}
         </span>
+        {conversation.order_id && (
+          <span className="px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider rounded border bg-surface text-ink-muted border-edge">
+            order
+          </span>
+        )}
         <span className="text-[10.5px] text-ink-subtle truncate">
           {agentName ? agentName : 'unassigned'}
         </span>

@@ -262,6 +262,9 @@ export default function Receipts() {
                 <p className="text-[12px] text-ink-muted truncate">
                   {r.consumer_name ?? '—'} · {r.consumer_email ?? '—'}
                 </p>
+                {r.discount_amount > 0 && (
+                  <p className="text-[11px] text-success">first-wash discount −₪{r.discount_amount}</p>
+                )}
                 {r.error_detail && <p className="text-[10.5px] text-danger font-mono truncate" title={r.error_detail}>{r.error_detail}</p>}
                 <div className="flex items-center gap-2">
                   <span className="text-[10.5px] text-ink-subtle">{relativeTime(r.created_at)}</span>
@@ -306,7 +309,10 @@ export default function Receipts() {
                   <td className="py-1.5 font-mono">#{r.receipt_number}</td>
                   <td className="py-1.5">{r.consumer_name ?? '—'}</td>
                   <td className="py-1.5 text-[12px] text-ink-muted">{r.consumer_email ?? '—'}</td>
-                  <td className="py-1.5 text-end font-mono tabular-nums">{r.total}</td>
+                  <td className="py-1.5 text-end font-mono tabular-nums">
+                    {r.total}
+                    {r.discount_amount > 0 && <p className="text-[10px] text-success">−₪{r.discount_amount}</p>}
+                  </td>
                   <td className="py-1.5 ps-3">
                     <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded ${STATUS_STYLES[r.status] ?? ''}`}>
                       {r.status}
