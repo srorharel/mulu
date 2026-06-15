@@ -118,6 +118,33 @@ describe('SignUp — duplicate phone', () => {
     expect(signUp).not.toHaveBeenCalled()
   })
 
+  it('shows "email in use" when signUp resolves with empty identities (enumeration protection ON)', async () => {
+    // Supabase's default anti-enumeration behaviour: a duplicate email does not
+    // error — it resolves with session:null and a user whose identities[] is empty.
+    const signUp = vi.fn(() => Promise.resolve({
+      data: { user: { identities: [] }, session: null }, error: null,
+    }))
+    const checkPhoneAvailable = vi.fn(() => Promise.resolve(true))  // phone is free
+    auth.current = { signUp, checkPhoneAvailable }
+    const user = userEvent.setup()
+    render(<SignUp role="consumer" />, { wrapper })
+
+    await user.type(screen.getByPlaceholderText('Avi Cohen'), 'Test User')
+    await user.type(screen.getByPlaceholderText('050-0000000'), '0501234567')
+    await user.type(screen.getByPlaceholderText('you@example.com'), 'taken@user.com')
+    await user.type(screen.getByPlaceholderText('8+ characters'), 'password123')
+    await user.type(screen.getByPlaceholderText('Repeat your password'), 'password123')
+    await user.click(screen.getByRole('checkbox'))
+    await user.click(screen.getByRole('button', { name: /Create account/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('That email is already registered.')).toBeInTheDocument()
+    })
+    expect(signUp).toHaveBeenCalled()
+    // It must NOT fall through to the neutral "check your email" screen.
+    expect(screen.queryByText(/Back to sign in/i)).not.toBeInTheDocument()
+  })
+
   it('rejects a phone number shorter than 9 digits before any probe', async () => {
     const signUp = vi.fn()
     const checkPhoneAvailable = vi.fn(() => Promise.resolve(true))

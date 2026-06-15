@@ -164,6 +164,15 @@ export default function SignUp({ role = 'consumer' }) {
       setServerError(error.message); return
     }
 
+    // With email-enumeration protection ON (Supabase's default) a duplicate email
+    // does NOT error — signUp resolves with session:null and an obfuscated user
+    // whose identities[] is EMPTY. A genuine fresh signup always returns exactly
+    // one identity. Detect the empty-identities case and surface "email in use"
+    // (with the reset path) instead of the misleading "check your email" screen.
+    if (Array.isArray(result?.user?.identities) && result.user.identities.length === 0) {
+      setDuplicate('email'); return
+    }
+
     if (isWasher) {
       sessionStorage.setItem('washer_signup_areas', JSON.stringify(data.serviceAreas ?? []))
       sessionStorage.setItem('washer_signup_dealer', data.dealerNumber ?? '')
