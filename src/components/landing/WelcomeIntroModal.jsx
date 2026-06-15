@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { X, MapPin, Car, ShieldCheck, Gift } from 'lucide-react'
+import { X, MapPin, Car, ShieldCheck, Sparkles, ChevronRight } from 'lucide-react'
 
 const SPRING = { type: 'spring', stiffness: 340, damping: 30 }
 
@@ -20,10 +20,11 @@ const stepVariants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 }
 
-// Pre-signup intro shown when the user taps the register CTA on the landing
-// page. Purely informational — primary CTA continues to /signup, anything
-// else dismisses.
-export default function WelcomeIntroModal({ open, onClose, onContinue }) {
+// Pre-signup "about us" screen shown when the user taps the register CTA on the
+// landing page. Explains how MULU works, then asks how they want to join: the
+// footer splits into two role choices, each routed to its own registration page
+// (consumer → /signup/customer, washer → /signup/washer) via onSelectRole.
+export default function WelcomeIntroModal({ open, onClose, onSelectRole }) {
   const { t } = useTranslation()
 
   return createPortal(
@@ -96,41 +97,51 @@ export default function WelcomeIntroModal({ open, onClose, onContinue }) {
                 ))}
               </motion.ol>
 
-              {/* Joining gift */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0, transition: { delay: 0.45, duration: 0.25 } }}
-                className="mt-5 rounded-2xl border border-primary-200 dark:border-primary-500/30 bg-primary-50/70 dark:bg-primary-500/10 p-4 flex items-center gap-3"
-              >
-                <div className="rounded-full bg-primary-500 p-2.5 shrink-0">
-                  <Gift className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-primary-700 dark:text-accent">
-                    {t('landing.intro.giftTitle')}
-                  </p>
-                  <p className="text-sm text-primary-700/80 dark:text-ink-muted">
-                    {t('landing.intro.giftText')}
-                  </p>
-                </div>
-              </motion.div>
-
-              <p className="text-xs text-ink-muted text-center mt-4 mb-2">
+              <p className="text-xs text-ink-muted text-center mt-5 mb-2">
                 {t('landing.intro.signoff')}
               </p>
             </div>
 
-            {/* CTAs */}
-            <div className="px-6 pb-6 pt-3 shrink-0 flex flex-col gap-2">
+            {/* Role chooser — splits into the two registration flows */}
+            <div className="px-6 pb-6 pt-3 shrink-0 flex flex-col gap-2.5">
+              <p className="text-[11px] font-semibold text-primary-600 dark:text-accent uppercase tracking-wide text-center">
+                {t('landing.intro.chooseRole')}
+              </p>
+
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.98 }}
                 transition={SPRING}
-                onClick={onContinue}
-                className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold"
+                onClick={() => onSelectRole('consumer')}
+                className="flex items-center gap-3 w-full text-start rounded-2xl bg-primary-600 text-white px-4 py-3.5"
               >
-                {t('landing.intro.cta')}
+                <div className="rounded-xl bg-white/20 p-2 shrink-0">
+                  <Car className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold leading-tight">{t('landing.intro.roleCustomer')}</p>
+                  <p className="text-[12px] text-white/80 leading-tight mt-0.5">{t('landing.intro.roleCustomerSub')}</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-white/90 shrink-0 rtl:rotate-180" />
               </motion.button>
+
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.98 }}
+                transition={SPRING}
+                onClick={() => onSelectRole('washer')}
+                className="flex items-center gap-3 w-full text-start rounded-2xl border-2 border-primary-200 dark:border-primary-500/40 px-4 py-3.5"
+              >
+                <div className="rounded-xl bg-primary-50 dark:bg-primary-500/15 p-2 shrink-0">
+                  <Sparkles className="h-5 w-5 text-primary-600 dark:text-accent" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink leading-tight">{t('landing.intro.roleWasher')}</p>
+                  <p className="text-[12px] text-ink-muted leading-tight mt-0.5">{t('landing.intro.roleWasherSub')}</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-ink-muted shrink-0 rtl:rotate-180" />
+              </motion.button>
+
               <button
                 type="button"
                 onClick={onClose}

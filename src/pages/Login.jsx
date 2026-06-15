@@ -127,7 +127,7 @@ export default function Login() {
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
           {t('auth.newToWash')}{' '}
-          <Link to="/signup" className="text-primary-600 font-medium">{t('auth.createAccount')}</Link>
+          <Link to="/signup/customer" className="text-primary-600 font-medium">{t('auth.createAccount')}</Link>
         </motion.p>
       </motion.div>
     </div>

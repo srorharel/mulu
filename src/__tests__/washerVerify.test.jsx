@@ -287,12 +287,12 @@ describe('Verify page — back button', () => {
     expect(screen.getByRole('button', { name: /Back/i })).toBeInTheDocument()
   })
 
-  it('navigates to /signup without confirm when no uploads exist', async () => {
+  it('navigates to /signup/washer without confirm when no uploads exist', async () => {
     render(<Verify />, { wrapper })
     await userEvent.setup().click(screen.getByRole('button', { name: /Back/i }))
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalled()
-      expect(mockNavigate).toHaveBeenCalledWith('/signup', { replace: true })
+      expect(mockNavigate).toHaveBeenCalledWith('/signup/washer', { replace: true })
     })
   })
 
@@ -307,7 +307,7 @@ describe('Verify page — back button', () => {
       )
       expect(mockRemove).toHaveBeenCalledWith(['uid-test/selfie.jpg'])
       expect(mockSignOut).toHaveBeenCalled()
-      expect(mockNavigate).toHaveBeenCalledWith('/signup', { replace: true })
+      expect(mockNavigate).toHaveBeenCalledWith('/signup/washer', { replace: true })
     })
   })
 
@@ -329,7 +329,7 @@ describe('Verify page — back button', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: /Back/i }))
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalled()
-      expect(mockNavigate).toHaveBeenCalledWith('/signup', { replace: true })
+      expect(mockNavigate).toHaveBeenCalledWith('/signup/washer', { replace: true })
     })
   })
 })

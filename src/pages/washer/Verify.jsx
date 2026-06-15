@@ -117,7 +117,7 @@ export default function Verify() {
       }
     }
     await signOut()
-    navigate('/signup', { replace: true })
+    navigate('/signup/washer', { replace: true })
   }, [selfieStoragePath, t, signOut, navigate])
 
   useEffect(() => {

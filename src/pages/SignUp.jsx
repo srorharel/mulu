@@ -42,8 +42,6 @@ const schema = z.object({
   path: ['acceptedTerms'],
 })
 
-const SPRING = { type: 'spring', stiffness: 300, damping: 30 }
-
 const pageVariants = {
   hidden:  {},
   visible: { transition: { staggerChildren: 0.08 } },
@@ -53,10 +51,14 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 }
 
-export default function SignUp() {
+// Registration is split per role: /signup/customer renders this with
+// role="consumer", /signup/washer with role="washer". The role is fixed by the
+// route (chosen in the landing "about us" modal) — there is no in-page toggle.
+export default function SignUp({ role = 'consumer' }) {
   const navigate = useNavigate()
   const { signUp } = useAuth()
   const { t } = useTranslation()
+  const isWasher = role === 'washer'
   const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [serverError, setServerError] = useState('')
@@ -72,7 +74,7 @@ export default function SignUp() {
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      role:         savedDraft?.role ?? 'consumer',
+      role:         role,
       fullName:     savedDraft?.fullName ?? '',
       email:        savedDraft?.email ?? '',
       password:     '',
@@ -82,7 +84,7 @@ export default function SignUp() {
       acceptedTerms: false,
     },
   })
-  const selectedRole  = watch('role')
+  const selectedRole  = isWasher ? 'washer' : 'consumer'
   const rawAreas      = watch('serviceAreas')
   const serviceAreas  = rawAreas ?? []
   const watchedName   = watch('fullName')
@@ -110,7 +112,7 @@ export default function SignUp() {
     setServerError('')
     const { data: result, error } = await signUp(data.email, data.password, {
       full_name: data.fullName,
-      role:      data.role,
+      role:      role,
       // Consent given here (the form gates submit on it). handle_new_user reads
       // this flag and records the Terms+Privacy acknowledgment at account
       // creation, so the user is NOT re-prompted by LegalUpdateModal right after
@@ -119,7 +121,7 @@ export default function SignUp() {
     })
     if (error) { setServerError(error.message); return }
 
-    if (data.role === 'washer') {
+    if (isWasher) {
       sessionStorage.setItem('washer_signup_areas', JSON.stringify(data.serviceAreas ?? []))
       sessionStorage.setItem('washer_signup_dealer', data.dealerNumber ?? '')
     }
@@ -127,7 +129,7 @@ export default function SignUp() {
     sessionStorage.removeItem('washer_signup_draft')
 
     if (result?.session) {
-      if (data.role === 'washer') {
+      if (isWasher) {
         navigate('/signup/washer/verify', {
           state: { serviceAreas: data.serviceAreas, dealerNumber: data.dealerNumber },
         })
@@ -182,44 +184,18 @@ export default function SignUp() {
         <motion.div variants={itemVariants}>
           <GlassCard className="p-6 flex flex-col gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">{t('signup.title')}</h1>
-              <p className="text-neutral-500 text-sm mt-0.5">{t('signup.subtitle')}</p>
+              <h1 className="text-2xl font-bold text-neutral-900">
+                {isWasher ? t('signup.washerTitle') : t('signup.customerTitle')}
+              </h1>
+              <p className="text-neutral-500 text-sm mt-0.5">
+                {isWasher ? t('signup.washerSubtitle') : t('signup.customerSubtitle')}
+              </p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-              {/* Role picker with layoutId morphing pill */}
-              <div>
-                <label className="label">{t('signup.iAmA')}</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: 'consumer', label: t('signup.customer') },
-                    { value: 'washer',   label: t('signup.washer')   },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setValue('role', opt.value, { shouldValidate: true })}
-                      className="relative flex items-center gap-2 rounded-xl border border-neutral-200 p-3 cursor-pointer overflow-hidden text-start"
-                      style={{ minHeight: 44 }}
-                    >
-                      {selectedRole === opt.value && (
-                        <motion.div
-                          layoutId="role-selector-pill"
-                          className="absolute inset-0 bg-primary-50 border-2 border-primary-500 rounded-xl"
-                          transition={SPRING}
-                        />
-                      )}
-                      <span className="relative z-10 text-sm font-medium text-neutral-800">
-                        {opt.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div className="sr-only">
-                  <input type="radio" value="consumer" {...register('role')} />
-                  <input type="radio" value="washer"   {...register('role')} />
-                </div>
-              </div>
+              {/* Role is fixed by the route (split registration); kept in form
+                  state for the schema refinements + signUp metadata. */}
+              <input type="hidden" {...register('role')} />
 
               {/* Washer-only fields */}
               <AnimatePresence initial={false}>
@@ -411,6 +387,17 @@ export default function SignUp() {
             </form>
           </GlassCard>
         </motion.div>
+
+        {/* Cross-link to the other registration flow */}
+        <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
+          {isWasher ? t('signup.switch.toCustomerPrompt') : t('signup.switch.toWasherPrompt')}{' '}
+          <Link
+            to={isWasher ? '/signup/customer' : '/signup/washer'}
+            className="text-primary-600 font-medium"
+          >
+            {isWasher ? t('signup.switch.toCustomerLink') : t('signup.switch.toWasherLink')}
+          </Link>
+        </motion.p>
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
           {t('auth.alreadyHaveAccount')}{' '}

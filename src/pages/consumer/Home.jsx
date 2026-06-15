@@ -22,6 +22,7 @@ import LicensePlatePicker from '../../components/consumer/LicensePlatePicker.jsx
 import CarPhotoUpload from '../../components/consumer/CarPhotoUpload.jsx'
 import VehiclePickerSheet from '../../components/consumer/VehiclePickerSheet.jsx'
 import SaveVehicleDialog from '../../components/consumer/SaveVehicleDialog.jsx'
+import FirstWashGiftModal from '../../components/consumer/FirstWashGiftModal.jsx'
 import Editable from '../../components/editable/Editable.jsx'
 
 // Derive up to 2 initials from profile.full_name, falling back to the email prefix.
@@ -206,6 +207,22 @@ export default function ConsumerHome() {
   const effectivePin = pin ?? gpsPosition
   const { address: pinAddress } = useReverseGeocode(effectivePin?.lat, effectivePin?.lng)
   const { eligible: firstWashEligible } = useFirstWashDiscount(user?.id)
+
+  // One-time celebratory gift panel for a brand-new (first-wash-eligible) user.
+  // Shown once per user; the "seen" flag is keyed by id so a shared device still
+  // greets each new account. Eligibility also stops it re-appearing post-booking.
+  const [showGift, setShowGift] = useState(false)
+  useEffect(() => {
+    if (!user?.id || !firstWashEligible) return
+    if (localStorage.getItem(`mulu_first_wash_gift_seen_${user.id}`)) return
+    setShowGift(true)
+  }, [user?.id, firstWashEligible])
+
+  function dismissGift() {
+    if (user?.id) localStorage.setItem(`mulu_first_wash_gift_seen_${user.id}`, '1')
+    setShowGift(false)
+  }
+
   const { total: fullTotal } = consumerBreakdown(licenseData.category || 'private')
   const consumerTotal = firstWashEligible ? applyFirstWashDiscount(fullTotal).total : fullTotal
   const { vat } = priceBreakdown(consumerTotal)
@@ -635,6 +652,12 @@ export default function ConsumerHome() {
         consumerId={user.id}
         onSaved={handleDialogSaved}
         onDismiss={navigateToOrder}
+      />
+
+      <FirstWashGiftModal
+        open={showGift}
+        percent={FIRST_WASH_DISCOUNT_PERCENT}
+        onClose={dismissGift}
       />
     </PageShell>
   )

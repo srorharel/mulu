@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { I18nextProvider } from 'react-i18next'
 import i18next from 'i18next'
@@ -28,9 +28,14 @@ i18n.use(initReactI18next).init({
       translation: {
         'signup.title': 'Create account',
         'signup.subtitle': 'Join the MULU network',
-        'signup.iAmA': 'I am a…',
-        'signup.customer': "I'm a customer",
-        'signup.washer': "I'm a washer",
+        'signup.customerTitle': 'Create account',
+        'signup.customerSubtitle': 'Join the MULU network',
+        'signup.washerTitle': 'Join the MULU team',
+        'signup.washerSubtitle': 'Start earning by washing cars',
+        'signup.switch.toWasherPrompt': 'Want to wash cars and earn?',
+        'signup.switch.toWasherLink': 'Join the MULU team',
+        'signup.switch.toCustomerPrompt': 'Just want a wash?',
+        'signup.switch.toCustomerLink': 'Sign up as a customer',
         'signup.fullName': 'Full name',
         'signup.fullNamePlaceholder': 'Avi Cohen',
         'signup.confirmPassword': 'Confirm password',
@@ -68,51 +73,32 @@ const wrapper = ({ children }) => (
   </I18nextProvider>
 )
 
-function fillBaseFields(user) {
-  return async () => {
-    await user.type(screen.getByPlaceholderText('Avi Cohen'), 'Test User')
-    await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')
-    await user.type(screen.getByPlaceholderText('8+ characters'), 'password123')
-    await user.type(screen.getByPlaceholderText('Repeat your password'), 'password123')
-  }
+// Registration is split by route now: customer page renders role="consumer",
+// washer page renders role="washer". The role is fixed (no in-page toggle).
+function renderSignup(role) {
+  return render(<SignUp role={role} />, { wrapper })
 }
 
-describe('SignUp — role selection', () => {
-  it('does NOT show washer fields when consumer role is selected', () => {
-    render(<SignUp />, { wrapper })
+describe('SignUp — role-scoped fields', () => {
+  it('does NOT show washer fields on the customer registration', () => {
+    renderSignup('consumer')
     expect(screen.queryByText('Area of activity')).not.toBeInTheDocument()
     expect(screen.queryByText('Licensed dealer / company number')).not.toBeInTheDocument()
   })
 
-  it('reveals service areas and dealer number when washer role is selected', async () => {
-    const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-
-    await user.click(screen.getByText("I'm a washer"))
-
+  it('shows service areas and dealer number on the washer registration', async () => {
+    renderSignup('washer')
     await waitFor(() => {
       expect(screen.getByText('Area of activity')).toBeInTheDocument()
       expect(screen.getByText('Licensed dealer / company number')).toBeInTheDocument()
     })
-  })
-
-  it('hides washer fields again when consumer role is re-selected', async () => {
-    const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-
-    await user.click(screen.getByText("I'm a washer"))
-    await waitFor(() => expect(screen.getByText('Area of activity')).toBeInTheDocument())
-
-    await user.click(screen.getByText("I'm a customer"))
-    await waitFor(() => expect(screen.queryByText('Area of activity')).not.toBeInTheDocument())
   })
 })
 
 describe('SignUp — service area picker', () => {
   it('shows exactly 3 city options when area picker is opened', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByText('Select cities…')).toBeInTheDocument())
 
     await user.click(screen.getByText('Select cities…'))
@@ -128,8 +114,7 @@ describe('SignUp — service area picker', () => {
 
   it('adds selected city as a chip', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByText('Select cities…')).toBeInTheDocument())
     await user.click(screen.getByText('Select cities…'))
     await user.click(screen.getByText('Holon'))
@@ -150,8 +135,7 @@ async function selectArea(user, cityName) {
 describe('SignUp — dealer number validation', () => {
   it('rejects non-digit input', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByPlaceholderText('Enter 7–9 digit number')).toBeInTheDocument())
 
     await user.type(screen.getByPlaceholderText('Enter 7–9 digit number'), 'abc')
@@ -171,8 +155,7 @@ describe('SignUp — dealer number validation', () => {
 
   it('rejects dealer number shorter than 7 digits', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByPlaceholderText('Enter 7–9 digit number')).toBeInTheDocument())
 
     await user.type(screen.getByPlaceholderText('Enter 7–9 digit number'), '12345')
@@ -192,8 +175,7 @@ describe('SignUp — dealer number validation', () => {
 
   it('rejects dealer number longer than 9 digits', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByPlaceholderText('Enter 7–9 digit number')).toBeInTheDocument())
 
     await user.type(screen.getByPlaceholderText('Enter 7–9 digit number'), '1234567890')
@@ -225,8 +207,7 @@ describe('SignUp — washer submit flow', () => {
     })
 
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByPlaceholderText('Enter 7–9 digit number')).toBeInTheDocument())
 
     // Open area picker and select Holon
@@ -251,8 +232,7 @@ describe('SignUp — washer submit flow', () => {
 
   it('requires at least one service area for washer role', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
-    await user.click(screen.getByText("I'm a washer"))
+    renderSignup('washer')
     await waitFor(() => expect(screen.getByPlaceholderText('Enter 7–9 digit number')).toBeInTheDocument())
 
     await user.type(screen.getByPlaceholderText('Enter 7–9 digit number'), '1234567')
@@ -278,7 +258,7 @@ describe('SignUp — terms & privacy consent gate', () => {
 
   it('blocks customer signup until the consent box is checked', async () => {
     const user = userEvent.setup()
-    render(<SignUp />, { wrapper })
+    renderSignup('consumer')
 
     await user.type(screen.getByPlaceholderText('Avi Cohen'), 'Test User')
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')

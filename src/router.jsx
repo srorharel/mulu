@@ -101,7 +101,11 @@ export function AppRouter() {
       <Routes>
         {/* Public — redirect away if already logged in */}
         <Route path="/"       element={<AuthRedirect><Landing /></AuthRedirect>} />
-        <Route path="/signup" element={<AuthRedirect><SignUp /></AuthRedirect>} />
+        {/* Split registration: role chosen in the landing "about us" modal */}
+        <Route path="/signup/customer" element={<AuthRedirect><SignUp role="consumer" /></AuthRedirect>} />
+        <Route path="/signup/washer"   element={<AuthRedirect><SignUp role="washer" /></AuthRedirect>} />
+        {/* Back-compat: bare /signup → the customer flow */}
+        <Route path="/signup" element={<Navigate to="/signup/customer" replace />} />
         <Route path="/login"  element={<AuthRedirect><Login /></AuthRedirect>} />
 
         {/* Account deletion — public store URL; works logged-in (runs deletion)

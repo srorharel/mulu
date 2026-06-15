@@ -88,7 +88,10 @@ export default function Landing() {
       <WelcomeIntroModal
         open={introOpen}
         onClose={() => setIntroOpen(false)}
-        onContinue={() => { setIntroOpen(false); navigate('/signup') }}
+        onSelectRole={(role) => {
+          setIntroOpen(false)
+          navigate(role === 'washer' ? '/signup/washer' : '/signup/customer')
+        }}
       />
     </div>
   )

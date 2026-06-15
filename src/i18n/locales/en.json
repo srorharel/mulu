@@ -102,6 +102,16 @@
   "signup": {
     "title": "Create account",
     "subtitle": "Join the MULU network",
+    "customerTitle": "Create account",
+    "customerSubtitle": "Join the MULU network and book a wash",
+    "washerTitle": "Join the MULU team",
+    "washerSubtitle": "Start earning by washing cars",
+    "switch": {
+      "toWasherPrompt": "Want to wash cars and earn?",
+      "toWasherLink": "Join the MULU team",
+      "toCustomerPrompt": "Just want a wash?",
+      "toCustomerLink": "Sign up as a customer"
+    },
     "iAmA": "I am a…",
     "customer": "I'm a customer",
     "washer": "I'm a washer",
@@ -698,12 +708,21 @@
       "step1": "Order a wash wherever suits you — home, work, anywhere your car is parked.",
       "step2": "A professional washer in your area sees the order, accepts it, and heads to your car.",
       "step3": "Your car is photographed before and after, and the wash is only approved by us once it's clean and everything went smoothly.",
-      "giftTitle": "Joining gift 🎁",
-      "giftText": "30% off your first wash!",
       "signoff": "See you at the parking spot — the MULU team 💙",
-      "cta": "Let's sign up",
+      "chooseRole": "How would you like to join?",
+      "roleCustomer": "Sign up as a customer",
+      "roleCustomerSub": "Book washes to your car",
+      "roleWasher": "Join the MULU team",
+      "roleWasherSub": "Earn as a pro washer",
       "later": "Maybe later"
     }
+  },
+  "firstWashGift": {
+    "title": "Congratulations! 🎉",
+    "body": "You've won {{percent}}% off your first wash — it's already waiting on your first order.",
+    "badge": "{{percent}}% OFF",
+    "cta": "Book my first wash",
+    "dismiss": "Maybe later"
   },
   "error": {
     "title": "Something went wrong",
