@@ -9,8 +9,9 @@ import { MemoryRouter } from 'react-router-dom'
 // Mock Auth context
 const mockSignUp = vi.fn()
 const mockCheckPhone = vi.fn(() => Promise.resolve(true))
+const mockCheckEmail = vi.fn(() => Promise.resolve(true))
 vi.mock('../context/AuthContext.jsx', () => ({
-  useAuth: () => ({ signUp: mockSignUp, checkPhoneAvailable: mockCheckPhone }),
+  useAuth: () => ({ signUp: mockSignUp, checkPhoneAvailable: mockCheckPhone, checkEmailAvailable: mockCheckEmail }),
 }))
 
 // Mock react-router navigate

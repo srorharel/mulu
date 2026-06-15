@@ -147,6 +147,21 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // True if no account already uses this email. Same shape + fail-OPEN contract as
+  // checkPhoneAvailable: the signup form calls this BEFORE auth.signUp, because
+  // Supabase's enumeration protection makes a duplicate email impossible to detect
+  // from the signUp response (it resolves with no error and user:null, same as a
+  // fresh "check your email" signup). auth.users' unique email index is the backstop.
+  async function checkEmailAvailable(email) {
+    try {
+      const { data, error } = await supabase.rpc('email_available', { p_email: email })
+      if (error) return true
+      return data !== false
+    } catch {
+      return true
+    }
+  }
+
   // Sends a password-reset email. The link lands on /reset-password, where the
   // recovery session is picked up by the onAuthStateChange handler above.
   async function resetPassword(email) {
@@ -170,7 +185,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, suspended, impersonation, signUp, signIn, signOut, refreshProfile, checkPhoneAvailable, resetPassword, updatePassword }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, suspended, impersonation, signUp, signIn, signOut, refreshProfile, checkPhoneAvailable, checkEmailAvailable, resetPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

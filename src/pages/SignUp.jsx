@@ -74,7 +74,7 @@ const itemVariants = {
 // route (chosen in the landing "about us" modal) — there is no in-page toggle.
 export default function SignUp({ role = 'consumer' }) {
   const navigate = useNavigate()
-  const { signUp, checkPhoneAvailable } = useAuth()
+  const { signUp, checkPhoneAvailable, checkEmailAvailable } = useAuth()
   const { t } = useTranslation()
   const isWasher = role === 'washer'
   const [showPw, setShowPw]           = useState(false)
@@ -141,6 +141,15 @@ export default function SignUp({ role = 'consumer' }) {
     const phoneFree = await checkPhoneAvailable(data.phone)
     if (!phoneFree) { setDuplicate('phone'); return }
 
+    // Block an email already registered BEFORE auth.signUp. With Supabase's
+    // enumeration protection ON, signUp does NOT error on a duplicate — it resolves
+    // with no session and (on auth-js >= 2.x) user:null, indistinguishable from a
+    // fresh signup, so the form would show the verification screen for a duplicate.
+    // The server-side probe (migration 0125) is the only reliable signal; fail-OPEN,
+    // with auth.users' unique email as the backstop. Mirrors the phone check above.
+    const emailFree = await checkEmailAvailable(data.email)
+    if (!emailFree) { setDuplicate('email'); return }
+
     const { data: result, error } = await signUp(data.email, data.password, {
       full_name: data.fullName,
       phone:     data.phone,
@@ -152,25 +161,14 @@ export default function SignUp({ role = 'consumer' }) {
       accepted_legal: data.acceptedTerms === true,
     })
     if (error) {
-      // If the project has email-enumeration protection OFF, Supabase returns
-      // "User already registered" here — surface it as a duplicate (with a reset
-      // path). With protection ON, signUp instead resolves with no session and we
-      // fall through to the neutral "check your email" screen below, which keeps
-      // the duplicate indistinguishable from a fresh signup.
+      // Backstop for the rare case the project has enumeration protection OFF:
+      // Supabase then returns "User already registered" here. (The normal path is
+      // the checkEmailAvailable probe above — with protection ON there is no error.)
       const m = error.message.toLowerCase()
       if (m.includes('already registered') || m.includes('already in use') || m.includes('user already')) {
         setDuplicate('email'); return
       }
       setServerError(error.message); return
-    }
-
-    // With email-enumeration protection ON (Supabase's default) a duplicate email
-    // does NOT error — signUp resolves with session:null and an obfuscated user
-    // whose identities[] is EMPTY. A genuine fresh signup always returns exactly
-    // one identity. Detect the empty-identities case and surface "email in use"
-    // (with the reset path) instead of the misleading "check your email" screen.
-    if (Array.isArray(result?.user?.identities) && result.user.identities.length === 0) {
-      setDuplicate('email'); return
     }
 
     if (isWasher) {
@@ -218,9 +216,9 @@ export default function SignUp({ role = 'consumer' }) {
           <Link to="/login" className="text-primary-600 font-semibold text-sm">
             {t('signup.backToSignIn')}
           </Link>
-          {/* If this email already had an account, Supabase (anti-enumeration)
-              still shows this screen — so offer a reset path without confirming
-              the address exists. */}
+          {/* Duplicate emails are now caught before signUp (checkEmailAvailable),
+              so this screen means a genuine new signup — but still offer a reset
+              path in case the user forgot they'd half-registered earlier. */}
           <p className="text-neutral-400 text-xs">
             {t('auth.alreadyHaveAccount')}{' '}
             <Link to="/forgot-password" className="text-primary-600 font-medium">

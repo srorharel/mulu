@@ -118,14 +118,15 @@ describe('SignUp — duplicate phone', () => {
     expect(signUp).not.toHaveBeenCalled()
   })
 
-  it('shows "email in use" when signUp resolves with empty identities (enumeration protection ON)', async () => {
-    // Supabase's default anti-enumeration behaviour: a duplicate email does not
-    // error — it resolves with session:null and a user whose identities[] is empty.
-    const signUp = vi.fn(() => Promise.resolve({
-      data: { user: { identities: [] }, session: null }, error: null,
-    }))
+  it('blocks signup and shows "email in use" without calling signUp (enumeration-safe pre-check)', async () => {
+    // Supabase's enumeration protection means a duplicate email does NOT error on
+    // signUp (it resolves with user:null, same as a fresh "check your email"
+    // signup), so the duplicate must be caught BEFORE signUp via checkEmailAvailable
+    // (RPC email_available, migration 0125) — mirroring the phone pre-check.
+    const signUp = vi.fn()
     const checkPhoneAvailable = vi.fn(() => Promise.resolve(true))  // phone is free
-    auth.current = { signUp, checkPhoneAvailable }
+    const checkEmailAvailable = vi.fn(() => Promise.resolve(false)) // email is taken
+    auth.current = { signUp, checkPhoneAvailable, checkEmailAvailable }
     const user = userEvent.setup()
     render(<SignUp role="consumer" />, { wrapper })
 
@@ -140,7 +141,8 @@ describe('SignUp — duplicate phone', () => {
     await waitFor(() => {
       expect(screen.getByText('That email is already registered.')).toBeInTheDocument()
     })
-    expect(signUp).toHaveBeenCalled()
+    expect(checkEmailAvailable).toHaveBeenCalledWith('taken@user.com')
+    expect(signUp).not.toHaveBeenCalled()
     // It must NOT fall through to the neutral "check your email" screen.
     expect(screen.queryByText(/Back to sign in/i)).not.toBeInTheDocument()
   })
