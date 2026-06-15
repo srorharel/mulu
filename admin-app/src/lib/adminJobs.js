@@ -24,10 +24,20 @@ export const JOB_SELECT = `
   location
 `.trim()
 
+// The list resolves the consumer + washer display names in the same round-trip
+// — the bare consumer_id / washer_id UUIDs are useless in a scannable list.
+// (Detail view keeps the lean JOB_SELECT and fetches full party profiles via
+// fetchProfileBrief, so this embed is intentionally list-only.)
+export const JOB_LIST_SELECT = `
+  ${JOB_SELECT},
+  consumer:consumer_id ( full_name, phone ),
+  washer:washer_id ( full_name )
+`.trim()
+
 export async function fetchJobs({ status, limit = 200 } = {}) {
   let q = supabase
     .from('orders')
-    .select(JOB_SELECT)
+    .select(JOB_LIST_SELECT)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (status && status !== 'all') q = q.eq('status', status)
