@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ReceiptText, Save, AlertCircle, Send, Info, Download } from 'lucide-react'
+import { ReceiptText, Save, AlertCircle, Send, Info, Download, X } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
@@ -37,6 +37,10 @@ const STATUS_STYLES = {
   failed:  'bg-danger/15 text-danger',
 }
 
+// Receipts are low-volume (one per completed order), so a single generous cap is
+// plenty whether the list is filtered by date or not.
+const RECEIPTS_LIMIT = 500
+
 export default function Receipts() {
   const { t } = useTranslation()
   const { profile } = useAuth()
@@ -46,28 +50,40 @@ export default function Receipts() {
   const [busy, setBusy]         = useState(false)
   const [error, setError]       = useState(null)
   const [resending, setResending] = useState(null)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate]     = useState('')
 
-  async function refresh() {
-    setBusy(true)
+  async function loadConfig() {
     const keys = RECEIPT_FIELDS.map(f => f.key)
-    const [c, r] = await Promise.all([
-      supabase.from('app_config')
-        .select('key, value, value_type, updated_at, editor:updated_by(full_name)')
-        .in('key', keys).order('key'),
-      supabase.from('receipts')
-        .select('id, receipt_number, consumer_name, consumer_email, total, discount_amount, status, error_detail, sent_at, created_at, pdf_path')
-        .order('receipt_number', { ascending: false })
-        .limit(100),
-    ])
-    setBusy(false)
-    if (c.error) { setError(c.error.message); return }
-    if (r.error) { setError(r.error.message); return }
-    setError(null)
-    setRows(c.data ?? [])
-    setReceipts(r.data ?? [])
+    const { data, error: err } = await supabase.from('app_config')
+      .select('key, value, value_type, updated_at, editor:updated_by(full_name)')
+      .in('key', keys).order('key')
+    if (err) { setError(err.message); return }
+    setRows(data ?? [])
   }
 
-  useEffect(() => { refresh() }, [])
+  // Receipts history, optionally constrained to an inclusive [fromDate, toDate]
+  // calendar range. The <input type="date"> values are bare local dates, so we
+  // convert each bound to a UTC instant at the admin's local day boundary —
+  // a receipt issued on the chosen day shows up regardless of timezone offset.
+  const loadReceipts = useCallback(async () => {
+    setBusy(true)
+    let query = supabase.from('receipts')
+      .select('id, receipt_number, consumer_name, consumer_email, total, discount_amount, status, error_detail, sent_at, created_at, pdf_path, pdf_purged_at')
+      .order('receipt_number', { ascending: false })
+    if (fromDate) query = query.gte('created_at', new Date(`${fromDate}T00:00:00`).toISOString())
+    if (toDate)   query = query.lte('created_at', new Date(`${toDate}T23:59:59.999`).toISOString())
+    const { data, error: err } = await query.limit(RECEIPTS_LIMIT)
+    setBusy(false)
+    if (err) { setError(err.message); return }
+    setError(null)
+    setReceipts(data ?? [])
+  }, [fromDate, toDate])
+
+  async function refresh() { await Promise.all([loadConfig(), loadReceipts()]) }
+
+  useEffect(() => { loadConfig() }, [])
+  useEffect(() => { loadReceipts() }, [loadReceipts])
 
   async function save(key, raw) {
     const field = RECEIPT_FIELDS.find(f => f.key === key)
@@ -188,11 +204,52 @@ export default function Receipts() {
 
         {/* ── Issued receipts ── */}
         <section className="card flex flex-col gap-2" data-testid="receipt-list">
-          <h2 className="font-semibold text-ink">Issued receipts</h2>
-          <p className="text-[12.5px] text-ink-muted">Last 100, newest first. Issued automatically when an order is approved.</p>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <h2 className="font-semibold text-ink">Issued receipts</h2>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex flex-col gap-0.5 text-[10px] uppercase tracking-wider text-ink-subtle">
+                From
+                <input
+                  type="date"
+                  data-testid="receipts-from"
+                  className="input py-1.5"
+                  value={fromDate}
+                  max={toDate || undefined}
+                  onChange={e => setFromDate(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-0.5 text-[10px] uppercase tracking-wider text-ink-subtle">
+                To
+                <input
+                  type="date"
+                  data-testid="receipts-to"
+                  className="input py-1.5"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  onChange={e => setToDate(e.target.value)}
+                />
+              </label>
+              {(fromDate || toDate) && (
+                <button
+                  onClick={() => { setFromDate(''); setToDate('') }}
+                  className="btn-ghost px-2 py-1.5 text-[11px] flex items-center gap-1"
+                  title="Clear date filter"
+                >
+                  <X size={12} /> Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-[12.5px] text-ink-muted">
+            {fromDate || toDate
+              ? `Filtered by issue date${fromDate ? ` from ${fromDate}` : ''}${toDate ? ` to ${toDate}` : ''}, newest first (max ${RECEIPTS_LIMIT}).`
+              : `Newest first (latest ${RECEIPTS_LIMIT}). Issued automatically when an order is completed.`}
+          </p>
 
           {receipts.length === 0 && (
-            <p className="text-[12.5px] text-ink-subtle py-4">No receipts issued yet.</p>
+            <p className="text-[12.5px] text-ink-subtle py-4">
+              {fromDate || toDate ? 'No receipts in the selected date range.' : 'No receipts issued yet.'}
+            </p>
           )}
 
           {/* Mobile: cards */}
@@ -212,7 +269,7 @@ export default function Receipts() {
                 {r.error_detail && <p className="text-[10.5px] text-danger font-mono truncate" title={r.error_detail}>{r.error_detail}</p>}
                 <div className="flex items-center gap-2">
                   <span className="text-[10.5px] text-ink-subtle">{relativeTime(r.created_at)}</span>
-                  {r.pdf_path && (
+                  {r.pdf_path ? (
                     <button
                       onClick={() => downloadPdf(r.pdf_path)}
                       className="ms-auto btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]"
@@ -220,11 +277,15 @@ export default function Receipts() {
                     >
                       <Download size={12} /> PDF
                     </button>
-                  )}
+                  ) : r.pdf_purged_at ? (
+                    <span className="ms-auto text-[10px] text-ink-subtle italic" title="PDF archived for 6 months, then purged. Resend to regenerate it.">
+                      PDF purged
+                    </span>
+                  ) : null}
                   <button
                     onClick={() => resend(r.id)}
                     disabled={busy || resending === r.id}
-                    className={`${r.pdf_path ? '' : 'ms-auto '}btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]`}
+                    className={`${r.pdf_path || r.pdf_purged_at ? '' : 'ms-auto '}btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]`}
                     title="Resend email"
                   >
                     <Send size={12} /> {resending === r.id ? 'Sending…' : 'Resend'}
@@ -267,7 +328,7 @@ export default function Receipts() {
                   <td className="py-1.5 text-[11.5px] text-ink-subtle">{relativeTime(r.created_at)}</td>
                   <td className="py-1.5 text-end">
                     <div className="flex items-center gap-1 justify-end">
-                      {r.pdf_path && (
+                      {r.pdf_path ? (
                         <button
                           onClick={() => downloadPdf(r.pdf_path)}
                           className="btn-ghost px-2 py-1 text-[11px] flex items-center gap-1"
@@ -275,7 +336,11 @@ export default function Receipts() {
                         >
                           <Download size={11} /> PDF
                         </button>
-                      )}
+                      ) : r.pdf_purged_at ? (
+                        <span className="text-[10px] text-ink-subtle italic px-1" title="PDF archived for 6 months, then purged. Resend to regenerate it.">
+                          PDF purged
+                        </span>
+                      ) : null}
                       <button
                         onClick={() => resend(r.id)}
                         disabled={busy || resending === r.id}

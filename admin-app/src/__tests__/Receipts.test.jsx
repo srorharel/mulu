@@ -9,13 +9,15 @@ vi.mock('../context/AuthContext.jsx', () => ({
 }))
 
 const { state } = vi.hoisted(() => ({
-  state: { configRows: [], receiptRows: [], updates: [], rpcCalls: [], signedUrlCalls: [] },
+  state: { configRows: [], receiptRows: [], updates: [], rpcCalls: [], signedUrlCalls: [], filterCalls: [] },
 }))
 
 vi.mock('../lib/supabase.js', () => {
   function thenable(result) {
     const b = {
       select: () => b, in: () => b, order: () => b, limit: () => b, eq: () => b,
+      gte: (col, val) => { state.filterCalls.push({ op: 'gte', col, val }); return b },
+      lte: (col, val) => { state.filterCalls.push({ op: 'lte', col, val }); return b },
       then: (cb) => Promise.resolve(result()).then(cb),
     }
     return b
@@ -59,6 +61,7 @@ function cfg(key, value) {
 beforeEach(() => {
   state.updates.length = 0
   state.rpcCalls.length = 0
+  state.filterCalls.length = 0
   state.configRows = [
     cfg('receipts_enabled', 'true'),
     cfg('receipt_business_name', 'MULU'),
@@ -144,6 +147,51 @@ describe('admin Receipts — issued list', () => {
     })
     expect(openSpy).toHaveBeenCalledWith('https://signed/2026/invoice-receipt-1002.pdf', '_blank', 'noopener')
     openSpy.mockRestore()
+  })
+
+  it('constrains the receipts query to the picked date range (inclusive, both bounds)', async () => {
+    render(<Receipts />)
+    await screen.findAllByText('#1002')
+    state.filterCalls.length = 0
+
+    fireEvent.change(screen.getByTestId('receipts-from'), { target: { value: '2026-06-01' } })
+    fireEvent.change(screen.getByTestId('receipts-to'),   { target: { value: '2026-06-15' } })
+
+    await waitFor(() => {
+      const gte = state.filterCalls.find(c => c.op === 'gte' && c.col === 'created_at')
+      const lte = state.filterCalls.find(c => c.op === 'lte' && c.col === 'created_at')
+      expect(gte).toBeTruthy()
+      expect(lte).toBeTruthy()
+      // local day boundaries → start-of-day for `from`, end-of-day for `to`
+      expect(gte.val).toBe(new Date('2026-06-01T00:00:00').toISOString())
+      expect(lte.val).toBe(new Date('2026-06-15T23:59:59.999').toISOString())
+    })
+  })
+
+  it('clears the date filter and re-queries without date bounds', async () => {
+    render(<Receipts />)
+    await screen.findAllByText('#1002')
+    fireEvent.change(screen.getByTestId('receipts-from'), { target: { value: '2026-06-01' } })
+    await screen.findByTitle('Clear date filter')
+    state.filterCalls.length = 0
+    fireEvent.click(screen.getByTitle('Clear date filter'))
+    await waitFor(() => expect(screen.queryByTitle('Clear date filter')).toBeNull())
+    expect(state.filterCalls.length).toBe(0)
+  })
+
+  it('shows a "PDF purged" hint (row kept, resend still regenerates) once the PDF is retention-purged', async () => {
+    state.receiptRows = [{
+      id: 'r3', receipt_number: 1003, consumer_name: 'Avi', consumer_email: 'avi@x.com',
+      total: '50.00', discount_amount: '0.00', status: 'sent', error_detail: null,
+      sent_at: '2025-12-01T10:00:00Z', created_at: '2025-12-01T10:00:00Z',
+      pdf_path: null, pdf_purged_at: '2026-06-01T03:30:00Z',
+    }]
+    render(<Receipts />)
+    await screen.findAllByText('#1003')
+    expect(screen.getAllByText(/PDF purged/i).length).toBeGreaterThan(0)
+    // PDF gone from storage → no download, but the record + resend remain
+    expect(screen.queryAllByTitle('Download PDF').length).toBe(0)
+    expect(screen.getAllByTitle('Resend email').length).toBeGreaterThan(0)
   })
 
   it('resend calls the admin_resend_receipt RPC with the receipt id', async () => {
