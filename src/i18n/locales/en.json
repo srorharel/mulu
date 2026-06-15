@@ -121,7 +121,7 @@
     },
     "customerBenefits": {
       "location": "At your spot",
-      "choose": "Choose your wash",
+      "choose": "Sparkling like new",
       "photos": "Before / after"
     },
     "washerBenefits": {
@@ -752,7 +752,7 @@
     "tagline": "On-demand mobile car wash — we come to you, anywhere.",
     "ctaStart": "Get started",
     "feature1": "Drop a pin anywhere",
-    "feature2": "Pick your wash type",
+    "feature2": "Sparkling like new",
     "feature3": "Washer arrives at your location",
     "intro": {
       "title": "Hi, we're MULU 👋",
