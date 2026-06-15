@@ -67,6 +67,8 @@
   },
   "camera": {
     "starting": "Starting camera…",
+    "startCamera": "Start camera",
+    "iosStandalone": "If the camera doesn't open, open this page in Safari instead of the home-screen app.",
     "permissionDenied": "Camera access is required. Enable it in your device settings to take photos.",
     "noCamera": "No camera was found on this device.",
     "unsupported": "The in-app camera isn't supported on this device.",
@@ -99,6 +101,7 @@
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
     "signingIn": "Signing in…",
+    "resetPasswordCta": "Reset your password",
     "errors": {
       "invalidCredentials": "Invalid email or password",
       "emailNotConfirmed": "Email not confirmed — check your inbox and click the link we sent you",
@@ -149,7 +152,34 @@
       "label": "I confirm that I have read and agree to the <terms>Terms of Use</terms> and the <privacy>Privacy Policy</privacy>.",
       "aria": "I have read and agree to the Terms of Use and Privacy Policy",
       "required": "Please confirm you have read and agree to the terms to continue"
+    },
+    "errors": {
+      "phoneInUse": "That phone number is already linked to an account — sign in or reset your password.",
+      "emailInUse": "That email is already registered — sign in or reset your password."
     }
+  },
+  "forgot": {
+    "title": "Reset your password",
+    "subtitle": "Enter your email and we'll send you a link to set a new password.",
+    "submit": "Send reset link",
+    "sending": "Sending…",
+    "sentTitle": "Check your email",
+    "sentBody": "If an account exists for <bold>{{email}}</bold>, we've sent a link to reset your password."
+  },
+  "reset": {
+    "title": "Set a new password",
+    "subtitle": "Choose a new password for your account.",
+    "newPassword": "New password",
+    "submit": "Update password",
+    "saving": "Updating…",
+    "doneTitle": "Password updated",
+    "doneBody": "Your password has been changed — you're all set.",
+    "continue": "Continue",
+    "invalidTitle": "Link expired",
+    "invalidBody": "This password reset link is invalid or has expired. Request a new one.",
+    "requestNew": "Request a new link",
+    "tooShort": "Use at least 8 characters",
+    "error": "Couldn't update your password. Please try again."
   },
   "profile": {
     "title": "Your profile",
@@ -883,6 +913,8 @@
         "hint": "We'll verify your face using your camera",
         "start": "Start verification",
         "starting": "Starting camera...",
+        "startCamera": "Start camera",
+        "iosStandalone": "If the camera doesn't open, open this page in Safari instead of the home-screen app.",
         "position": "Position your face in the oval",
         "fitInOval": "Fit your whole face inside the oval",
         "center": "Center your face",

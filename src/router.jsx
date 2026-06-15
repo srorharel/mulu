@@ -10,11 +10,13 @@ import WasherMapShell from './components/ui/WasherMapShell.jsx'
 
 import { lazy, Suspense } from 'react'
 
-import Landing      from './pages/Landing.jsx'
-import SignUp       from './pages/SignUp.jsx'
-import Login        from './pages/Login.jsx'
-import Profile      from './pages/Profile.jsx'
-import Support      from './pages/Support.jsx'
+import Landing        from './pages/Landing.jsx'
+import SignUp         from './pages/SignUp.jsx'
+import Login          from './pages/Login.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword  from './pages/ResetPassword.jsx'
+import Profile        from './pages/Profile.jsx'
+import Support        from './pages/Support.jsx'
 
 const WasherVerify  = lazy(() => import('./pages/washer/Verify.jsx'))
 const WasherPending = lazy(() => import('./pages/washer/Pending.jsx'))
@@ -107,6 +109,11 @@ export function AppRouter() {
         {/* Back-compat: bare /signup → the customer flow */}
         <Route path="/signup" element={<Navigate to="/signup/customer" replace />} />
         <Route path="/login"  element={<AuthRedirect><Login /></AuthRedirect>} />
+        <Route path="/forgot-password" element={<AuthRedirect><ForgotPassword /></AuthRedirect>} />
+        {/* Reset is NOT wrapped in AuthRedirect: the recovery link establishes a
+            session, which would otherwise bounce the user away before they can
+            set a new password. */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Account deletion — public store URL; works logged-in (runs deletion)
             or logged-out (shows instructions). No AuthRedirect/RoleGuard. */}

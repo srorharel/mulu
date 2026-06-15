@@ -8,8 +8,9 @@ import { MemoryRouter } from 'react-router-dom'
 
 // Mock Auth context
 const mockSignUp = vi.fn()
+const mockCheckPhone = vi.fn(() => Promise.resolve(true))
 vi.mock('../context/AuthContext.jsx', () => ({
-  useAuth: () => ({ signUp: mockSignUp }),
+  useAuth: () => ({ signUp: mockSignUp, checkPhoneAvailable: mockCheckPhone }),
 }))
 
 // Mock react-router navigate
@@ -38,6 +39,12 @@ i18n.use(initReactI18next).init({
         'signup.switch.toCustomerLink': 'Sign up as a customer',
         'signup.fullName': 'Full name',
         'signup.fullNamePlaceholder': 'Avi Cohen',
+        'signup.errors.phoneInUse': 'That phone number is already linked to an account.',
+        'signup.errors.emailInUse': 'That email is already registered.',
+        'profile.phone': 'Phone',
+        'profile.phonePlaceholder': '050-0000000',
+        'validation.invalidPhone': 'Enter a valid phone number',
+        'auth.forgotPassword': 'Forgot password?',
         'signup.confirmPassword': 'Confirm password',
         'signup.confirmPasswordPlaceholder': 'Repeat your password',
         'signup.passwordPlaceholder': '8+ characters',
@@ -215,6 +222,7 @@ describe('SignUp — washer submit flow', () => {
 
     await user.type(screen.getByPlaceholderText('Enter 7–9 digit number'), '1234567')
     await user.type(screen.getByPlaceholderText('Avi Cohen'), 'Test Washer')
+    await user.type(screen.getByPlaceholderText('050-0000000'), '0501234567')
     await user.type(screen.getByPlaceholderText('you@example.com'), 'washer@test.com')
     await user.type(screen.getByPlaceholderText('8+ characters'), 'password123')
     await user.type(screen.getByPlaceholderText('Repeat your password'), 'password123')
@@ -261,6 +269,7 @@ describe('SignUp — terms & privacy consent gate', () => {
     renderSignup('consumer')
 
     await user.type(screen.getByPlaceholderText('Avi Cohen'), 'Test User')
+    await user.type(screen.getByPlaceholderText('050-0000000'), '0501234567')
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')
     await user.type(screen.getByPlaceholderText('8+ characters'), 'password123')
     await user.type(screen.getByPlaceholderText('Repeat your password'), 'password123')

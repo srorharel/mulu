@@ -4,6 +4,7 @@ import { Loader2, Camera as CameraIcon, RefreshCw, Check, X } from 'lucide-react
 import { Capacitor } from '@capacitor/core'
 import { Camera } from '@capacitor/camera'
 import { App } from '@capacitor/app'
+import { isIOSWeb, isIOSStandalone } from '../../lib/platform.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // In-app camera (Amendment-13 / privacy compliance).
@@ -25,6 +26,7 @@ import { App } from '@capacitor/app'
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATES = {
+  IDLE:              'idle',      // iOS web: awaiting the tap that starts getUserMedia
   INIT:              'init',
   PERMISSION_DENIED: 'permission_denied',
   NO_CAMERA:         'no_camera',
@@ -32,6 +34,12 @@ const STATES = {
   READY:             'ready',     // live preview, awaiting shutter
   REVIEW:            'review',    // frame captured, awaiting retake/use
 }
+
+// iOS/WebKit only reliably shows the camera permission prompt when getUserMedia
+// runs inside a user gesture — auto-starting from a mount effect often silently
+// fails to prompt. On iOS web we therefore wait for an explicit "Start camera"
+// tap. Native (Capacitor) and other browsers keep the instant auto-start.
+const iosWebGesture = !Capacitor.isNativePlatform() && isIOSWeb()
 
 const JPEG_QUALITY = 0.9
 
@@ -137,7 +145,10 @@ export default function InAppCamera({ onCapture, onClose, facingMode = 'environm
 
   useEffect(() => {
     startRef.current = start
-    start()
+    // iOS web: hold at IDLE until the user taps Start (gesture-initiated
+    // getUserMedia). Everywhere else: open the camera immediately.
+    if (iosWebGesture) setState(STATES.IDLE)
+    else start()
     return () => { stopCamera(); if (blobRef.current) URL.revokeObjectURL(previewUrl) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -186,6 +197,23 @@ export default function InAppCamera({ onCapture, onClose, facingMode = 'environm
           </div>
         )}
 
+        {state === STATES.IDLE && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, padding: 32, textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={start}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 26px', background: '#fff', color: '#000', borderRadius: 14, fontWeight: 700, fontSize: 15, border: 'none' }}
+            >
+              <CameraIcon size={20} /> {t('camera.startCamera')}
+            </button>
+            {isIOSStandalone() && (
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.4, maxWidth: 280 }}>
+                {t('camera.iosStandalone')}
+              </p>
+            )}
+          </div>
+        )}
+
         {(state === STATES.PERMISSION_DENIED || state === STATES.NO_CAMERA || state === STATES.UNSUPPORTED) && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, padding: 32, textAlign: 'center' }}>
             <p style={{ color: '#fff', fontSize: 15, lineHeight: 1.4 }}>
@@ -193,6 +221,11 @@ export default function InAppCamera({ onCapture, onClose, facingMode = 'environm
                 : state === STATES.NO_CAMERA ? t('camera.noCamera')
                 : t('camera.unsupported')}
             </p>
+            {isIOSStandalone() && (state === STATES.UNSUPPORTED || state === STATES.PERMISSION_DENIED) && (
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.4, maxWidth: 280 }}>
+                {t('camera.iosStandalone')}
+              </p>
+            )}
             {state !== STATES.NO_CAMERA && (
               <button
                 type="button"

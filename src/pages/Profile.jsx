@@ -43,7 +43,13 @@ export default function Profile() {
       .update(data)
       .eq('id', user.id)
 
-    if (error) { showToast(error.message, 'error'); return }
+    if (error) {
+      // The phone unique index (migration 0124) also guards Profile edits — show
+      // the friendly "phone in use" message instead of the raw 23505 violation.
+      const dupPhone = error.code === '23505' || /profiles_phone_digits_uidx|duplicate key/i.test(error.message || '')
+      showToast(dupPhone ? t('signup.errors.phoneInUse') : error.message, 'error')
+      return
+    }
     await refreshProfile()
     showToast(t('profile.updated'), 'success')
   }

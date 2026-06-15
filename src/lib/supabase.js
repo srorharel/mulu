@@ -29,6 +29,8 @@ const stubClient = {
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     signInWithPassword: () => Promise.resolve({ data: null, error: { message: CONFIG_MSG } }),
     signUp: () => Promise.resolve({ data: null, error: { message: CONFIG_MSG } }),
+    resetPasswordForEmail: () => Promise.resolve({ data: null, error: { message: CONFIG_MSG } }),
+    updateUser: () => Promise.resolve({ data: null, error: { message: CONFIG_MSG } }),
     signOut: () => Promise.resolve({ error: null }),
   },
   from: () => { throw new Error(CONFIG_MSG) },

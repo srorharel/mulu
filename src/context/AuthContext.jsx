@@ -133,6 +133,33 @@ export function AuthProvider({ children }) {
     return supabase.auth.signInWithPassword({ email, password })
   }
 
+  // True if no account already uses this phone number. Fail-OPEN: if the probe
+  // errors (offline, RPC missing), we let signup proceed — the unique index from
+  // migration 0124 is the integrity backstop, so a real duplicate is still
+  // rejected at insert time. See SignUp.jsx for where this gates registration.
+  async function checkPhoneAvailable(phone) {
+    try {
+      const { data, error } = await supabase.rpc('phone_available', { p_phone: phone })
+      if (error) return true
+      return data !== false
+    } catch {
+      return true
+    }
+  }
+
+  // Sends a password-reset email. The link lands on /reset-password, where the
+  // recovery session is picked up by the onAuthStateChange handler above.
+  async function resetPassword(email) {
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+  }
+
+  // Sets a new password for the currently-authenticated (incl. recovery) session.
+  async function updatePassword(password) {
+    return supabase.auth.updateUser({ password })
+  }
+
   async function signOut() {
     await unregisterToken()   // must run before signOut clears the session
     await supabase.auth.signOut()
@@ -143,7 +170,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, suspended, impersonation, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, suspended, impersonation, signUp, signIn, signOut, refreshProfile, checkPhoneAvailable, resetPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

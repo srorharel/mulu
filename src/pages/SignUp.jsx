@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   Eye, EyeOff, MailCheck, X, ChevronDown,
-  Mail, Lock, User, Gift, MapPin, Droplets, Camera, Clock, Wallet, BadgeCheck, ArrowRight,
+  Mail, Lock, User, Phone, Gift, MapPin, Droplets, Camera, Clock, Wallet, BadgeCheck, ArrowRight,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation, Trans } from 'react-i18next'
@@ -29,6 +29,10 @@ const WASHER_BENEFITS = [
 
 const schema = z.object({
   fullName:        z.string().min(2),
+  // Phone is required at registration so it can be checked for uniqueness
+  // (ADR: block duplicate phone numbers). Digits-only length ≥ 9, matching the
+  // Profile-page rule + the server-side normalisation in migration 0124.
+  phone:           z.string().refine(v => v.replace(/\D/g, '').length >= 9, { message: 'validation.invalidPhone' }),
   email:           z.string().email(),
   password:        z.string().min(8),
   confirmPassword: z.string(),
@@ -70,12 +74,13 @@ const itemVariants = {
 // route (chosen in the landing "about us" modal) — there is no in-page toggle.
 export default function SignUp({ role = 'consumer' }) {
   const navigate = useNavigate()
-  const { signUp } = useAuth()
+  const { signUp, checkPhoneAvailable } = useAuth()
   const { t } = useTranslation()
   const isWasher = role === 'washer'
   const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [serverError, setServerError] = useState('')
+  const [duplicate, setDuplicate]     = useState(null)  // 'phone' | 'email' | null
   const [emailSent, setEmailSent]     = useState(false)
   const [sentTo, setSentTo]           = useState('')
 
@@ -90,6 +95,7 @@ export default function SignUp({ role = 'consumer' }) {
     defaultValues: {
       role:         role,
       fullName:     savedDraft?.fullName ?? '',
+      phone:        savedDraft?.phone ?? '',
       email:        savedDraft?.email ?? '',
       password:     '',
       confirmPassword: '',
@@ -102,6 +108,7 @@ export default function SignUp({ role = 'consumer' }) {
   const rawAreas      = watch('serviceAreas')
   const serviceAreas  = rawAreas ?? []
   const watchedName   = watch('fullName')
+  const watchedPhone  = watch('phone')
   const watchedEmail  = watch('email')
   const watchedDealer = watch('dealerNumber')
 
@@ -109,11 +116,12 @@ export default function SignUp({ role = 'consumer' }) {
     sessionStorage.setItem('washer_signup_draft', JSON.stringify({
       role: selectedRole,
       fullName: watchedName,
+      phone: watchedPhone,
       email: watchedEmail,
       serviceAreas: rawAreas ?? [],
       dealerNumber: watchedDealer,
     }))
-  }, [selectedRole, watchedName, watchedEmail, rawAreas, watchedDealer])
+  }, [selectedRole, watchedName, watchedPhone, watchedEmail, rawAreas, watchedDealer])
 
   function toggleArea(slug) {
     const next = serviceAreas.includes(slug)
@@ -124,8 +132,18 @@ export default function SignUp({ role = 'consumer' }) {
 
   async function onSubmit(data) {
     setServerError('')
+    setDuplicate(null)
+
+    // Block a phone already linked to another account BEFORE creating the auth
+    // user, so we can show a clean inline message + reset path instead of a
+    // generic 500 from the handle_new_user insert. The unique index (0124) is the
+    // integrity backstop; checkPhoneAvailable fails open if the probe can't run.
+    const phoneFree = await checkPhoneAvailable(data.phone)
+    if (!phoneFree) { setDuplicate('phone'); return }
+
     const { data: result, error } = await signUp(data.email, data.password, {
       full_name: data.fullName,
+      phone:     data.phone,
       role:      role,
       // Consent given here (the form gates submit on it). handle_new_user reads
       // this flag and records the Terms+Privacy acknowledgment at account
@@ -133,7 +151,18 @@ export default function SignUp({ role = 'consumer' }) {
       // registering — it reappears only when a doc version is published.
       accepted_legal: data.acceptedTerms === true,
     })
-    if (error) { setServerError(error.message); return }
+    if (error) {
+      // If the project has email-enumeration protection OFF, Supabase returns
+      // "User already registered" here — surface it as a duplicate (with a reset
+      // path). With protection ON, signUp instead resolves with no session and we
+      // fall through to the neutral "check your email" screen below, which keeps
+      // the duplicate indistinguishable from a fresh signup.
+      const m = error.message.toLowerCase()
+      if (m.includes('already registered') || m.includes('already in use') || m.includes('user already')) {
+        setDuplicate('email'); return
+      }
+      setServerError(error.message); return
+    }
 
     if (isWasher) {
       sessionStorage.setItem('washer_signup_areas', JSON.stringify(data.serviceAreas ?? []))
@@ -180,6 +209,15 @@ export default function SignUp({ role = 'consumer' }) {
           <Link to="/login" className="text-primary-600 font-semibold text-sm">
             {t('signup.backToSignIn')}
           </Link>
+          {/* If this email already had an account, Supabase (anti-enumeration)
+              still shows this screen — so offer a reset path without confirming
+              the address exists. */}
+          <p className="text-neutral-400 text-xs">
+            {t('auth.alreadyHaveAccount')}{' '}
+            <Link to="/forgot-password" className="text-primary-600 font-medium">
+              {t('auth.forgotPassword')}
+            </Link>
+          </p>
         </GlassCard>
       </div>
     )
@@ -363,6 +401,23 @@ export default function SignUp({ role = 'consumer' }) {
                 {errors.fullName && <p className="field-error">{errors.fullName.message}</p>}
               </div>
 
+              {/* Phone — required + checked for uniqueness at submit */}
+              <div>
+                <label className="label">{t('profile.phone')}</label>
+                <div className="relative">
+                  <Phone className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
+                  <input
+                    className="input ps-10"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder={t('profile.phonePlaceholder')}
+                    {...register('phone')}
+                  />
+                </div>
+                {errors.phone && <p className="field-error">{t(errors.phone.message)}</p>}
+              </div>
+
               {/* Email */}
               <div>
                 <label className="label">{t('auth.email')}</label>
@@ -439,6 +494,16 @@ export default function SignUp({ role = 'consumer' }) {
                   <p className="field-error mt-1">{t(errors.acceptedTerms.message)}</p>
                 )}
               </div>
+
+              {duplicate && (
+                <div className="text-danger-600 text-sm rounded-lg bg-danger-50 p-3 flex flex-col gap-2">
+                  <p>{duplicate === 'phone' ? t('signup.errors.phoneInUse') : t('signup.errors.emailInUse')}</p>
+                  <div className="flex gap-4">
+                    <Link to="/login" className="font-medium underline">{t('auth.signIn')}</Link>
+                    <Link to="/forgot-password" className="font-medium underline">{t('auth.forgotPassword')}</Link>
+                  </div>
+                </div>
+              )}
 
               {serverError && (
                 <p className="text-danger-500 text-sm rounded-lg bg-danger-50 p-3">{serverError}</p>

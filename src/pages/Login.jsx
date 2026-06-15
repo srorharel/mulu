@@ -39,6 +39,7 @@ export default function Login() {
   const { t } = useTranslation()
   const [showPw, setShowPw]           = useState(false)
   const [serverError, setServerError] = useState('')
+  const [showReset, setShowReset]     = useState(false)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
@@ -60,8 +61,19 @@ export default function Login() {
 
   async function onSubmit(data) {
     setServerError('')
+    setShowReset(false)
     const { data: result, error } = await signIn(data.email, data.password)
-    if (error) { setServerError(friendlyError(error.message)); return }
+    if (error) {
+      const m = error.message.toLowerCase()
+      // Supabase returns one generic error for both a wrong password and an
+      // unknown email (anti-enumeration) — so we keep the message generic but
+      // always offer a reset path, which is what a wrong-password user needs.
+      const isCredentialError =
+        m.includes('invalid login credentials') || m.includes('invalid email or password')
+      setServerError(friendlyError(error.message))
+      setShowReset(isCredentialError)
+      return
+    }
     const { data: prof } = await supabase.from('profiles').select('role').eq('id', result.user.id).single()
     const role = prof?.role ?? result.user?.user_metadata?.role ?? 'consumer'
     navigate(homeForRole(role), { replace: true })
@@ -112,13 +124,22 @@ export default function Login() {
                   </button>
                 </div>
                 {errors.password && <p className="field-error">{errors.password.message}</p>}
-                <p className="text-end text-xs text-neutral-400 mt-1.5">
-                  {t('auth.forgotPassword')} <span className="cursor-default">{t('auth.forgotPasswordSoon')}</span>
+                <p className="text-end mt-1.5">
+                  <Link to="/forgot-password" className="text-xs text-primary-600 font-medium">
+                    {t('auth.forgotPassword')}
+                  </Link>
                 </p>
               </div>
 
               {serverError && (
-                <p className="text-danger-500 text-sm rounded-lg bg-danger-50 p-3">{serverError}</p>
+                <div className="text-danger-500 text-sm rounded-lg bg-danger-50 p-3">
+                  <p>{serverError}</p>
+                  {showReset && (
+                    <Link to="/forgot-password" className="mt-1.5 inline-block font-medium underline">
+                      {t('auth.resetPasswordCta')}
+                    </Link>
+                  )}
+                </div>
               )}
 
               <MotionButton type="submit" disabled={isSubmitting} className="btn-primary mt-1">

@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
 import { App } from '@capacitor/app';
 import { supabase } from '../../lib/supabase.js';
+import { isIOSWeb, isIOSStandalone } from '../../lib/platform.js';
 
 const BUCKET = 'washer-verification';
 const FRAMES_NEEDED = 30;
@@ -12,7 +13,13 @@ const FRAMES_NEEDED = 30;
 // Oval geometry — JS detection and SVG guide must stay in sync via this constant.
 const OVAL = { cx: 0.5, cy: 0.5, rx: 0.38, ry: 0.32 };
 
+// iOS/WebKit only reliably prompts for camera permission when getUserMedia runs
+// inside a user gesture; auto-starting from a mount effect often fails silently.
+// On iOS web we wait for an explicit tap. Native + other browsers auto-start.
+const iosWebGesture = !Capacitor.isNativePlatform() && isIOSWeb();
+
 const STATES = {
+  IDLE: 'idle',   // iOS web: awaiting the tap that starts getUserMedia
   INIT: 'init',
   PERMISSION_DENIED: 'permission_denied',
   NO_CAMERA: 'no_camera',
@@ -307,7 +314,10 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
 
   useEffect(() => {
     startRef.current = start;
-    start();
+    // iOS web: hold at IDLE until the user taps Start (gesture-initiated
+    // getUserMedia). Everywhere else: open the camera immediately.
+    if (iosWebGesture) setState(STATES.IDLE);
+    else start();
     return () => stopCamera();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -415,6 +425,23 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
         </p>
       ) : null}
 
+      {state === STATES.IDLE && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, padding: 32, textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => startRef.current?.()}
+            style={{ padding: '14px 26px', background: 'white', color: 'black', borderRadius: 12, fontWeight: 700, fontSize: 15, border: 'none' }}
+          >
+            {selfieT('startCamera')}
+          </button>
+          {isIOSStandalone() && (
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.4, maxWidth: 280 }}>
+              {selfieT('iosStandalone')}
+            </p>
+          )}
+        </div>
+      )}
+
       {state === STATES.PERMISSION_DENIED && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 32, textAlign: 'center' }}>
           <p style={{ color: 'white', fontSize: 16 }}>{selfieT('permissionDenied')}</p>
@@ -435,9 +462,14 @@ export default function SelfieVerificationModal({ userId, onCapture, onClose }) 
       )}
 
       {state === STATES.UNSUPPORTED && (
-        <p style={{ color: 'white', fontSize: 16, textAlign: 'center', padding: 32 }}>
-          {selfieT('unsupported')}
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 32, textAlign: 'center' }}>
+          <p style={{ color: 'white', fontSize: 16 }}>{selfieT('unsupported')}</p>
+          {isIOSStandalone() && (
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.4, maxWidth: 280 }}>
+              {selfieT('iosStandalone')}
+            </p>
+          )}
+        </div>
       )}
 
       {state === STATES.ERROR && (
