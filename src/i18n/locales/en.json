@@ -718,7 +718,9 @@
     "jeep": "Jeep / SUV"
   },
   "landing": {
-    "tagline": "On-demand mobile car wash — we come to you.",
+    "heroTitle": "Welcome to MULU 👋",
+    "tagline": "On-demand mobile car wash — we come to you, anywhere.",
+    "ctaStart": "Get started",
     "feature1": "Drop a pin anywhere",
     "feature2": "Pick your wash type",
     "feature3": "Washer arrives at your location",

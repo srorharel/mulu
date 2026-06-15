@@ -35,7 +35,7 @@ describe('Landing — about-us / role-choice intro popup', () => {
     // The role options are not shown until the CTA is tapped.
     expect(screen.queryByText(he.landing.intro.roleWasher)).toBeNull()
 
-    await user.click(screen.getByRole('button', { name: he.auth.signup }))
+    await user.click(screen.getByRole('button', { name: he.landing.ctaStart }))
 
     await waitFor(() => {
       expect(screen.getByText(he.landing.intro.roleCustomer)).toBeInTheDocument()

@@ -39,45 +39,48 @@ export default function Landing() {
         animate="visible"
       >
         {/* Hero glass card */}
-        <GlassCard className="p-6 flex flex-col items-center gap-4 text-center">
+        <GlassCard className="p-7 flex flex-col items-center gap-6 text-center">
           <motion.div variants={itemVariants} className="flex flex-col items-center">
-            <LogoSpotlight size={156} />
-            <p className="text-neutral-500 text-sm mt-4 max-w-xs">
+            <LogoSpotlight size={200} />
+            <h1 className="text-[26px] font-bold text-neutral-900 mt-5 leading-tight">
+              {t('landing.heroTitle')}
+            </h1>
+            <p className="text-neutral-500 text-[15px] mt-2 max-w-xs leading-relaxed">
               {t('landing.tagline')}
             </p>
           </motion.div>
 
-          <motion.ul className="w-full flex flex-col gap-3 mt-1" variants={containerVariants}>
+          <motion.ul className="w-full flex flex-col gap-3" variants={containerVariants}>
             {FEATURES.map(({ icon: Icon, text }) => (
               <motion.li
                 key={text}
                 variants={itemVariants}
-                className="flex items-center gap-3 text-sm text-neutral-700"
+                className="flex items-center gap-3.5 rounded-2xl bg-white/55 border border-primary-100 px-4 py-3 text-start"
               >
-                <div className="rounded-full bg-primary-50 p-2 shrink-0">
-                  <Icon className="h-4 w-4 text-primary-500" />
+                <div className="rounded-xl bg-primary-50 p-2.5 shrink-0">
+                  <Icon className="h-5 w-5 text-primary-600" />
                 </div>
-                <span>{text}</span>
+                <span className="text-[15px] font-medium text-neutral-700">{text}</span>
               </motion.li>
             ))}
           </motion.ul>
         </GlassCard>
 
         {/* CTAs */}
-        <motion.div variants={itemVariants} className="flex flex-col gap-3 mt-auto">
+        <motion.div variants={itemVariants} className="flex flex-col gap-3 mt-auto pt-2">
           <motion.div {...tapProps}>
             <button
               type="button"
               onClick={() => setIntroOpen(true)}
-              className="btn-primary w-full justify-center"
+              className="btn-primary w-full justify-center text-base py-4"
             >
-              {t('auth.signup')}
+              {t('landing.ctaStart')}
             </button>
           </motion.div>
           <motion.div {...tapProps}>
             <Link
               to="/login"
-              className="btn w-full justify-center border border-primary-200 text-primary-600 hover:bg-primary-50"
+              className="btn w-full justify-center border border-primary-200 text-primary-600 hover:bg-primary-50 text-base py-4"
             >
               {t('auth.login')}
             </Link>
