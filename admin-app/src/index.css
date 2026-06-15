@@ -58,7 +58,9 @@
   }
   .card {
     @apply bg-surface-elevated rounded-2xl border border-edge p-4;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    /* Layered, low-contrast shadow reads as a soft float over the personal
+       background without muddying the card edge. */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px -6px rgba(0, 0, 0, 0.06);
   }
   .label-uppercase {
     @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted;

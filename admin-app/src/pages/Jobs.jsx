@@ -6,6 +6,7 @@ import { fetchJobs, STATUSES, statusColor } from '../lib/adminJobs.js'
 import { relativeTime } from '../lib/relativeTime.js'
 import JobDetail from '../components/jobs/JobDetail.jsx'
 import CreateOrderForm from '../components/jobs/CreateOrderForm.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 
 // Counts the rows of each status in the current jobs array so the filter
 // pills can show "(N)" without a separate query.
@@ -68,22 +69,24 @@ export default function Jobs() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <ClipboardList size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.jobs')}</h1>
-          <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
-            {rows.length} total · {filtered.length} shown
-          </span>
-          <button
-            onClick={() => setCreating(true)}
-            className="btn-primary text-[12px] flex items-center justify-center gap-1.5 w-full sm:w-auto sm:ml-2 min-h-[44px] sm:min-h-0"
-            title="Create an order on behalf of a consumer"
-          >
-            <Plus size={14} /> Create order
-          </button>
-        </div>
-
+      <PageHeader
+        icon={ClipboardList}
+        title={t('dashboard.tabs.jobs')}
+        right={
+          <>
+            <span className="text-[11px] text-ink-muted tabular-nums">
+              {rows.length} total · {filtered.length} shown
+            </span>
+            <button
+              onClick={() => setCreating(true)}
+              className="btn-primary text-[12px] flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[44px] sm:min-h-0"
+              title="Create an order on behalf of a consumer"
+            >
+              <Plus size={14} /> Create order
+            </button>
+          </>
+        }
+      >
         <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
           <div className="flex gap-1 overflow-x-auto no-scrollbar bg-surface rounded-xl p-1 border border-edge lg:flex-wrap lg:overflow-visible">
             {STATUSES.map(s => (
@@ -116,7 +119,7 @@ export default function Jobs() {
             <span className="font-mono">{error}</span>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto">
         {/* Mobile: stacked cards */}

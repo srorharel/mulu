@@ -4,6 +4,7 @@ import { ReceiptText, Save, AlertCircle, Send, Info, Download, X } from 'lucide-
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
+import PageHeader from '../components/PageHeader.jsx'
 
 // Receipt settings live in app_config (seeded by migration 0113) and are
 // SNAPSHOTTED onto each receipt at issue time — edits here only affect
@@ -125,12 +126,7 @@ export default function Receipts() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <ReceiptText size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.receipts')}</h1>
-        </div>
-      </div>
+      <PageHeader icon={ReceiptText} title={t('dashboard.tabs.receipts')} />
 
       <div className="p-4 sm:p-6 max-w-4xl w-full mx-auto flex flex-col gap-6">
         {error && (

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 
 import enMain from '../../../src/i18n/locales/en.json'
 import heMain from '../../../src/i18n/locales/he.json'
@@ -168,22 +169,25 @@ export default function Content() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <FileText size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.content')}</h1>
-          <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
-            {Object.keys(bundle).length} keys · {overrideCount} overridden
-          </span>
-          <button
-            onClick={handleExport}
-            disabled={busy}
-            className="btn-ghost text-[12px] flex items-center gap-1.5 shrink-0"
-            title="Download all overrides (every app, every locale) as JSON"
-          >
-            <Download size={13} /> Export overrides
-          </button>
-        </div>
+      <PageHeader
+        icon={FileText}
+        title={t('dashboard.tabs.content')}
+        right={
+          <>
+            <span className="text-[11px] text-ink-muted tabular-nums">
+              {Object.keys(bundle).length} keys · {overrideCount} overridden
+            </span>
+            <button
+              onClick={handleExport}
+              disabled={busy}
+              className="btn-ghost text-[12px] flex items-center gap-1.5 shrink-0"
+              title="Download all overrides (every app, every locale) as JSON"
+            >
+              <Download size={13} /> Export overrides
+            </button>
+          </>
+        }
+      >
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex bg-surface rounded-xl p-1 border border-edge">
             {APPS.map(a => (
@@ -228,7 +232,7 @@ export default function Content() {
             <span className="font-mono">{error}</span>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto">
         {/* Mobile: stacked cards with inline edit */}

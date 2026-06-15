@@ -17,6 +17,7 @@ import { fetchAllDesignOverrides, resetAllOverrides } from '../lib/designEditor.
 import SurfacePicker from '../components/design/SurfacePicker.jsx'
 import PropertyOverrideRow from '../components/design/PropertyOverrideRow.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 
 const DESIGN_GATE = '121212'
 
@@ -91,25 +92,28 @@ export default function DesignEditor() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Palette size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">Design Editor</h1>
-          <span className="ms-auto text-[11px] text-ink-muted tabular-nums">{rows.length} overrides</span>
-          <button
-            onClick={() => setShowReset(true)}
-            className="btn border border-danger/50 text-danger hover:bg-danger/10 text-[12px] ms-2"
-            disabled={busy || rows.length === 0}
-          >
-            <RotateCcw size={12} /> Reset all
-          </button>
-        </div>
+      <PageHeader
+        icon={Palette}
+        title="Design Editor"
+        right={
+          <>
+            <span className="text-[11px] text-ink-muted tabular-nums">{rows.length} overrides</span>
+            <button
+              onClick={() => setShowReset(true)}
+              className="btn border border-danger/50 text-danger hover:bg-danger/10 text-[12px]"
+              disabled={busy || rows.length === 0}
+            >
+              <RotateCcw size={12} /> Reset all
+            </button>
+          </>
+        }
+      >
         {error && (
-          <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-xl border border-danger/30 bg-danger/10 text-danger text-xs">
+          <div className="flex items-start gap-2 px-3 py-2 rounded-xl border border-danger/30 bg-danger/10 text-danger text-xs">
             <AlertCircle size={14} className="shrink-0 mt-0.5" /><span className="font-mono">{error}</span>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SurfacePicker />

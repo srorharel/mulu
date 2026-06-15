@@ -44,6 +44,12 @@ export const resources = {
           history:    'History',
           appearance: 'Appearance',
         },
+        groups: {
+          operations:    'Operations',
+          communication: 'Communication',
+          content:       'Content & Branding',
+          system:        'System',
+        },
         empty: {
           title: 'Nothing to show yet',
           subtitle: 'This tab is wired up but its workload arrives in a later phase.',
@@ -91,6 +97,12 @@ export const resources = {
           receipts:   'קבלות',
           history:    'היסטוריה',
           appearance: 'מראה',
+        },
+        groups: {
+          operations:    'תפעול',
+          communication: 'תקשורת',
+          content:       'תוכן ומיתוג',
+          system:        'מערכת',
         },
         empty: {
           title: 'אין מה להציג עדיין',

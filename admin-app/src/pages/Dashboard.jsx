@@ -17,19 +17,32 @@ import History from './History.jsx'
 import Settings from './Settings.jsx'
 import Receipts from './Receipts.jsx'
 
-const TABS = [
-  { id: 'jobs',       icon: ClipboardList,      page: Jobs       },
-  { id: 'users',      icon: UsersIcon,          page: Users      },
-  { id: 'chats',      icon: MessagesSquare,     page: Chats      },
-  { id: 'content',    icon: FileText,           page: Content    },
-  { id: 'branding',   icon: Image,              page: Branding   },
-  { id: 'broadcasts', icon: Megaphone,          page: Broadcasts },
-  { id: 'design',     icon: Palette,            page: DesignEditor },
-  { id: 'config',     icon: SlidersHorizontal,  page: Config     },
-  { id: 'receipts',   icon: ReceiptText,        page: Receipts   },
-  { id: 'history',    icon: HistoryIcon,        page: History    },
-  { id: 'appearance', icon: SettingsIcon,       page: Settings   },
+// Tabs grouped into labelled sections so the rail reads as four scannable
+// clusters instead of one flat list of eleven. Flattened into TABS below for
+// activeId / ActivePage resolution — route handling is unchanged.
+const NAV_GROUPS = [
+  { id: 'operations', items: [
+    { id: 'jobs',       icon: ClipboardList,     page: Jobs       },
+    { id: 'users',      icon: UsersIcon,         page: Users      },
+  ] },
+  { id: 'communication', items: [
+    { id: 'chats',      icon: MessagesSquare,    page: Chats      },
+    { id: 'broadcasts', icon: Megaphone,         page: Broadcasts },
+  ] },
+  { id: 'content', items: [
+    { id: 'content',    icon: FileText,          page: Content    },
+    { id: 'branding',   icon: Image,             page: Branding   },
+    { id: 'design',     icon: Palette,           page: DesignEditor },
+  ] },
+  { id: 'system', items: [
+    { id: 'config',     icon: SlidersHorizontal, page: Config     },
+    { id: 'receipts',   icon: ReceiptText,       page: Receipts   },
+    { id: 'history',    icon: HistoryIcon,       page: History    },
+    { id: 'appearance', icon: SettingsIcon,      page: Settings   },
+  ] },
 ]
+
+const TABS = NAV_GROUPS.flatMap(g => g.items)
 
 // Export every row of every config-shaped table as one JSON file. Lives on
 // the Dashboard so it's reachable from any tab, matching the user spec.
@@ -77,24 +90,35 @@ function Rail({ activeId, onNavigate, profile, i18n, t, toggleLocale, onExport, 
         </p>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3">
-        {TABS.map(({ id, icon: Icon }) => {
-          const isActive = activeId === id
-          return (
-            <button
-              key={id}
-              onClick={() => go(id)}
-              className={`w-full flex items-center gap-3 px-5 py-3 lg:py-2.5 text-[13.5px] transition-colors ${
-                isActive
-                  ? 'bg-admin-soft text-admin-deep font-semibold border-s-2 border-admin'
-                  : 'text-ink-muted hover:bg-surface-elevated-2 hover:text-ink'
-              }`}
-            >
-              <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-              <span>{t(`dashboard.tabs.${id}`)}</span>
-            </button>
-          )
-        })}
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-5">
+        {NAV_GROUPS.map(group => (
+          <div key={group.id} className="flex flex-col gap-0.5">
+            <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-ink-subtle">
+              {t(`dashboard.groups.${group.id}`)}
+            </p>
+            {group.items.map(({ id, icon: Icon }) => {
+              const isActive = activeId === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => go(id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative w-full flex items-center gap-3 rounded-xl px-3 py-2.5 lg:py-2 text-[13.5px] transition-colors ${
+                    isActive
+                      ? 'bg-admin-soft text-admin-deep font-semibold'
+                      : 'text-ink-muted hover:bg-surface-elevated-2 hover:text-ink'
+                  }`}
+                >
+                  {isActive && (
+                    <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-admin" aria-hidden="true" />
+                  )}
+                  <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                  <span className="truncate">{t(`dashboard.tabs.${id}`)}</span>
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-edge p-3 flex flex-col gap-1">

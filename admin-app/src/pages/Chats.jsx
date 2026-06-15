@@ -8,6 +8,7 @@ import {
   partyOf, agentNameOf,
 } from '../lib/adminChats.js'
 import { relativeTime } from '../lib/relativeTime.js'
+import PageHeader from '../components/PageHeader.jsx'
 import MessageThread from '../components/chats/MessageThread.jsx'
 
 const KIND_FILTERS = ['all', 'consumer', 'washer', 'unassigned']
@@ -63,15 +64,16 @@ export default function Chats() {
     <div className="h-full flex">
       {/* ── List pane (full-width on mobile; fixed rail on desktop) ── */}
       <section className={`${selectedId ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-[360px] lg:shrink-0 border-e border-edge min-w-0`}>
-        <header className="border-b border-edge bg-surface-elevated px-4 py-3 sticky top-0 z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <MessagesSquare size={18} className="text-admin-deep" />
-            <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.chats')}</h1>
-            <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
+        <PageHeader
+          dense
+          icon={MessagesSquare}
+          title={t('dashboard.tabs.chats')}
+          right={
+            <span className="text-[11px] text-ink-muted tabular-nums">
               {rows.length} total · {filtered.length} shown
             </span>
-          </div>
-
+          }
+        >
           {/* Search — full-width on mobile */}
           <div className="flex items-center gap-2 bg-surface rounded-xl border border-edge px-3 mb-2">
             <Search size={14} className="text-ink-subtle" />
@@ -104,7 +106,7 @@ export default function Chats() {
               <AlertCircle size={14} className="shrink-0 mt-0.5" /><span className="font-mono">{error}</span>
             </div>
           )}
-        </header>
+        </PageHeader>
 
         <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
           {filtered.map(c => (

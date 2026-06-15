@@ -7,6 +7,7 @@ import {
 import { supabase } from '../lib/supabase.js'
 import { relativeTime } from '../lib/relativeTime.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import {
   HISTORY_FILTERS, PAGE_SIZE,
   fetchActivityFeed, undoChange, fetchDeletionSnapshot, restoreUser,
@@ -133,12 +134,11 @@ export default function History() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-3">
-          <HistoryIcon size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.history')}</h1>
-          <span className="ms-auto text-[11px] text-ink-muted tabular-nums">{entries.length} shown</span>
-        </div>
+      <PageHeader
+        icon={HistoryIcon}
+        title={t('dashboard.tabs.history')}
+        right={<span className="text-[11px] text-ink-muted tabular-nums">{entries.length} shown</span>}
+      >
         {/* Filter pills — horizontal scroll on mobile (matches the responsive pass). */}
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
           {HISTORY_FILTERS.map(f => (
@@ -171,7 +171,7 @@ export default function History() {
             <span>{toast.text}</span>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="max-w-3xl mx-auto flex flex-col gap-2">

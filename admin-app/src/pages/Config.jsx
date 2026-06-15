@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { relativeTime } from '../lib/relativeTime.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import {
   APP_CONFIG_DEFAULTS,
   PRICING_CONFIG_DEFAULTS,
@@ -188,12 +189,7 @@ export default function Config() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.config')}</h1>
-        </div>
-      </div>
+      <PageHeader icon={SlidersHorizontal} title={t('dashboard.tabs.config')} />
 
       <div className="p-4 sm:p-6 max-w-4xl w-full mx-auto flex flex-col gap-6">
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-warning/40 bg-warning/10 text-warning text-sm">

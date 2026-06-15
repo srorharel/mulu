@@ -4,6 +4,7 @@ import { Settings as SettingsIcon, Upload, Trash2, AlertCircle, Image as ImageIc
 import { useAdminBackground } from '../context/BackgroundContext.jsx'
 import { validateFile, clampOpacity, OPACITY_MAX, OPACITY_DEFAULT } from '../lib/adminBackground.js'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 
 // Appearance tab — PERSONAL, PRIVATE console background for the signed-in admin.
 // Changes apply live to the shell (via BackgroundContext) and persist without a
@@ -57,19 +58,17 @@ export default function Settings() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <SettingsIcon size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.appearance')}</h1>
-          {hasImage && (
-            <span className={`ms-auto px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded ${
-              enabled ? 'bg-admin-soft text-admin-deep' : 'bg-surface text-ink-subtle border border-edge'
-            }`}>
-              {enabled ? 'active' : 'disabled'}
-            </span>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={SettingsIcon}
+        title={t('dashboard.tabs.appearance')}
+        right={hasImage ? (
+          <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded ${
+            enabled ? 'bg-admin-soft text-admin-deep' : 'bg-surface text-ink-subtle border border-edge'
+          }`}>
+            {enabled ? 'active' : 'disabled'}
+          </span>
+        ) : null}
+      />
 
       <div className="p-4 sm:p-6 max-w-3xl w-full mx-auto flex flex-col gap-4">
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-admin/30 bg-admin-soft text-ink-muted text-[12.5px] leading-relaxed">

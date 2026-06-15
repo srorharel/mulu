@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase.js'
 import { fetchUsers, ROLES, roleColor } from '../lib/adminUsers.js'
 import { relativeTime } from '../lib/relativeTime.js'
 import UserDetail from '../components/users/UserDetail.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 
 function countByRole(rows) {
   const m = { all: rows.length }
@@ -57,15 +58,15 @@ export default function Users() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-edge bg-surface-elevated px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-3">
-          <UsersIcon size={18} className="text-admin-deep" />
-          <h1 className="text-lg font-bold tracking-tight">{t('dashboard.tabs.users')}</h1>
-          <span className="ms-auto text-[11px] text-ink-muted tabular-nums">
+      <PageHeader
+        icon={UsersIcon}
+        title={t('dashboard.tabs.users')}
+        right={
+          <span className="text-[11px] text-ink-muted tabular-nums">
             {rows.length} total · {filtered.length} shown
           </span>
-        </div>
-
+        }
+      >
         <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
           <div className="flex gap-1 overflow-x-auto no-scrollbar bg-surface rounded-xl p-1 border border-edge lg:flex-wrap lg:overflow-visible">
             {ROLES.map(r => (
@@ -98,7 +99,7 @@ export default function Users() {
             <span className="font-mono">{error}</span>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto">
         {/* Mobile: stacked cards */}
