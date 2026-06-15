@@ -3,14 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck, Zap, MapPin } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { homeForRole } from '../lib/roleHome.js'
 import GlassCard from '../components/ui/GlassCard.jsx'
-import WashMark from '../components/ui/WashMark.jsx'
+import AuthWelcome from '../components/ui/AuthWelcome.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
 const schema = z.object({
@@ -26,6 +26,12 @@ const itemVariants = {
   hidden:  { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 }
+
+const TRUST = [
+  { icon: ShieldCheck, key: 'secure' },
+  { icon: Zap,         key: 'fast' },
+  { icon: MapPin,      key: 'toYourCar' },
+]
 
 export default function Login() {
   const navigate = useNavigate()
@@ -64,36 +70,35 @@ export default function Login() {
   return (
     <div className="bg-mesh flex flex-col min-h-full px-5 py-10 overflow-y-auto">
       <motion.div
-        className="flex flex-col gap-6 max-w-sm mx-auto w-full flex-1"
+        className="flex flex-col gap-6 max-w-sm mx-auto w-full flex-1 justify-center"
         variants={pageVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Logo */}
-        <motion.div variants={itemVariants} className="flex items-center">
-          <WashMark size={44} />
+        {/* Spotlight welcome header */}
+        <motion.div variants={itemVariants}>
+          <AuthWelcome title={t('auth.welcomeBack')} subtitle={t('auth.welcomeBackSub')} />
         </motion.div>
 
         {/* Glass form card */}
         <motion.div variants={itemVariants}>
           <GlassCard className="p-6 flex flex-col gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900">{t('auth.welcomeBack')}</h1>
-              <p className="text-neutral-500 text-sm mt-0.5">{t('auth.signInToAccount')}</p>
-            </div>
-
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
               <div>
                 <label className="label">{t('auth.email')}</label>
-                <input className="input" type="email" placeholder={t('auth.emailPlaceholder')} {...register('email')} />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
+                  <input className="input ps-10" type="email" placeholder={t('auth.emailPlaceholder')} {...register('email')} />
+                </div>
                 {errors.email && <p className="field-error">{errors.email.message}</p>}
               </div>
 
               <div>
                 <label className="label">{t('auth.password')}</label>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
                   <input
-                    className="input pe-10"
+                    className="input ps-10 pe-10"
                     type={showPw ? 'text' : 'password'}
                     placeholder={t('auth.passwordPlaceholder')}
                     {...register('password')}
@@ -107,6 +112,9 @@ export default function Login() {
                   </button>
                 </div>
                 {errors.password && <p className="field-error">{errors.password.message}</p>}
+                <p className="text-end text-xs text-neutral-400 mt-1.5">
+                  {t('auth.forgotPassword')} <span className="cursor-default">{t('auth.forgotPasswordSoon')}</span>
+                </p>
               </div>
 
               {serverError && (
@@ -115,19 +123,25 @@ export default function Login() {
 
               <MotionButton type="submit" disabled={isSubmitting} className="btn-primary mt-1">
                 {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
+                {!isSubmitting && <ArrowRight className="h-4 w-4 rtl:rotate-180" />}
               </MotionButton>
             </form>
 
-            <p className="text-center text-sm text-neutral-400">
-              {t('auth.forgotPassword')}{' '}
-              <span className="cursor-default">{t('auth.forgotPasswordSoon')}</span>
-            </p>
+            {/* Trust strip */}
+            <div className="flex items-center justify-center gap-5 pt-1 text-[11px] text-neutral-500">
+              {TRUST.map(({ icon: Icon, key }) => (
+                <span key={key} className="inline-flex items-center gap-1">
+                  <Icon className="h-3.5 w-3.5 text-primary-500" />
+                  {t(`auth.trust.${key}`)}
+                </span>
+              ))}
+            </div>
           </GlassCard>
         </motion.div>
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
           {t('auth.newToWash')}{' '}
-          <Link to="/signup/customer" className="text-primary-600 font-medium">{t('auth.createAccount')}</Link>
+          <Link to="/signup/customer" className="text-primary-600 font-semibold">{t('auth.createAccount')}</Link>
         </motion.p>
       </motion.div>
     </div>

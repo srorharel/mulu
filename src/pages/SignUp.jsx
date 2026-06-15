@@ -3,15 +3,29 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, MailCheck, X, ChevronDown } from 'lucide-react'
+import {
+  Eye, EyeOff, MailCheck, X, ChevronDown,
+  Mail, Lock, User, Gift, MapPin, Droplets, Camera, Clock, Wallet, BadgeCheck, ArrowRight,
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation, Trans } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 import GlassCard from '../components/ui/GlassCard.jsx'
-import WashMark from '../components/ui/WashMark.jsx'
+import AuthWelcome from '../components/ui/AuthWelcome.jsx'
 import MotionButton from '../components/ui/MotionButton.jsx'
 
 const CITY_SLUGS = ['holon', 'rishon_lezion', 'bat_yam']
+
+const CUSTOMER_BENEFITS = [
+  { icon: MapPin,   key: 'location' },
+  { icon: Droplets, key: 'choose' },
+  { icon: Camera,   key: 'photos' },
+]
+const WASHER_BENEFITS = [
+  { icon: Clock,  key: 'flexible' },
+  { icon: MapPin, key: 'area' },
+  { icon: Wallet, key: 'fastPay' },
+]
 
 const schema = z.object({
   fullName:        z.string().min(2),
@@ -146,8 +160,12 @@ export default function SignUp({ role = 'consumer' }) {
     return (
       <div className="bg-mesh flex flex-col min-h-full px-5 py-10 items-center justify-center overflow-y-auto">
         <GlassCard className="p-8 flex flex-col items-center gap-6 text-center max-w-sm w-full">
-          <div className="rounded-2xl bg-primary-50 p-6">
-            <MailCheck className="h-12 w-12 text-primary-500" />
+          <div className="relative h-24 w-24">
+            <div className="absolute -inset-1 rounded-full bg-primary-300/25 blur-2xl" aria-hidden="true" />
+            <div className="absolute inset-0 rounded-full border border-primary-300/50" aria-hidden="true" />
+            <div className="absolute inset-[18px] rounded-full bg-primary-50 flex items-center justify-center">
+              <MailCheck className="h-10 w-10 text-primary-500" />
+            </div>
           </div>
           <div>
             <h1 className="text-2xl font-bold mb-2">{t('signup.checkEmail')}</h1>
@@ -159,7 +177,7 @@ export default function SignUp({ role = 'consumer' }) {
               />
             </p>
           </div>
-          <Link to="/login" className="text-primary-600 font-medium text-sm">
+          <Link to="/login" className="text-primary-600 font-semibold text-sm">
             {t('signup.backToSignIn')}
           </Link>
         </GlassCard>
@@ -167,31 +185,64 @@ export default function SignUp({ role = 'consumer' }) {
     )
   }
 
+  const benefits = isWasher ? WASHER_BENEFITS : CUSTOMER_BENEFITS
+  const benefitNs = isWasher ? 'washerBenefits' : 'customerBenefits'
+
   return (
     <div className="bg-mesh flex flex-col min-h-full px-5 py-10 overflow-y-auto">
       <motion.div
-        className="flex flex-col gap-6 max-w-sm mx-auto w-full flex-1"
+        className="flex flex-col gap-5 max-w-sm mx-auto w-full flex-1"
         variants={pageVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Logo */}
-        <motion.div variants={itemVariants} className="flex items-center">
-          <WashMark size={44} />
+        {/* Spotlight welcome header */}
+        <motion.div variants={itemVariants}>
+          <AuthWelcome
+            title={isWasher ? t('signup.washerTitle') : t('signup.customerTitle')}
+            subtitle={isWasher ? t('signup.washerSubtitle') : t('signup.customerSubtitle')}
+          />
+          {isWasher && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <span className="h-1.5 w-7 rounded-full bg-primary-500" />
+              <span className="h-1.5 w-4 rounded-full bg-primary-200" />
+              <span className="text-[11px] text-neutral-400 ms-1">{t('signup.washerStep')}</span>
+            </div>
+          )}
+        </motion.div>
+
+        {/* First-wash gift (customer only) — ADR-040: 30% off the first order */}
+        {!isWasher && (
+          <motion.div
+            variants={itemVariants}
+            className="flex items-center gap-3 rounded-2xl border border-dashed border-primary-300 bg-primary-50 px-4 py-3"
+          >
+            <div className="rounded-xl bg-white/70 p-2 shrink-0">
+              <Gift className="h-5 w-5 text-primary-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-primary-800 leading-tight">{t('signup.gift.title')}</p>
+              <p className="text-[11px] text-primary-700 leading-tight mt-0.5">{t('signup.gift.sub')}</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Benefits strip */}
+        <motion.div variants={itemVariants} className="flex gap-2">
+          {benefits.map(({ icon: Icon, key }) => (
+            <div
+              key={key}
+              className="flex-1 flex flex-col items-center gap-1.5 rounded-2xl bg-white/55 border border-primary-100 px-2 py-2.5 text-center"
+            >
+              <Icon className="h-[18px] w-[18px] text-primary-600" />
+              <span className="text-[10.5px] leading-tight text-neutral-600">{t(`signup.${benefitNs}.${key}`)}</span>
+            </div>
+          ))}
         </motion.div>
 
         {/* Glass form card */}
         <motion.div variants={itemVariants}>
           <GlassCard className="p-6 flex flex-col gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900">
-                {isWasher ? t('signup.washerTitle') : t('signup.customerTitle')}
-              </h1>
-              <p className="text-neutral-500 text-sm mt-0.5">
-                {isWasher ? t('signup.washerSubtitle') : t('signup.customerSubtitle')}
-              </p>
-            </div>
-
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
               {/* Role is fixed by the route (split registration); kept in form
                   state for the schema refinements + signUp metadata. */}
@@ -214,14 +265,15 @@ export default function SignUp({ role = 'consumer' }) {
                       <button
                         type="button"
                         onClick={() => setAreaSheetOpen(v => !v)}
-                        className="input flex items-center justify-between text-start w-full"
+                        className="input ps-10 pe-10 flex items-center justify-between text-start w-full relative"
                       >
+                        <MapPin className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
                         <span className={serviceAreas.length === 0 ? 'text-neutral-400' : 'text-neutral-900'}>
                           {serviceAreas.length === 0
                             ? t('washerSignup.serviceAreas.placeholder')
                             : serviceAreas.map(s => t(`washerSignup.serviceAreas.cities.${s}`)).join(', ')}
                         </span>
-                        <ChevronDown className="h-4 w-4 text-neutral-400 shrink-0" />
+                        <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 shrink-0" />
                       </button>
 
                       <AnimatePresence>
@@ -284,12 +336,15 @@ export default function SignUp({ role = 'consumer' }) {
                     {/* Dealer / company number */}
                     <div>
                       <label className="label">{t('washerSignup.dealerNumber.label')}</label>
-                      <input
-                        className="input"
-                        inputMode="numeric"
-                        placeholder={t('washerSignup.dealerNumber.placeholder')}
-                        {...register('dealerNumber')}
-                      />
+                      <div className="relative">
+                        <BadgeCheck className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
+                        <input
+                          className="input ps-10"
+                          inputMode="numeric"
+                          placeholder={t('washerSignup.dealerNumber.placeholder')}
+                          {...register('dealerNumber')}
+                        />
+                      </div>
                       {errors.dealerNumber && (
                         <p className="field-error">{t(errors.dealerNumber.message)}</p>
                       )}
@@ -301,14 +356,20 @@ export default function SignUp({ role = 'consumer' }) {
               {/* Full name */}
               <div>
                 <label className="label">{t('signup.fullName')}</label>
-                <input className="input" placeholder={t('signup.fullNamePlaceholder')} {...register('fullName')} />
+                <div className="relative">
+                  <User className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
+                  <input className="input ps-10" placeholder={t('signup.fullNamePlaceholder')} {...register('fullName')} />
+                </div>
                 {errors.fullName && <p className="field-error">{errors.fullName.message}</p>}
               </div>
 
               {/* Email */}
               <div>
                 <label className="label">{t('auth.email')}</label>
-                <input className="input" type="email" placeholder={t('auth.emailPlaceholder')} {...register('email')} />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
+                  <input className="input ps-10" type="email" placeholder={t('auth.emailPlaceholder')} {...register('email')} />
+                </div>
                 {errors.email && <p className="field-error">{errors.email.message}</p>}
               </div>
 
@@ -316,8 +377,9 @@ export default function SignUp({ role = 'consumer' }) {
               <div>
                 <label className="label">{t('auth.password')}</label>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
                   <input
-                    className="input pe-10"
+                    className="input ps-10 pe-10"
                     type={showPw ? 'text' : 'password'}
                     placeholder={t('signup.passwordPlaceholder')}
                     {...register('password')}
@@ -334,8 +396,9 @@ export default function SignUp({ role = 'consumer' }) {
               <div>
                 <label className="label">{t('signup.confirmPassword')}</label>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-300" />
                   <input
-                    className="input pe-10"
+                    className="input ps-10 pe-10"
                     type={showConfirm ? 'text' : 'password'}
                     placeholder={t('signup.confirmPasswordPlaceholder')}
                     {...register('confirmPassword')}
@@ -383,6 +446,7 @@ export default function SignUp({ role = 'consumer' }) {
 
               <MotionButton type="submit" disabled={isSubmitting} className="btn-primary mt-1">
                 {isSubmitting ? t('signup.creatingAccount') : t('signup.title')}
+                {!isSubmitting && <ArrowRight className="h-4 w-4 rtl:rotate-180" />}
               </MotionButton>
             </form>
           </GlassCard>
@@ -393,7 +457,7 @@ export default function SignUp({ role = 'consumer' }) {
           {isWasher ? t('signup.switch.toCustomerPrompt') : t('signup.switch.toWasherPrompt')}{' '}
           <Link
             to={isWasher ? '/signup/customer' : '/signup/washer'}
-            className="text-primary-600 font-medium"
+            className="text-primary-600 font-semibold"
           >
             {isWasher ? t('signup.switch.toCustomerLink') : t('signup.switch.toWasherLink')}
           </Link>
@@ -401,7 +465,7 @@ export default function SignUp({ role = 'consumer' }) {
 
         <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500">
           {t('auth.alreadyHaveAccount')}{' '}
-          <Link to="/login" className="text-primary-600 font-medium">{t('auth.signIn')}</Link>
+          <Link to="/login" className="text-primary-600 font-semibold">{t('auth.signIn')}</Link>
         </motion.p>
       </motion.div>
     </div>

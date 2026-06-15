@@ -84,8 +84,14 @@
     "emailPlaceholder": "you@example.com",
     "password": "סיסמה",
     "passwordPlaceholder": "הסיסמה שלך",
-    "welcomeBack": "ברוך השב",
+    "welcomeBack": "ברוך השב 👋",
     "signInToAccount": "כנס לחשבונך",
+    "welcomeBackSub": "כיף לראות אותך שוב — נחזיר אותך לרכב נקי ומבריק.",
+    "trust": {
+      "secure": "מאובטח",
+      "fast": "מהיר",
+      "toYourCar": "עד הרכב"
+    },
     "forgotPassword": "שכחת סיסמה?",
     "forgotPasswordSoon": "בקרוב",
     "newToWash": "חדש ב-MULU?",
@@ -102,10 +108,25 @@
   "signup": {
     "title": "יצירת חשבון",
     "subtitle": "הצטרף לרשת MULU",
-    "customerTitle": "יצירת חשבון",
-    "customerSubtitle": "הצטרפו לרשת MULU והזמינו שטיפה",
-    "washerTitle": "הצטרפות לצוות MULU",
-    "washerSubtitle": "התחילו להרוויח משטיפת רכבים",
+    "customerTitle": "ברוכים הבאים ל-MULU 👋",
+    "customerSubtitle": "הצטרפו לרשת והזמינו שטיפה עד הרכב — בלי תורים, בלי לצאת מהבית.",
+    "washerTitle": "הצטרפו לצוות MULU 💙",
+    "washerSubtitle": "התחילו להרוויח משטיפת רכבים — עבודה גמישה, אתם בוחרים מתי ואיפה.",
+    "gift": {
+      "title": "30% הנחה על השטיפה הראשונה",
+      "sub": "מתנת הצטרפות — מתווספת אוטומטית בהזמנה הראשונה"
+    },
+    "customerBenefits": {
+      "location": "במיקום שלך",
+      "choose": "בחירת שטיפה",
+      "photos": "לפני / אחרי"
+    },
+    "washerBenefits": {
+      "flexible": "שעות גמישות",
+      "area": "באזור שלכם",
+      "fastPay": "תשלום מהיר"
+    },
+    "washerStep": "שלב 1 מתוך 2",
     "switch": {
       "toWasherPrompt": "רוצים לשטוף ולהרוויח?",
       "toWasherLink": "הצטרפו לצוות MULU",

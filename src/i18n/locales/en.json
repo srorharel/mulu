@@ -84,8 +84,14 @@
     "emailPlaceholder": "you@example.com",
     "password": "Password",
     "passwordPlaceholder": "Your password",
-    "welcomeBack": "Welcome back",
+    "welcomeBack": "Welcome back 👋",
     "signInToAccount": "Sign in to your account",
+    "welcomeBackSub": "Great to see you again — let's get you back to a sparkling car.",
+    "trust": {
+      "secure": "Secure",
+      "fast": "Fast",
+      "toYourCar": "To your car"
+    },
     "forgotPassword": "Forgot password?",
     "forgotPasswordSoon": "Coming soon",
     "newToWash": "New to MULU?",
@@ -102,10 +108,25 @@
   "signup": {
     "title": "Create account",
     "subtitle": "Join the MULU network",
-    "customerTitle": "Create account",
-    "customerSubtitle": "Join the MULU network and book a wash",
-    "washerTitle": "Join the MULU team",
-    "washerSubtitle": "Start earning by washing cars",
+    "customerTitle": "Welcome to MULU 👋",
+    "customerSubtitle": "Join the network and book a wash to your car — no queues, no leaving home.",
+    "washerTitle": "Join the MULU team 💙",
+    "washerSubtitle": "Start earning by washing cars — flexible work, on your own schedule.",
+    "gift": {
+      "title": "30% off your first wash",
+      "sub": "Welcome gift — applied automatically on your first order"
+    },
+    "customerBenefits": {
+      "location": "At your spot",
+      "choose": "Choose your wash",
+      "photos": "Before / after"
+    },
+    "washerBenefits": {
+      "flexible": "Flexible hours",
+      "area": "In your area",
+      "fastPay": "Fast payouts"
+    },
+    "washerStep": "Step 1 of 2",
     "switch": {
       "toWasherPrompt": "Want to wash cars and earn?",
       "toWasherLink": "Join the MULU team",
