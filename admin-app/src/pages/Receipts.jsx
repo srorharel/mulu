@@ -69,7 +69,7 @@ export default function Receipts() {
   const loadReceipts = useCallback(async () => {
     setBusy(true)
     let query = supabase.from('receipts')
-      .select('id, receipt_number, consumer_name, consumer_email, total, discount_amount, status, error_detail, sent_at, created_at, pdf_path, pdf_purged_at')
+      .select('id, receipt_number, consumer_name, consumer_email, total, discount_amount, status, error_detail, sent_at, created_at, pdf_path')
       .order('receipt_number', { ascending: false })
     if (fromDate) query = query.gte('created_at', new Date(`${fromDate}T00:00:00`).toISOString())
     if (toDate)   query = query.lte('created_at', new Date(`${toDate}T23:59:59.999`).toISOString())
@@ -269,7 +269,7 @@ export default function Receipts() {
                 {r.error_detail && <p className="text-[10.5px] text-danger font-mono truncate" title={r.error_detail}>{r.error_detail}</p>}
                 <div className="flex items-center gap-2">
                   <span className="text-[10.5px] text-ink-subtle">{relativeTime(r.created_at)}</span>
-                  {r.pdf_path ? (
+                  {r.pdf_path && (
                     <button
                       onClick={() => downloadPdf(r.pdf_path)}
                       className="ms-auto btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]"
@@ -277,15 +277,11 @@ export default function Receipts() {
                     >
                       <Download size={12} /> PDF
                     </button>
-                  ) : r.pdf_purged_at ? (
-                    <span className="ms-auto text-[10px] text-ink-subtle italic" title="PDF archived for 6 months, then purged. Resend to regenerate it.">
-                      PDF purged
-                    </span>
-                  ) : null}
+                  )}
                   <button
                     onClick={() => resend(r.id)}
                     disabled={busy || resending === r.id}
-                    className={`${r.pdf_path || r.pdf_purged_at ? '' : 'ms-auto '}btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]`}
+                    className={`${r.pdf_path ? '' : 'ms-auto '}btn-ghost px-2 py-2 min-h-[44px] min-w-[44px] flex items-center gap-1 text-[11px]`}
                     title="Resend email"
                   >
                     <Send size={12} /> {resending === r.id ? 'Sending…' : 'Resend'}
@@ -328,7 +324,7 @@ export default function Receipts() {
                   <td className="py-1.5 text-[11.5px] text-ink-subtle">{relativeTime(r.created_at)}</td>
                   <td className="py-1.5 text-end">
                     <div className="flex items-center gap-1 justify-end">
-                      {r.pdf_path ? (
+                      {r.pdf_path && (
                         <button
                           onClick={() => downloadPdf(r.pdf_path)}
                           className="btn-ghost px-2 py-1 text-[11px] flex items-center gap-1"
@@ -336,11 +332,7 @@ export default function Receipts() {
                         >
                           <Download size={11} /> PDF
                         </button>
-                      ) : r.pdf_purged_at ? (
-                        <span className="text-[10px] text-ink-subtle italic px-1" title="PDF archived for 6 months, then purged. Resend to regenerate it.">
-                          PDF purged
-                        </span>
-                      ) : null}
+                      )}
                       <button
                         onClick={() => resend(r.id)}
                         disabled={busy || resending === r.id}

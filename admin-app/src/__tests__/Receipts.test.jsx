@@ -179,21 +179,6 @@ describe('admin Receipts — issued list', () => {
     expect(state.filterCalls.length).toBe(0)
   })
 
-  it('shows a "PDF purged" hint (row kept, resend still regenerates) once the PDF is retention-purged', async () => {
-    state.receiptRows = [{
-      id: 'r3', receipt_number: 1003, consumer_name: 'Avi', consumer_email: 'avi@x.com',
-      total: '50.00', discount_amount: '0.00', status: 'sent', error_detail: null,
-      sent_at: '2025-12-01T10:00:00Z', created_at: '2025-12-01T10:00:00Z',
-      pdf_path: null, pdf_purged_at: '2026-06-01T03:30:00Z',
-    }]
-    render(<Receipts />)
-    await screen.findAllByText('#1003')
-    expect(screen.getAllByText(/PDF purged/i).length).toBeGreaterThan(0)
-    // PDF gone from storage → no download, but the record + resend remain
-    expect(screen.queryAllByTitle('Download PDF').length).toBe(0)
-    expect(screen.getAllByTitle('Resend email').length).toBeGreaterThan(0)
-  })
-
   it('resend calls the admin_resend_receipt RPC with the receipt id', async () => {
     render(<Receipts />)
     await screen.findAllByText('#1001')
