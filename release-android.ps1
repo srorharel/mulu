@@ -7,7 +7,9 @@
 # Prereq: android/key.properties must exist (copy from key.properties.example and
 # generate the keystore). See that file for the keytool command.
 #
-# Usage: .\release-android.ps1
+# Usage: .\release-android.ps1                (versionCode 1)
+#        .\release-android.ps1 -VersionCode 5  (bump for each new Play upload)
+param([int]$VersionCode = 1)
 
 Set-Location $PSScriptRoot
 
@@ -68,7 +70,7 @@ if ($LASTEXITCODE -ne 0) { Write-Fail "npx cap sync android failed." }
 Write-Step "gradlew clean bundleRelease"
 Push-Location "$PSScriptRoot\android"
 try {
-    .\gradlew clean bundleRelease
+    .\gradlew clean bundleRelease "-Pvcode=$VersionCode" "-Pvname=1.0.$VersionCode"
 } finally {
     Pop-Location
 }

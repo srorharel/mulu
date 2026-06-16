@@ -85,7 +85,8 @@ workflows:
       - name: Build signed release AAB
         script: |
           cd android
-          ./gradlew bundleRelease
+          # Unique, increasing versionCode per upload (Play requires it):
+          ./gradlew bundleRelease -Pvcode=$BUILD_NUMBER -Pvname=1.0.$BUILD_NUMBER
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:

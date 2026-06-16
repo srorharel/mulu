@@ -35,13 +35,35 @@ For Android in the same file (`android-release`): upload your upload keystore un
 - Provide **demo logins** in App Review notes: a **consumer** account and a **pre-approved washer** account (so the reviewer can see the washer side without manual verification). Seed a reviewable job/flow.
 - In App Review notes, **list the native features** (camera capture, GPS matching/arrival, push) to pre-empt a Guideline 4.2 "minimum functionality / web wrapper" rejection.
 
-## 5. ⚠️ iOS push needs FCM↔APNs bridging (REQUIRED before iOS push works)
-The app sends push via **Firebase Cloud Messaging (FCM)** on the backend (`send-notification` Edge Function; `device_tokens.token`). But on iOS, `@capacitor/push-notifications` registers with **APNs** and returns an **APNs token**, *not* an FCM token — so the FCM backend cannot deliver to it as-is. Pick one:
+## 5. ⚠️ iOS push: store an FCM token on iOS (REQUIRED before iOS push works)
 
-- **Option A (recommended) — make iOS use FCM tokens too:** add the Firebase iOS SDK and a messaging plugin (e.g. `@capacitor-firebase/messaging`), add `GoogleService-Info.plist` (from the Firebase iOS app; gitignored — add it in CI as a secure file or commit it to a private store), and store the FCM token (not the APNs token) in `device_tokens` for `platform='ios'`. Backend then works unchanged.
-- **Option B — send via APNs for iOS rows:** have `send-notification` detect `platform='ios'` and send through APNs directly (using the §2.4 APNs key) instead of FCM.
+**The backend needs no change.** `send-notification` already sends via FCM HTTP v1
+with an `apns` block (it branches on `platform === 'ios'`), so FCM relays to APNs —
+*as long as the stored token is an FCM registration token*.
 
-Until one of these is done, Android push works but **iOS push will not deliver**. `src/lib/notifications.js` is where token registration/storage happens.
+The gap is purely client-side: on iOS, `@capacitor/push-notifications` returns the
+raw **APNs** token, but FCM needs an **FCM registration** token. Fix = obtain the FCM
+token on iOS and store *that* in `device_tokens` (platform `'ios'`).
+
+Exact steps:
+1. In the **Firebase console**, add an **iOS app** (bundle id `com.sparklego.app`),
+   upload your **APNs Auth Key** (`.p8`) under Cloud Messaging, and download
+   `GoogleService-Info.plist`. Add it to the iOS app — it's gitignored, so provide it
+   to Codemagic as a secure environment file (or keep it in a private store).
+2. `npm i @capacitor-firebase/messaging` and migrate `src/lib/notifications.js` from
+   `@capacitor/push-notifications` to `@capacitor-firebase/messaging`
+   (`requestPermissions` / `getToken` / `addListener('tokenReceived' |
+   'notificationReceived' | 'notificationActionPerformed')` / `createChannel`). This
+   plugin returns FCM tokens on **both** Android and iOS, so the backend and the
+   Android path keep working unchanged.
+3. Keep `device_tokens.platform` accurate (`'ios'` | `'android'`) so the function
+   selects the right `apns` / `android` block.
+
+⚠️ **Why this isn't done yet:** it (a) needs the Firebase iOS app + `GoogleService-Info.plist`
+you haven't created, (b) replaces the push plugin on the **working Android** path, and
+(c) can only be verified on a real device (TestFlight for iOS, a device build for
+Android). So it must be done as a focused change **tested on devices before merging** —
+not blind. `src/lib/notifications.js` is the only client file to change; no backend edit.
 
 ## 6. Local sync convenience (optional, Windows)
 You can't build iOS locally, but you can keep the iOS project in sync after web changes:
