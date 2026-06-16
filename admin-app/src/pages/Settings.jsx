@@ -75,7 +75,7 @@ export default function Settings() {
           <ImageIcon size={18} className="shrink-0 mt-0.5 text-admin-deep" />
           <p>
             This background is <span className="font-semibold text-ink">personal and private to you</span>.
-            Only you ever see it — it never affects other admins, consumers, washers, or agents. A faint wash
+            Only you ever see it. It never affects other admins, consumers, washers, or agents. A faint wash
             keeps the console readable; opacity is capped at {Math.round(OPACITY_MAX * 100)}%.
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function Settings() {
               </>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-ink-subtle text-[12px]">
-                {hasImage ? 'Background disabled — plain console.' : 'No background — plain console.'}
+                {hasImage ? 'Background disabled. Plain console.' : 'No background. Plain console.'}
               </div>
             )}
           </div>
@@ -126,7 +126,7 @@ export default function Settings() {
               <Upload size={16} className="text-admin-deep" />
               <span className="text-[13px] text-ink">
                 {hasImage ? 'Replace background' : 'Upload background'}
-                <span className="text-ink-subtle"> — photo or file (jpg/png/webp, max 10 MB)</span>
+                <span className="text-ink-subtle"> · photo or file (jpg/png/webp, max 10 MB)</span>
               </span>
             </div>
           </label>

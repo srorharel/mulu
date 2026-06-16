@@ -49,7 +49,7 @@ export default function ImpersonateLauncher({ userId, onClose }) {
         )}
         {token && (
           <div className="card border-admin/30 bg-admin-soft">
-            <p className="text-[10.5px] uppercase tracking-wider text-admin-deep font-bold">One-time URL — copy or open now</p>
+            <p className="text-[10.5px] uppercase tracking-wider text-admin-deep font-bold">One-time URL. Copy or open it now</p>
             <p className="font-mono text-[11.5px] text-ink mt-1 break-all select-all">{url}</p>
             <p className="text-[10.5px] text-ink-subtle mt-1">expires {new Date(token.expires_at).toLocaleString()}</p>
             <div className="flex gap-2 mt-2">

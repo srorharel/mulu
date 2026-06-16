@@ -76,7 +76,7 @@ export default function DesignEditOverlay({ app }) {
         </aside>
       )}
       <div className="fixed bottom-0 inset-x-0 z-[100] bg-amber-500 text-amber-950 text-[12px] font-semibold px-4 py-2 flex items-center justify-center gap-3 shadow-[0_-2px_8px_rgba(0,0,0,0.15)]">
-        <span>🎨 Design edit mode — tap any registered element to override its style</span>
+        <span>🎨 Design edit mode. Tap any registered element to override its style</span>
         <button
           onClick={() => { exitDesignEditMode(); setActive(false); window.location.reload() }}
           className="underline font-bold"

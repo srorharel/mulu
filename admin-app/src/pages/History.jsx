@@ -89,7 +89,7 @@ export default function History() {
     setUndoBusy(true)
     try {
       await undoChange(confirmUndo.ref_id)
-      setToast({ kind: 'ok', text: `Reverted — ${actionLabel(confirmUndo)}` })
+      setToast({ kind: 'ok', text: `Reverted: ${actionLabel(confirmUndo)}` })
       setConfirmUndo(null)
       await load({ append: false })
     } catch (e) {
@@ -101,7 +101,7 @@ export default function History() {
       setToast({
         kind: 'err',
         text: conflict
-          ? 'This has been edited since — undo blocked to avoid clobbering a newer change. Expanded below; review the live value before retrying.'
+          ? 'This has been edited since, so undo is blocked to avoid clobbering a newer change. Expanded below; review the live value before retrying.'
           : `Undo failed: ${e.message}`,
       })
     } finally {
@@ -351,7 +351,7 @@ function RestoreDialog({ restore, onClose, onChangeEmail, onConfirm }) {
             Deleting record: <span className="font-mono text-ink">{entry.entity_label}</span>
           </p>
           <label className="label-uppercase">
-            Type the user&apos;s email to confirm{knownEmail ? ` (${knownEmail})` : ' (not captured — supply it)'}
+            Type the user&apos;s email to confirm{knownEmail ? ` (${knownEmail})` : ' (not captured, supply it)'}
           </label>
           <input
             type="email"

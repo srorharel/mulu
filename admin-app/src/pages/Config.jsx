@@ -111,7 +111,7 @@ export default function Config() {
     if (currentSource === 'config') {
       setConfirming({
         kind: 'pricing', identity: category,
-        blocked: "Pricing source is 'config' — resetting this row would change live consumer pricing. Flip pricing_source to 'hardcoded' first.",
+        blocked: "Pricing source is 'config'. Resetting this row would change live consumer pricing. Flip pricing_source to 'hardcoded' first.",
       })
       return
     }
@@ -121,7 +121,7 @@ export default function Config() {
     if (currentSource === 'config') {
       setConfirming({
         kind: 'payout', identity: tier,
-        blocked: "Pricing source is 'config' — resetting this row would change live washer payouts. Flip pricing_source to 'hardcoded' first.",
+        blocked: "Pricing source is 'config'. Resetting this row would change live washer payouts. Flip pricing_source to 'hardcoded' first.",
       })
       return
     }
@@ -374,7 +374,7 @@ export default function Config() {
               })}
             </tbody>
           </table>
-          <p className="text-[11px] text-ink-subtle mt-1">Inline pricing edits are intentionally not exposed yet — set via SQL or extend this surface after the source flip.</p>
+          <p className="text-[11px] text-ink-subtle mt-1">Inline pricing edits are intentionally not exposed yet. Set via SQL or extend this surface after the source flip.</p>
         </section>
 
         <section className="card flex flex-col gap-2">

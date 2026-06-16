@@ -124,7 +124,7 @@ export default function MessageThread({ conversation, onBack }) {
       {/* Read-only banner — the core guarantee of this section. */}
       <div className="flex items-center gap-1.5 px-3 sm:px-5 py-1.5 text-[11px] text-admin-deep bg-admin-soft border-b border-admin/20 shrink-0">
         <Eye size={12} className="shrink-0" />
-        <span>Read-only view — replies happen in the Support app.</span>
+        <span>Read-only view. Replies happen in the Support app.</span>
       </div>
 
       {/* Messages */}

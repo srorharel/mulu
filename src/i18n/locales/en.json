@@ -88,7 +88,7 @@
     "passwordPlaceholder": "Your password",
     "welcomeBack": "Welcome back 👋",
     "signInToAccount": "Sign in to your account",
-    "welcomeBackSub": "Great to see you again — let's get you back to a sparkling car.",
+    "welcomeBackSub": "Great to see you again. Let's get your car sparkling.",
     "trust": {
       "secure": "Secure",
       "fast": "Fast",
@@ -104,20 +104,20 @@
     "resetPasswordCta": "Reset your password",
     "errors": {
       "invalidCredentials": "Invalid email or password",
-      "emailNotConfirmed": "Email not confirmed — check your inbox and click the link we sent you",
-      "networkError": "Network error — check your connection and try again"
+      "emailNotConfirmed": "Email not confirmed. Check your inbox and click the link we sent you",
+      "networkError": "Network error. Check your connection and try again"
     }
   },
   "signup": {
     "title": "Create account",
-    "subtitle": "Join the MULU network",
+    "subtitle": "Join MULU",
     "customerTitle": "Welcome to MULU 👋",
-    "customerSubtitle": "Join the network and book a wash to your car — no queues, no leaving home.",
+    "customerSubtitle": "Book a wash straight to your car. No queues, no leaving home.",
     "washerTitle": "Join the MULU team 💙",
-    "washerSubtitle": "Start earning by washing cars — flexible work, on your own schedule.",
+    "washerSubtitle": "Earn from washing cars. Flexible work, on your own schedule.",
     "gift": {
       "title": "30% off your first wash",
-      "sub": "Welcome gift — applied automatically on your first order"
+      "sub": "Welcome gift, applied automatically on your first order"
     },
     "customerBenefits": {
       "location": "At your spot",
@@ -154,8 +154,8 @@
       "required": "Please confirm you have read and agree to the terms to continue"
     },
     "errors": {
-      "phoneInUse": "That phone number is already linked to an account — sign in or reset your password.",
-      "emailInUse": "That email is already registered — sign in or reset your password."
+      "phoneInUse": "That phone number is already linked to an account. Sign in or reset your password.",
+      "emailInUse": "That email is already registered. Sign in or reset your password."
     }
   },
   "forgot": {
@@ -173,7 +173,7 @@
     "submit": "Update password",
     "saving": "Updating…",
     "doneTitle": "Password updated",
-    "doneBody": "Your password has been changed — you're all set.",
+    "doneBody": "Your password has been changed. You're all set.",
     "continue": "Continue",
     "invalidTitle": "Link expired",
     "invalidBody": "This password reset link is invalid or has expired. Request a new one.",
@@ -212,7 +212,7 @@
       "notOnSite": "Not on site",
       "yourLocation": "Your location",
       "tapToSetLocation": "Tap to set location",
-      "locationError": "Couldn't get your location — tap above to set it manually",
+      "locationError": "Couldn't get your location. Tap above to set it manually",
       "tapToAdjust": "Tap to adjust pin",
       "allowLocation": "Or allow location access for auto-detect",
       "carType": "Car type",
@@ -220,8 +220,8 @@
       "requiredField": "(required)",
       "underground": {
         "label": "Underground parking",
-        "hint": "No GPS or reception — your washer captures photos offline and the arrival location check is skipped.",
-        "notesRequired": "Access notes are required for underground parking — describe how to reach the car."
+        "hint": "No GPS or reception. Your washer captures photos offline and the arrival location check is skipped.",
+        "notesRequired": "Access notes are required for underground parking. Describe how to reach the car."
       },
       "siteResources": "What's available at the location?",
       "waterAccessible": "Water tap",
@@ -229,7 +229,7 @@
       "siteResourcesHint": "This helps the washer know what to bring.",
       "bookNow": "Book wash",
       "booking": "Booking…",
-      "locationRequired": "Please allow location or tap \"Choose location\" to set your pin",
+      "locationRequired": "Allow location, or tap \"Choose location\" to drop your pin",
       "bookingSuccess": "Your wash is booked! Looking for a washer…",
       "locationPrompt": {
         "title": "Enable location",
@@ -252,7 +252,7 @@
         "totalVat": "Total · VAT included",
         "vatBreakdown": "Includes {{rate}}% VAT (₪{{amount}})",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})",
-        "firstWashBadge": "🎁 {{percent}}% off — first wash"
+        "firstWashBadge": "🎁 {{percent}}% off · first wash"
       },
       "submit": {
         "needsPhotos": "Add all 4 vehicle photos to continue"
@@ -279,7 +279,7 @@
         "isThisYourCar": "Is this your car?",
         "yesItsMine": "Yes, that's mine",
         "noEnterManually": "No, enter manually",
-        "notFound": "Couldn't find that plate. Please enter your car details.",
+        "notFound": "Couldn't find that plate. Enter your car details instead.",
         "lookupError": "Couldn't reach the vehicle registry. You can retry or enter details manually.",
         "retry": "Retry",
         "enterManually": "Enter manually",
@@ -318,7 +318,7 @@
       "customPlaceholder": "Other",
       "invalid": "Enter a valid tip amount",
       "thanks": "Thanks! ₪{{amount}} tip sent to your washer",
-      "added": "You tipped ₪{{amount}} — thank you!"
+      "added": "You tipped ₪{{amount}}. Thank you!"
     },
     "tracking": {
       "title": "Order status",
@@ -440,13 +440,13 @@
       "groupLastMonth": "Last month",
       "groupOlder": "Older",
       "empty": "No washes yet",
-      "emptyDesc": "Book your first on-demand car wash — it takes under a minute.",
+      "emptyDesc": "Book your first wash. It takes under a minute.",
       "bookNow": "Book a wash"
     }
   },
   "washer": {
     "dashboard": {
-      "gpsRequired": "Enable GPS and try again — location is required to go online",
+      "gpsRequired": "Enable GPS and try again. Location is required to go online",
       "openMenu": "Open menu",
       "recenterMap": "Recenter map on my location",
       "youre": "You're",
@@ -481,7 +481,7 @@
       "acceptJob": "Accept Job",
       "accepting": "Accepting…",
       "notFound": "Job not found",
-      "accepted": "Job accepted — let's go!"
+      "accepted": "Job accepted. Let's go!"
     },
     "earnings": {
       "title": "Earnings",
@@ -556,7 +556,7 @@
     "support": {
       "title": "Support",
       "comingSoon": "Support coming soon",
-      "comingSoonDesc": "We're building a support system. For now, please reach out via email."
+      "comingSoonDesc": "We're building support. For now, email us and we'll help."
     },
     "drawer": {
       "activeJob": "Active wash",
@@ -597,12 +597,12 @@
       "updating": "Updating…",
       "access": {
         "title": "Access notes",
-        "none": "No special access notes — meet the customer at the location."
+        "none": "No special access notes. Meet the customer at the location."
       },
       "underground": {
-        "badge": "Underground — no reception expected",
-        "accessHint": "No GPS underground — follow these directions to reach the car.",
-        "queued": "Queued — will sync when you're back online",
+        "badge": "Underground · no reception expected",
+        "accessHint": "No GPS underground. Follow these directions to reach the car.",
+        "queued": "Queued · will sync when you're back online",
         "syncing": "Syncing your captured photos…",
         "synced": "All captures synced"
       },
@@ -636,7 +636,7 @@
         "cancelLabel": "Keep job",
         "shortLabel": "Cancel"
       },
-      "jobCompleted": "Job complete — great work!",
+      "jobCompleted": "Job complete. Great work!",
       "vehicle": {
         "title": "Vehicle",
         "notProvided": "Vehicle info not provided",
@@ -655,7 +655,7 @@
       "toasts": {
         "enRoute": "Heading to the customer",
         "arrived": "Marked as arrived",
-        "inProgress": "Wash started — do great work!",
+        "inProgress": "Wash started. Make it shine!",
         "completed": "Job complete! Great work.",
         "submitted": "Submitted for approval"
       },
@@ -748,20 +748,20 @@
     "jeep": "Jeep / SUV"
   },
   "landing": {
-    "heroTitle": "Welcome to MULU 👋",
-    "tagline": "On-demand mobile car wash — we come to you, anywhere.",
+    "heroTitle": "A clean car, without leaving home",
+    "tagline": "Book a wash and a washer comes to your car. At home, at work, wherever it's parked.",
     "ctaStart": "Get started",
-    "feature1": "Drop a pin anywhere",
-    "feature2": "Sparkling like new",
-    "feature3": "Washer arrives at your location",
+    "feature1": "You pick the spot, we show up",
+    "feature2": "Clean and shining, like new",
+    "feature3": "No lines, no leaving home",
     "intro": {
       "title": "Hi, we're MULU 👋",
-      "subtitle": "We bring the next generation of car washing straight to your parking spot — no traffic, no lines, no leaving home.",
+      "subtitle": "We bring the next generation of car washing straight to your parking spot. No traffic, no lines, no leaving home.",
       "howItWorks": "How it works?",
-      "step1": "Order a wash wherever suits you — home, work, anywhere your car is parked.",
+      "step1": "Order a wash wherever suits you. Home, work, anywhere your car is parked.",
       "step2": "A professional washer in your area sees the order, accepts it, and heads to your car.",
       "step3": "Your car is photographed before and after, and the wash is only approved by us once it's clean and everything went smoothly.",
-      "signoff": "See you at the parking spot — the MULU team 💙",
+      "signoff": "See you at the parking spot. The MULU team 💙",
       "chooseRole": "How would you like to join?",
       "roleCustomer": "Sign up as a customer",
       "roleCustomerSub": "Book washes to your car",
@@ -772,7 +772,7 @@
   },
   "firstWashGift": {
     "title": "Congratulations! 🎉",
-    "body": "You've won {{percent}}% off your first wash — it's already waiting on your first order.",
+    "body": "You've won {{percent}}% off your first wash. It's already waiting on your first order.",
     "badge": "{{percent}}% OFF",
     "cta": "Book my first wash",
     "dismiss": "Maybe later"
@@ -835,10 +835,10 @@
   },
   "chat": {
     "title": "Chat",
-    "emptyState": "No messages yet — say hi.",
+    "emptyState": "No messages yet. Say hi.",
     "placeholder": "Type a message",
     "send": "Send",
-    "readOnly": "Order is complete — chat is read-only",
+    "readOnly": "Order is complete. Chat is read-only",
     "charsRemaining": "{{count}} characters left"
   },
   "notifications": {
@@ -958,7 +958,7 @@
     "title": "Support",
     "newConversation": "New conversation",
     "empty": "No support conversations",
-    "emptyDesc": "Need help? Start a new conversation and our team will respond shortly.",
+    "emptyDesc": "Need help? Start a conversation and we'll get back to you soon.",
     "general": "General question",
     "orderLinked": "Order #{{id}}",
     "waitingForAgent": "Waiting for agent...",

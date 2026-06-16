@@ -131,7 +131,7 @@ export default function Broadcasts() {
       // Scheduling is stored; execution is deferred until pg_cron is wired.
       // The row will fire when send-broadcast is invoked by the future cron.
       setBusy(false); setConfirming(null)
-      setSuccess(`Scheduled for ${new Date(draft.scheduled_at).toLocaleString()} (execution requires pg_cron — see DECISIONS.md).`)
+      setSuccess(`Scheduled for ${new Date(draft.scheduled_at).toLocaleString()} (execution requires pg_cron; see DECISIONS.md).`)
       setDraft(emptyDraft())
       loadHistory()
       return
@@ -212,7 +212,7 @@ export default function Broadcasts() {
             {draft.scheduled_at && (
               <p className="text-[11px] text-warning flex items-center gap-1.5">
                 <Clock size={11} />
-                Scheduled broadcasts wait for pg_cron — see DECISIONS.md for setup status.
+                Scheduled broadcasts wait for pg_cron. See DECISIONS.md for setup status.
               </p>
             )}
           </div>

@@ -440,7 +440,7 @@ export function ForceStageSection({ order, onDone, onCancel }) {
     <section className="card flex flex-col gap-3">
       <h3 className="font-semibold text-ink flex items-center gap-2"><ArrowLeftRight size={14} /> Force stage</h3>
       <p className="text-[12px] text-ink-muted">
-        Set this order to any stage — forward, backward, or skipping — to match reality. Reason required; every change is audited.
+        Set this order to any stage (forward, backward, or skipping) to match reality. Reason required; every change is audited.
       </p>
 
       {/* Stage picker — all 8 statuses, current one marked */}

@@ -23,7 +23,7 @@ export const resources = {
       },
       login: {
         title: 'Super-admin console',
-        subtitle: 'Internal owner tools — sign-in restricted to super_admin accounts.',
+        subtitle: 'Internal owner tools. Sign-in is restricted to super_admin accounts.',
         emailLabel: 'Email',
         passwordLabel: 'Password',
         submit: 'Sign in',
@@ -52,7 +52,7 @@ export const resources = {
         },
         empty: {
           title: 'Nothing to show yet',
-          subtitle: 'This tab is wired up but its workload arrives in a later phase.',
+          subtitle: 'This tab is set up, but its content arrives in a later phase.',
         },
       },
     },
@@ -60,24 +60,24 @@ export const resources = {
   he: {
     translation: {
       common: {
-        save: 'שמור',
+        save: 'שמירה',
         cancel: 'ביטול',
-        delete: 'מחק',
+        delete: 'מחיקה',
         confirm: 'אישור',
         loading: 'טוען…',
         error: 'שגיאה',
         signOut: 'התנתקות',
         signIn: 'כניסה',
-        retry: 'נסה שוב',
+        retry: 'נסו שוב',
         search: 'חיפוש',
         edit: 'עריכה',
-        send: 'שלח',
+        send: 'שליחה',
         upload: 'העלאה',
-        restore: 'שחזר לברירת מחדל',
+        restore: 'שחזור לברירת מחדל',
       },
       login: {
         title: 'קונסולת מנהל-על',
-        subtitle: 'כלי בעלים פנימיים — הגישה מוגבלת לחשבונות super_admin בלבד.',
+        subtitle: 'כלי בעלים פנימיים. הגישה מוגבלת לחשבונות super_admin בלבד.',
         emailLabel: 'אימייל',
         passwordLabel: 'סיסמה',
         submit: 'כניסה',
@@ -106,7 +106,7 @@ export const resources = {
         },
         empty: {
           title: 'אין מה להציג עדיין',
-          subtitle: 'הטאב מחווט אך התוכן שלו מגיע בשלב מאוחר יותר.',
+          subtitle: 'הטאב מוכן, אך התוכן שלו יגיע בשלב מאוחר יותר.',
         },
       },
     },

@@ -145,7 +145,7 @@ export default function UserDetail({ userId, onClose, onChanged }) {
 
             {tempPassword && (
               <div className="card border-warning/30 bg-warning/5">
-                <p className="text-[11px] uppercase tracking-wider text-warning font-bold">One-time password — copy now</p>
+                <p className="text-[11px] uppercase tracking-wider text-warning font-bold">One-time password. Copy it now</p>
                 <p className="font-mono text-sm text-ink mt-1 select-all">{tempPassword}</p>
                 <button className="text-[11px] text-ink-subtle hover:text-ink mt-1" onClick={() => setTempPassword(null)}>Clear from view</button>
               </div>

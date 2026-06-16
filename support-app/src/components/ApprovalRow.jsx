@@ -216,8 +216,8 @@ export default function ApprovalRow({ order, onApproved }) {
   const allPhotos = useMemo(() => {
     if (!isNewShape) return []
     return [
-      ...PHOTO_SLOTS.map(s => ({ key: `arrival_${s}`,    label: `${t('approvals.section.arrival')} — ${t(`approvals.photoSlots.${s}`)}`,    url: photoUrls[`arrival_${s}`] })),
-      ...PHOTO_SLOTS.map(s => ({ key: `completion_${s}`, label: `${t('approvals.section.completion')} — ${t(`approvals.photoSlots.${s}`)}`, url: photoUrls[`completion_${s}`] })),
+      ...PHOTO_SLOTS.map(s => ({ key: `arrival_${s}`,    label: `${t('approvals.section.arrival')} · ${t(`approvals.photoSlots.${s}`)}`,    url: photoUrls[`arrival_${s}`] })),
+      ...PHOTO_SLOTS.map(s => ({ key: `completion_${s}`, label: `${t('approvals.section.completion')} · ${t(`approvals.photoSlots.${s}`)}`, url: photoUrls[`completion_${s}`] })),
     ].filter(p => p.url)
   }, [isNewShape, photoUrls, t])
 

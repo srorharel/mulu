@@ -138,7 +138,7 @@ export default function Receipts() {
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-admin/40 bg-admin-soft text-admin-deep text-[12.5px] leading-relaxed">
           <Info size={16} className="shrink-0 mt-0.5" />
           <span>
-            Business details are <b>snapshotted onto each receipt when it is issued</b> — edits here
+            Business details are <b>snapshotted onto each receipt when it is issued</b>. Edits here
             apply to future receipts only. Emails send from the configured sender via Resend
             (domain must be verified there).
           </span>
