@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, MapPin, Droplets, Zap, User, Check, ParkingSquare } from 'lucide-react'
+import { ChevronRight, Loader2, MapPin, User, Check, ParkingSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
@@ -44,32 +44,6 @@ function greetingKey() {
 }
 
 // Small site-resource toggle card (water tap / power outlet).
-function SiteResourceCard({ icon: Icon, label, available, onToggle, t }) {
-  return (
-    <MotionButton
-      type="button"
-      onClick={onToggle}
-      className={`flex items-center gap-2.5 p-3 rounded-glass-sm border backdrop-blur-xl transition-colors text-start w-full ${
-        available
-          ? 'border-primary-300 bg-primary-50/80'
-          : 'border-glass-border bg-glass'
-      }`}
-    >
-      <div className={`w-[34px] h-[34px] rounded-[11px] flex items-center justify-center shrink-0 ${
-        available ? 'bg-primary-500 text-white' : 'bg-black/[0.06] text-ink-muted'
-      }`}>
-        <Icon className="h-[18px] w-[18px]" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[13px] font-bold text-ink leading-tight">{label}</p>
-        <p className={`text-[11px] ${available ? 'text-primary-800' : 'text-ink-muted'}`}>
-          {available ? t('consumer.home.available') : t('consumer.home.notOnSite')}
-        </p>
-      </div>
-    </MotionButton>
-  )
-}
-
 // Confirmed vehicle summary — shown when a vehicle is selected (saved or free-text confirmed).
 function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
   return (
@@ -115,8 +89,6 @@ export default function ConsumerHome() {
   const [sheetOpen, setSheetOpen]       = useState(false)
   const [accessNotes, setAccessNotes]   = useState('')
   const [isUnderground, setIsUnderground] = useState(false)
-  const [siteHasWater, setSiteHasWater] = useState(false)
-  const [siteHasPower, setSiteHasPower] = useState(false)
   const [submitting, setSubmitting]     = useState(false)
   const submittingRef                   = useRef(false)
   const [error, setError]               = useState('')
@@ -317,8 +289,6 @@ export default function ConsumerHome() {
         key_location:  null,
         access_notes:  accessNotes.trim() || null,
         is_underground_parking: isUnderground,
-        site_has_water:      siteHasWater,
-        site_has_power:      siteHasPower,
         addon_wiper_fluid:   false,
         addon_tire_pressure: false,
         car_make:        licenseData.make,
@@ -517,24 +487,6 @@ export default function ConsumerHome() {
             )}
           </GlassCard>
           </Editable>
-
-          {/* ── Site resources ── */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <SiteResourceCard
-              icon={Droplets}
-              label={t('consumer.home.waterAccessible')}
-              available={siteHasWater}
-              onToggle={() => setSiteHasWater(v => !v)}
-              t={t}
-            />
-            <SiteResourceCard
-              icon={Zap}
-              label={t('consumer.home.powerAccessible')}
-              available={siteHasPower}
-              onToggle={() => setSiteHasPower(v => !v)}
-              t={t}
-            />
-          </div>
 
           {/* ── Underground parking toggle ── */}
           <GlassCard className="p-4">
