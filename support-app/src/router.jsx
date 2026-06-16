@@ -5,7 +5,6 @@ import { initBackButton } from './lib/backButton.js'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Settings from './pages/Settings.jsx'
-import Legal from './pages/Legal.jsx'
 
 function Spinner() {
   return (
@@ -66,14 +65,6 @@ export function AppRouter() {
           element={
             <RequireAgent>
               <Settings />
-            </RequireAgent>
-          }
-        />
-        <Route
-          path="/legal"
-          element={
-            <RequireAgent>
-              <Legal />
             </RequireAgent>
           }
         />

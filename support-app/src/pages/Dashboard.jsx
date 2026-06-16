@@ -9,7 +9,7 @@ import { fetchPendingApprovals } from '../lib/approvals.js'
 import { fetchPendingVerifications } from '../lib/washerVerifications.js'
 import { supabase } from '../lib/supabase.js'
 import LeftRail from '../components/LeftRail.jsx'
-import MobileTabBar from '../components/MobileTabBar.jsx'
+import MobileNav from '../components/MobileNav.jsx'
 import ReportsView from '../components/ReportsView.jsx'
 import QueueList from '../components/QueueList.jsx'
 import UnassignedView from '../components/UnassignedView.jsx'
@@ -478,10 +478,6 @@ export default function Dashboard() {
       navigate('/settings')
       return
     }
-    if (newTab === 'legal') {
-      navigate('/legal')
-      return
-    }
     if (newTab === 'unassigned') {
       navigate('/unassigned', { replace: true })
     } else {
@@ -531,6 +527,18 @@ export default function Dashboard() {
       />
 
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+        {/* Mobile top bar + slide-out menu — hidden under the full-screen chat (which has its own header) */}
+        {!mobileShowChat && (
+          <MobileNav
+            activeTab={tab}
+            onTabChange={handleTabChange}
+            counts={badgeCounts}
+            profile={profile}
+            onSettings={() => navigate('/settings')}
+            onSignOut={signOut}
+          />
+        )}
+
         {tab === 'unassigned' ? (
           <div className="flex flex-1 overflow-hidden">
             <UnassignedView conversations={unassigned} onClaim={handleClaim} />
@@ -618,9 +626,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {/* Mobile bottom tab bar */}
-      <MobileTabBar activeTab={tab} onTabChange={handleTabChange} counts={badgeCounts} />
     </div>
   )
 }

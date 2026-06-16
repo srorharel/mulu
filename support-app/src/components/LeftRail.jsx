@@ -1,4 +1,4 @@
-import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck, Scale, Flag } from 'lucide-react'
+import { Inbox, MessageSquare, CheckSquare, Ticket, Settings, LogOut, ShieldCheck, Flag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import useBrandAsset from '../hooks/useBrandAsset.js'
 import { supabase } from '../lib/supabase.js'
@@ -25,7 +25,6 @@ const TABS = [
   { id: 'tickets',             Icon: Ticket,       labelKey: 'nav.tickets',              inactiveBadge: 'var(--color-danger)'  },
   { id: 'washerVerifications', Icon: ShieldCheck,  labelKey: 'nav.washerVerifications',  inactiveBadge: 'var(--color-warning)' },
   { id: 'reports',             Icon: Flag,         labelKey: 'nav.reports',              inactiveBadge: 'var(--color-danger)'  },
-  { id: 'legal',               Icon: Scale,        labelKey: 'nav.legal',                inactiveBadge: 'var(--color-agent)'   },
 ]
 
 function Badge({ count, active, inactiveBadge, t }) {
