@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**MULU** — two-sided on-demand car-wash marketplace. PWA + Capacitor Android.
+**MULU** — two-sided on-demand car-wash marketplace. PWA + Capacitor 8 (Android + iOS).
 React 18 + Vite + Tailwind frontend; Supabase (Postgres + PostGIS, Auth, Realtime, Storage) backend.
 
 ## Commands
@@ -20,11 +20,13 @@ npm run smoke          # E2E smoke for P6/P7/P8 admin flows
 node scripts/audit-bootstrap.js        # declared-but-missing DB objects
 node scripts/verify-live-surfaces.js   # live Approvals / storage RLS / nearby_jobs checks
 npm run android:sync   npm run android:open
-./update.ps1 "msg"            # commit → push (Vercel auto-deploys) → optional APK
+./update.ps1 "msg"            # commit → push (Vercel auto-deploys) → debug APKs (sideload)
 ./update.ps1 "msg" -Support   # + builds support APK → wash-support-latest.apk
+./release-android.ps1         # SIGNED release AAB for Play (bundleRelease → wash-release.aab)
 ```
 
 > **Windows (ADR-005):** some npm script chains break. If `npm run dev` fails, run `node ./node_modules/vite/bin/vite.js` directly.
+> **JDK 21 required** for Android builds (Capacitor 8 plugins pin a JDK-21 Gradle toolchain). `update.ps1` / `release-android.ps1` auto-detect Android Studio's bundled JBR; `android/settings.gradle` has a foojay resolver for toolchain auto-provisioning. iOS is built in the cloud via `codemagic.yaml` (no Mac locally).
 
 ## Required env
 
@@ -40,8 +42,8 @@ Three separate Vite apps, auth-isolated by Supabase `storageKey`:
 
 | App | Path | Port | Users | storageKey | Native |
 |-----|------|------|-------|-----------|--------|
-| Main | `src/` | 3000 | consumer + washer | SDK default | Capacitor `com.sparklego.app` |
-| Support | `support-app/src/` | 3001 | agent | `wash-support-auth` | Capacitor `com.sparklego.support` |
+| Main | `src/` | 3000 | consumer + washer | SDK default | Capacitor 8 `com.sparklego.app` (Android + iOS) |
+| Support | `support-app/src/` | 3001 | agent | `wash-support-auth` | Capacitor 8 `com.sparklego.support` (Android, internal) |
 | Admin | `admin-app/src/` | 3002 | super_admin | `wash-admin-auth` | web-only (Vercel) |
 
 Roles (`profiles.role`): `consumer`, `washer`, `agent`, `super_admin`.
@@ -54,7 +56,7 @@ UI to main/support.
 - **ARCHITECTURE.md** — routing/auth, booking, washer dashboard, approval workflow, verification, support + admin apps, design editor, dark mode, i18n, realtime, mobile, deployment, tests.
 - **DATABASE.md** — tables, RPCs, migrations, buckets, order state machine, pricing/payout, RLS, **migration discipline**.
 - **NOTIFICATIONS.md** — FCM push: edge functions, triggers, channels, broadcasts, deep links.
-- **DECISIONS.md** — ADRs.   **DESIGN.md** — visual/design system.   **STORE_COMPLIANCE.md** — permission strings, Data Safety / Privacy Label, deletion URL, UGC.
+- **DECISIONS.md** — ADRs.   **DESIGN.md** — visual/design system.   **STORE_COMPLIANCE.md** — permission strings, Data Safety / Privacy Label, deletion URL, UGC.   **STORE_LISTING.md** — store copy (he/en) + Data Safety / App Privacy answers + review demo-account notes.   **IOS_SETUP.md** — iOS build via Codemagic (no Mac), Apple setup, iOS-push FCM↔APNs TODO.
 
 ## Legal docs / account deletion / UGC (Jun 2026, migrations through 0113; ADR-036–041)
 
@@ -65,6 +67,16 @@ UI to main/support.
 - **Receipts (ADR-041):** order → `completed` issues a `receipts` row (sequential #, config snapshot) + emails the customer via Edge Fn `send-receipt` (Resend) **with a חשבונית מס/קבלה PDF attached** (pdf-lib + Alef font + manual RTL visual ordering — PDFs have no bidi). Config in admin **Receipts** tab (9 `app_config` keys incl. עוסק מורשה + sender email; the list has a From/To **issue-date filter**). **New Vault secret: `send_receipt_url`; new Edge secret: `RESEND_API_KEY`.** Pinned by `receipts.contract.test.js`. Sender domain `muluwash.com` is verified in Resend with DNS on **Cloudflare** (SPF/DKIM/DMARC intact); `receipt_sender_email` = `receipts@muluwash.com`.
 - **Receipt retention — NONE (keep forever):** receipt **rows AND their archived PDFs are retained permanently** — the PDFs are the original חשבונית מס/קבלה documents the business files with the tax authority monthly, so they must never be auto-deleted. 0122 briefly added a 6-month PDF purge; it was **reverted in 0123** (cron unscheduled, purge functions + `pdf_purged_at` dropped, `purge-receipt-pdfs` undeployed, Vault `purge_receipt_pdfs_url` removed). Do NOT reintroduce a receipt purge. (The admin Receipts list keeps its From/To issue-date filter — useful for pulling each month's receipts for filing.)
 
+## App-store submission & native build (Jun 2026)
+
+Submission prep is on branch `capacitor-8-upgrade` (device-tested; merge after a device smoke-test). Refs: **STORE_COMPLIANCE.md**, **STORE_LISTING.md**, **IOS_SETUP.md**.
+
+- **Capacitor 8** (main + support, migrated 6→7→8 via `npx cap migrate`): `compileSdk`/`targetSdk` **36**, `minSdk` **24**, AGP **8.13.0**, Gradle **8.14.3**. Clears Google Play's targetSdk 35 (now) + 36 (Aug 31 2026) rules.
+- **Release signing:** `android/key.properties` (gitignored — copy `key.properties.example` + run the keytool cmd there). `./release-android.ps1` → **signed AAB** (`wash-release.aab`) = the Play upload, NOT the debug APKs `update.ps1` sideloads. `versionCode`/`versionName` overridable via `-Pvcode`/`-Pvname` (Codemagic uses `$BUILD_NUMBER`).
+- **iOS:** `ios/` target (Cap 8, **SPM — no CocoaPods**); no Mac locally → cloud-built via **`codemagic.yaml`** (`ios-release` → TestFlight; `android-release` → signed AAB). Info.plist usage strings (he) + push background mode present; app icon generated from `public/logo.png` via `@capacitor/assets`. **iOS push NOT wired yet** — `send-notification` already sends iOS via the FCM `apns` block, but the client stores an APNs token; needs swap to `@capacitor-firebase/messaging` + a Firebase iOS app (`GoogleService-Info.plist`). DEFERRED until that + a device exist (IOS_SETUP.md §5). Android push works, untouched.
+- **Review demo accounts:** `node scripts/seed-review-accounts.mjs` (service-role key) → a consumer + a pre-approved washer.
+- **Production domain:** `muluwash.com` (the public `/account/delete` + `/legal/*` privacy URLs resolve there; deploy the consumer app at it). **Payments:** real-world service → no IAP (Apple 3.1.3(e) / Google physical-services); external processor TBD.
+
 ## Load-bearing gotchas (do not remove)
 
 - **`nearby_jobs` contract:** keep the 13-col return shape **including `lat`/`lng`** (WorkerMap pins). Guarded by `src/__tests__/nearbyJobsShape.contract.test.js`, `useNearbyJobs.test.jsx`, `scripts/verify-db.js`. Details in DATABASE.md.
@@ -73,3 +85,6 @@ UI to main/support.
 - **`src/test/setup.js`:** the global `beforeEach` clears session/localStorage — don't remove (stops SignUp draft state leaking across tests).
 - **Washer Settings `GridPill`:** depends on a module-level `const SPRING = {...}` — don't delete in refactors; it is NOT imported from PillRow.
 - **Design editor `121212` gate** (`admin-app/.../DesignEditor.jsx`) is a soft accidental-entry guard, **NOT security** — real protection is RLS + the bound-validating `admin_set_design_override` RPC.
+- **Location permission (Cap 8):** `useGeolocation` MUST `Geolocation.requestPermissions()` first (Cap 8 stopped auto-prompting from `getCurrentPosition`) AND retry while it returns `'prompt'` — Android shows one permission dialog at a time, and the startup push request (`router.jsx` `initNotifications`) otherwise swallows the location dialog (returns unchanged `'prompt'`, no UI). Don't revert to a bare `getCurrentPosition`.
+- **ESLint `ignorePatterns`** (`.eslintrc.cjs`) must keep `android`, `ios`, `mulu-site-cloudflare`, `mulu-posts` — they hold built/minified bundles; dropping any floods `npm run lint` with hundreds of false errors.
+- **support-app i18n** skips the live content-override fetch + Realtime subscribe under Vitest (`!import.meta.env.VITEST` in `support-app/src/i18n/index.js`) — don't remove, or tests open a real WebSocket and throw uncaught undici/jsdom `Event` errors (flips the CI exit code).
