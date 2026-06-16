@@ -249,7 +249,7 @@
       },
       "price": {
         "total": "Total",
-        "totalVat": "Total · VAT included",
+        "totalVat": "Total",
         "vatBreakdown": "Includes {{rate}}% VAT (₪{{amount}})",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})",
         "firstWashBadge": "🎁 {{percent}}% off · first wash"

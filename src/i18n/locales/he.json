@@ -249,7 +249,7 @@
       },
       "price": {
         "total": "סה\"כ",
-        "totalVat": "סה״כ · כולל מע״מ",
+        "totalVat": "סה״כ",
         "vatBreakdown": "כולל מע\"מ {{rate}}% (₪{{amount}})",
         "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})",
         "firstWashBadge": "🎁 {{percent}}% הנחה · שטיפה ראשונה"

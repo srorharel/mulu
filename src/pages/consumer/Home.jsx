@@ -4,7 +4,7 @@ import { ChevronRight, Loader2, MapPin, Droplets, Zap, User, Check, ParkingSquar
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
-import { VAT_RATE, consumerBreakdown, priceForCategory, priceBreakdown, applyFirstWashDiscount, FIRST_WASH_DISCOUNT_PERCENT } from '../../lib/pricing.js'
+import { consumerBreakdown, priceForCategory, applyFirstWashDiscount, FIRST_WASH_DISCOUNT_PERCENT } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useFirstWashDiscount } from '../../hooks/useFirstWashDiscount.js'
 import { useConsumerActiveOrders } from '../../hooks/useConsumerActiveOrders.js'
@@ -225,7 +225,6 @@ export default function ConsumerHome() {
 
   const { total: fullTotal } = consumerBreakdown(licenseData.category || 'private')
   const consumerTotal = firstWashEligible ? applyFirstWashDiscount(fullTotal).total : fullTotal
-  const { vat } = priceBreakdown(consumerTotal)
   const uploadedCount      = Object.values(photos).filter(Boolean).length
   const allPhotosUploaded  = uploadedCount === 4
   // Underground orders require access notes (no GPS arrival check — the washer
@@ -598,14 +597,11 @@ export default function ConsumerHome() {
                 <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
                   {t('consumer.home.price.totalVat')}
                 </p>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
+                <div className="flex items-baseline gap-1.5 mt-0.5 whitespace-nowrap">
                   <span className="text-[26px] font-extrabold text-ink tracking-[-0.6px] leading-none">₪{consumerTotal}</span>
                   {firstWashEligible && (
                     <span className="text-[14px] font-semibold text-ink-muted line-through">₪{fullTotal}</span>
                   )}
-                  <span className="text-[11px] text-ink-muted">
-                    {t('consumer.home.price.vatBreakdown', { rate: Math.round(VAT_RATE * 100), amount: vat.toFixed(2) })}
-                  </span>
                 </div>
                 {firstWashEligible && (
                   <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-700 dark:text-accent text-[11px] font-bold">
@@ -617,7 +613,7 @@ export default function ConsumerHome() {
                 <MotionButton
                   onClick={handleBook}
                   disabled={submitting || !canSubmit}
-                  className="h-[52px] px-[22px] rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)] dark:shadow-[0_4px_14px_rgba(38,181,95,0.15)]"
+                  className="h-[52px] px-5 shrink-0 whitespace-nowrap rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-1.5 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)] dark:shadow-[0_4px_14px_rgba(38,181,95,0.15)]"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
