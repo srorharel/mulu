@@ -1,3 +1,10 @@
+// Capacitor 8 plugin modules require a JDK 21 Java toolchain. This resolver lets
+// Gradle auto-download JDK 21 if it isn't already installed, so local + CI builds
+// work without manually managing a JDK. (Foojay Disco API.)
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.9.0'
+}
+
 include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
