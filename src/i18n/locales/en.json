@@ -238,7 +238,7 @@
       },
       "locationDenied": {
         "title": "Location access denied",
-        "body": "Enable location in Settings → Safari → Location Services for this site."
+        "body": "Enable location access for MULU in your device settings."
       },
       "fields": {
         "carYear": "Vehicle year",
@@ -458,7 +458,7 @@
       },
       "locationDenied": {
         "title": "Location access denied",
-        "body": "Enable location in Settings → Safari → Location Services for this site."
+        "body": "Enable location access for MULU in your device settings."
       }
     },
     "jobCard": {
