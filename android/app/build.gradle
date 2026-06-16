@@ -1,23 +1,47 @@
 apply plugin: 'com.android.application'
 
+// Release signing — credentials live in android/key.properties (gitignored),
+// never committed. If the file is absent (e.g. the debug-only dev loop in
+// update.ps1), release signing is skipped so debug builds keep working.
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace "com.sparklego.app"
-    compileSdk rootProject.ext.compileSdkVersion
+    namespace = "com.sparklego.app"
+    compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.sparklego.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Overridable from CI so every Play upload gets a unique, increasing code:
+        //   ./gradlew bundleRelease -Pvcode=$BUILD_NUMBER -Pvname=1.0.$BUILD_NUMBER
+        versionCode project.hasProperty('vcode') ? project.vcode.toInteger() : 1
+        versionName project.hasProperty('vname') ? project.vname : "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
         }
     }
     buildTypes {
         release {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -95,7 +95,7 @@ describe('JobDrawer — underground active job', () => {
   it('shows the prominent "no reception expected" badge (English)', async () => {
     renderDrawer('en')
     await waitFor(() => {
-      expect(screen.getByText('Underground — no reception expected')).toBeInTheDocument()
+      expect(screen.getByText('Underground · no reception expected')).toBeInTheDocument()
     })
   })
 
@@ -111,7 +111,7 @@ describe('JobDrawer — underground active job', () => {
   it('renders the Hebrew badge string for he locale', async () => {
     renderDrawer('he')
     await waitFor(() => {
-      expect(screen.getByText('תת-קרקעי — ללא קליטה צפויה')).toBeInTheDocument()
+      expect(screen.getByText('תת-קרקעי · כנראה ללא קליטה')).toBeInTheDocument()
     })
   })
 })

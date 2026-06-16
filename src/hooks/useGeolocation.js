@@ -88,58 +88,79 @@ export function useGeolocation({ watch = false } = {}) {
       setPermissionState('denied')
     }
 
-    if (!watch) {
-      // ── One-shot mode ────────────────────────────────────────────────────────
-      if (Capacitor.isNativePlatform()) {
-        Geolocation.getCurrentPosition(options)
-          .then(p => applyPosition(p.coords.latitude, p.coords.longitude))
-          .catch(e => applyError(e.message ?? 'Location unavailable'))
-      } else {
-        if (!navigator.geolocation) { applyError('Geolocation not supported'); return }
-        navigator.geolocation.getCurrentPosition(
-          p  => applyPosition(p.coords.latitude, p.coords.longitude),
-          e  => applyError(e.message),
-          options
-        )
-      }
-      return () => { cancelled = true }
+    function startNativeOneShot() {
+      Geolocation.getCurrentPosition(options)
+        .then(p => applyPosition(p.coords.latitude, p.coords.longitude))
+        .catch(e => applyError(e?.message ?? 'Location unavailable'))
     }
 
-    // ── Watch mode ────────────────────────────────────────────────────────────
+    // ── Native (Capacitor) ──────────────────────────────────────────────────────
+    // Capacitor 8's @capacitor/geolocation does NOT auto-prompt from
+    // getCurrentPosition / watchPosition — permission must be checked/requested
+    // first. Requesting here makes the OS prompt appear as soon as the screen mounts.
     if (Capacitor.isNativePlatform()) {
       let watchId = null
+      setPermissionState('prompting')
 
-      Geolocation.watchPosition(options, (pos, err) => {
-        if (cancelled) return
-        if (err)  { applyError(err.message ?? 'Location unavailable'); return }
-        if (pos)  applyPosition(pos.coords.latitude, pos.coords.longitude)
-      }).then(id => {
-        if (cleanedUp) {
-          // Unmount raced the async resolve — clear immediately.
-          Geolocation.clearWatch({ id })
-        } else {
-          watchId = id
+      ;(async () => {
+        try {
+          let status = await Geolocation.checkPermissions()
+          // Android shows one permission dialog at a time. At app start the push
+          // request (router.jsx) may already be in flight, so requestPermissions()
+          // returns the unchanged 'prompt' state with NO dialog. When that happens,
+          // wait for the other request to clear and retry. Once the dialog actually
+          // shows, requestPermissions() blocks until the user answers (so it won't
+          // resolve 'prompt'), and the loop breaks.
+          for (let attempt = 0; attempt < 8 && !cancelled; attempt++) {
+            if (status.location === 'granted' || status.coarseLocation === 'granted') break
+            if (status.location === 'denied'  && status.coarseLocation === 'denied')  break
+            status = await Geolocation.requestPermissions({ permissions: ['location'] })
+            if (status.location !== 'prompt' || status.coarseLocation !== 'prompt') break
+            await new Promise(r => setTimeout(r, 1000))
+          }
+          if (cancelled) return
+          const granted = status.location === 'granted' || status.coarseLocation === 'granted'
+          if (!granted) { applyError('Location permission denied'); return }
+          if (!watch) { startNativeOneShot(); return }
+          const id = await Geolocation.watchPosition(options, (pos, err) => {
+            if (cancelled) return
+            if (err)  { applyError(err.message ?? 'Location unavailable'); return }
+            if (pos)  applyPosition(pos.coords.latitude, pos.coords.longitude)
+          })
+          if (cleanedUp) Geolocation.clearWatch({ id })   // unmount raced the resolve
+          else watchId = id
+        } catch (e) {
+          applyError(e?.message ?? 'Location unavailable')
         }
-      }).catch(e => applyError(e.message ?? 'Location unavailable'))
+      })()
 
       return () => {
         cancelled = true
         cleanedUp = true
         if (watchId) Geolocation.clearWatch({ id: watchId })
       }
-    } else {
-      if (!navigator.geolocation) { applyError('Geolocation not supported'); return }
+    }
 
-      const watchId = navigator.geolocation.watchPosition(
+    // ── Web (browser geolocation) ────────────────────────────────────────────────
+    if (!navigator.geolocation) { applyError('Geolocation not supported'); return }
+
+    if (!watch) {
+      navigator.geolocation.getCurrentPosition(
         p => applyPosition(p.coords.latitude, p.coords.longitude),
         e => applyError(e.message),
         options
       )
+      return () => { cancelled = true }
+    }
 
-      return () => {
-        cancelled = true
-        navigator.geolocation.clearWatch(watchId)
-      }
+    const webWatchId = navigator.geolocation.watchPosition(
+      p => applyPosition(p.coords.latitude, p.coords.longitude),
+      e => applyError(`web: ${e.message} (code ${e.code})`),
+      options
+    )
+    return () => {
+      cancelled = true
+      navigator.geolocation.clearWatch(webWatchId)
     }
   }, [watch, enabled])
 

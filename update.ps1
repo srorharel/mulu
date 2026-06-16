@@ -18,6 +18,35 @@ function Write-Fail ($msg) {
 # Always run from the script's directory, regardless of where it was invoked
 Set-Location $PSScriptRoot
 
+# -- Ensure Gradle runs on JDK 21 (required by Capacitor 8 Android plugins) --
+# Prefers an existing JDK 21 in JAVA_HOME, else Android Studio's bundled JBR,
+# else a Temurin 21 install. Sets JAVA_HOME for this process so both the main
+# and support Gradle builds below use it.
+function Resolve-Jdk21Home {
+    $patterns = @()
+    if ($env:JAVA_HOME) { $patterns += $env:JAVA_HOME }
+    $patterns += "C:\Program Files\Android\Android Studio\jbr"
+    $patterns += "C:\Program Files\Eclipse Adoptium\jdk-21*"
+    $patterns += "C:\Program Files\Java\jdk-21*"
+    foreach ($pat in $patterns) {
+        foreach ($dir in (Get-Item $pat -ErrorAction SilentlyContinue)) {
+            $javaExe = Join-Path $dir.FullName "bin\java.exe"
+            if (Test-Path $javaExe) {
+                $out = (& $javaExe -version 2>&1 | Out-String)
+                if ($out -match 'version "21') { return $dir.FullName }
+            }
+        }
+    }
+    return $null
+}
+$jdk21 = Resolve-Jdk21Home
+if ($jdk21) {
+    $env:JAVA_HOME = $jdk21
+    Write-Host "  OK Using JDK 21 for Gradle: $jdk21" -ForegroundColor Green
+} else {
+    Write-Host "  !! No JDK 21 found - Capacitor 8 Android builds require JDK 21 (install Temurin 21 or Android Studio)." -ForegroundColor Yellow
+}
+
 $totalSteps = 6
 
 # -- Step 1: Sanity checks --

@@ -8,16 +8,17 @@
 :root {
   --color-surface:          #fafafa;
   --color-surface-elevated: #ffffff;
-  --color-surface-glass:    rgba(255, 255, 255, 0.60);
+  --color-surface-glass:    rgba(255, 255, 255, 0.92);
   --color-ink:              #171717;
   --color-ink-muted:        #737373;
   --color-ink-subtle:       #9ca3af;
   --color-edge:             #f5f5f5;
   --color-accent:           #7DD9A2;
   --color-accent-muted:     rgba(125, 217, 162, 0.12);
-  /* Phase C — glass surface & border */
-  --color-glass-surface:    rgba(255, 255, 255, 0.60);
-  --color-glass-border:     rgba(255, 255, 255, 0.55);
+  /* Phase C — glass surface & border. Near-opaque: Android WebView renders
+     backdrop-blur unreliably, so glass must stay legible without the blur. */
+  --color-glass-surface:    rgba(255, 255, 255, 0.92);
+  --color-glass-border:     rgba(0, 0, 0, 0.06);
   /* ── Skeleton placeholder (1.64–1.71:1 on light card/surface) ── */
   --color-surface-skeleton: #bcc7d2;
   /* ── Layout heights ─────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@
 .dark {
   --color-surface:          #0f1117;
   --color-surface-elevated: #1a1d27;
-  --color-surface-glass:    rgba(26, 29, 39, 0.72);
+  --color-surface-glass:    rgba(26, 29, 39, 0.94);
   --color-ink:              #f5f5f5;
   --color-ink-muted:        #a3a3a3;
   --color-ink-subtle:       #555e73;
@@ -41,7 +42,7 @@
   --color-accent:           #7DD9A2;
   --color-accent-muted:     rgba(125, 217, 162, 0.18);
   /* Phase C — glass surface & border (dark) */
-  --color-glass-surface:    rgba(26, 29, 39, 0.50);   /* matches mockup W.glassDark */
+  --color-glass-surface:    rgba(26, 29, 39, 0.94);   /* near-opaque: Android backdrop-blur unreliable */
   --color-glass-border:     rgba(255, 255, 255, 0.08);
   /* ── Skeleton placeholder (1.48:1 on dark card, blue-shifted from border) ── */
   --color-surface-skeleton: #2e3657;

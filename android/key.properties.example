@@ -1,0 +1,17 @@
+# MULU Android release signing — TEMPLATE.
+#
+# 1. Copy this file to  android/key.properties  (that path is gitignored).
+# 2. Generate the upload keystore ONCE and keep both the .jks file AND these
+#    passwords backed up forever — losing them means you can never update the
+#    app under the same listing (unless enrolled in Play App Signing key reset).
+#
+#    From the android/ folder run:
+#      keytool -genkeypair -v -keystore app/mulu-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias mulu-upload
+#
+# 3. Fill in the passwords you chose below.
+#
+# storeFile is resolved relative to the android/ folder (the Gradle root project).
+storeFile=app/mulu-upload.jks
+storePassword=CHANGE_ME
+keyAlias=mulu-upload
+keyPassword=CHANGE_ME

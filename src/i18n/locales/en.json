@@ -238,7 +238,7 @@
       },
       "locationDenied": {
         "title": "Location access denied",
-        "body": "Enable location in Settings → Safari → Location Services for this site."
+        "body": "Enable location access for MULU in your device settings."
       },
       "fields": {
         "carYear": "Vehicle year",
@@ -249,7 +249,7 @@
       },
       "price": {
         "total": "Total",
-        "totalVat": "Total · VAT included",
+        "totalVat": "Total",
         "vatBreakdown": "Includes {{rate}}% VAT (₪{{amount}})",
         "includesVat": "Includes {{rate}}% VAT (₪{{amount}})",
         "firstWashBadge": "🎁 {{percent}}% off · first wash"
@@ -458,7 +458,7 @@
       },
       "locationDenied": {
         "title": "Location access denied",
-        "body": "Enable location in Settings → Safari → Location Services for this site."
+        "body": "Enable location access for MULU in your device settings."
       }
     },
     "jobCard": {

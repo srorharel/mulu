@@ -238,7 +238,7 @@
       },
       "locationDenied": {
         "title": "הגישה למיקום נדחתה",
-        "body": "אפשרו מיקום בהגדרות ← Safari ← שירותי מיקום עבור אתר זה."
+        "body": "אפשרו גישה למיקום עבור MULU בהגדרות המכשיר."
       },
       "fields": {
         "carYear": "שנת רכב",
@@ -249,7 +249,7 @@
       },
       "price": {
         "total": "סה\"כ",
-        "totalVat": "סה״כ · כולל מע״מ",
+        "totalVat": "סה״כ",
         "vatBreakdown": "כולל מע\"מ {{rate}}% (₪{{amount}})",
         "includesVat": "כולל מע\"מ {{rate}}% (₪{{amount}})",
         "firstWashBadge": "🎁 {{percent}}% הנחה · שטיפה ראשונה"
@@ -458,7 +458,7 @@
       },
       "locationDenied": {
         "title": "הגישה למיקום נדחתה",
-        "body": "אפשרו מיקום בהגדרות ← Safari ← שירותי מיקום עבור אתר זה."
+        "body": "אפשרו גישה למיקום עבור MULU בהגדרות המכשיר."
       }
     },
     "jobCard": {
