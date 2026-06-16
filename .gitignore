@@ -12,6 +12,19 @@ dist
 android/app/google-services.json
 ios/App/App/GoogleService-Info.plist
 
+# Android release signing — NEVER commit the keystore or its passwords
+key.properties
+android/key.properties
+support-app/android/key.properties
+*.jks
+*.keystore
+
+# Release build artifacts (store uploads)
+wash-release.aab
+wash-support-release.aab
+android/app/release/
+support-app/android/app/release/
+
 # Support-app build artifacts
 support-app/dist/
 support-app/android/app/build/
