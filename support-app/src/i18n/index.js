@@ -32,7 +32,11 @@ const applyDir = (lng) => {
 applyDir(i18n.language)
 i18n.on('languageChanged', applyDir)
 
-if (supabase) {
+// Skip live content-override fetch + Realtime subscription under Vitest: the
+// subscription opens a real WebSocket (the supabase client is created from env),
+// which throws uncaught undici/jsdom Event errors during test teardown. Tests
+// don't exercise live overrides.
+if (supabase && !import.meta.env.VITEST) {
   loadOverrides({ supabase, app: 'support', locale: i18n.language, i18n })
   subscribeContentOverrides({ supabase, app: 'support', i18n })
 }
