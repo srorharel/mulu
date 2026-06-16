@@ -145,7 +145,7 @@ describe('OrderHistory — summary card', () => {
     // No spend number from a previous render leaks in
     expect(container.textContent).not.toContain('347')
     // Empty-state renders (Hebrew bookNow label appears, no summary card)
-    expect(container.textContent).toContain('הזמן שטיפה')
+    expect(container.textContent).toContain('מזמינים שטיפה')
   })
 
   it('renders in both locales without a spend figure', async () => {

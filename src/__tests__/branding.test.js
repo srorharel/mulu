@@ -37,9 +37,9 @@ describe('branding — main app display name is MULU', () => {
   it('en + he brand strings use MULU, not Wash', () => {
     const en = json(src('i18n/locales/en.json'))
     const he = json(src('i18n/locales/he.json'))
-    expect(en.signup.subtitle).toBe('Join the MULU network')
+    expect(en.signup.subtitle).toBe('Join MULU')
     expect(en.auth.newToWash).toBe('New to MULU?') // key unchanged, value rebranded
-    expect(he.signup.subtitle).toBe('הצטרף לרשת MULU')
+    expect(he.signup.subtitle).toBe('מצטרפים ל-MULU')
     expect(en.signup.subtitle).not.toMatch(/Wash/)
     expect(he.signup.subtitle).not.toMatch(/Wash/)
   })
