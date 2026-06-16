@@ -273,7 +273,9 @@ export default function OrderTracking() {
     <div className="h-full flex flex-col bg-surface">
 
       {/* ── Map area ─────────────────────────────────────────────────────── */}
-      <div className="relative shrink-0 overflow-hidden h-[55vh] min-h-[200px]">
+      {/* `isolate` keeps the z-[400] fade gradient + overlays contained — without
+          it they escape this (un-z-indexed) div and paint over the bottom sheet. */}
+      <div className="relative isolate shrink-0 overflow-hidden h-[55vh] min-h-[200px]">
         <Suspense fallback={<MapBG className="absolute inset-0 w-full h-full" />}>
           <OrderTrackingMap
             jobLat={order.lat}

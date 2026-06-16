@@ -66,7 +66,7 @@ export default function ConfirmDialog({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
               transition={MODAL_SPRING}
-              className="pointer-events-auto w-full max-w-sm bg-glass border border-glass-border backdrop-blur-xl rounded-3xl p-6 flex flex-col gap-5 shadow-2xl"
+              className="pointer-events-auto w-full max-w-sm bg-surface-elevated border border-edge rounded-3xl p-6 flex flex-col gap-5 shadow-2xl"
             >
               <div className="flex flex-col gap-2">
                 <p className="text-base font-bold text-ink">{title}</p>
