@@ -1,0 +1,94 @@
+# Codemagic CI — cloud builds for MULU (you have no Mac; this builds iOS for you).
+#
+# ── One-time setup in the Codemagic UI (cannot be done in this file) ──────────
+#  Apple / iOS:
+#   1. Teams > Integrations > App Store Connect: add an API key (Issuer ID, Key ID, .p8).
+#      Name it exactly "MULU ASC API Key" (referenced under integrations: below).
+#   2. App Store Connect: create the app with bundle id  com.sparklego.app
+#      and enable the *Push Notifications* capability on that App ID, plus an APNs key.
+#  Android / Play:
+#   3. Code signing identities > Android keystores: upload your upload keystore
+#      (the android/app/mulu-upload.jks from key.properties.example) with reference
+#      name "mulu_keystore". Codemagic then exposes $CM_KEYSTORE_PATH etc.
+#   4. (optional, to auto-publish) Add a Google Play service-account JSON as the
+#      env var GCLOUD_SERVICE_ACCOUNT_CREDENTIALS in a group named "google_play".
+#
+# Trigger builds manually from the Codemagic UI, or wire branch triggers later.
+
+workflows:
+
+  # ───────────────────────── iOS → TestFlight / App Store ─────────────────────
+  ios-release:
+    name: MULU iOS (App Store)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: MULU ASC API Key
+    environment:
+      xcode: latest          # Capacitor 8 needs a recent Xcode
+      node: 22
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.sparklego.app
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build web bundle + sync iOS
+        script: |
+          npm run build
+          npx cap sync ios
+      - name: Apply signing profiles to the Xcode project
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true   # uploads each build to TestFlight for testing
+
+  # ───────────────────────── Android → Play (signed AAB) ─────────────────────
+  android-release:
+    name: MULU Android (Play AAB)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      java: 21                # Capacitor 8 Android plugins require JDK 21
+      node: 22
+      android_signing:
+        - mulu_keystore
+      groups:
+        - google_play         # provides GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (optional)
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build web bundle + sync Android
+        script: |
+          npm run build
+          npx cap sync android
+      - name: Write key.properties from the Codemagic keystore
+        script: |
+          cat > "$CM_BUILD_DIR/android/key.properties" <<EOF
+          storeFile=$CM_KEYSTORE_PATH
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          keyPassword=$CM_KEY_PASSWORD
+          EOF
+      - name: Build signed release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal        # promote to "production" in the Play Console after review

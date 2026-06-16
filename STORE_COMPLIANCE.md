@@ -5,7 +5,7 @@ Covers permission strings, Google Play Data Safety / Apple Privacy Label answers
 deletion, UGC moderation, and payments. Grounded in the current implementation.
 
 - **Android package:** `com.sparklego.app` (consumer + washer). Support app: `com.sparklego.support` (agents; not consumer-facing, internal distribution).
-- **iOS:** no `ios/` Capacitor project exists yet. The iOS strings below are ready to paste into `Info.plist` when the iOS target is added.
+- **iOS:** `ios/` Capacitor target now exists (Capacitor 8, Swift Package Manager — no CocoaPods). The §3 usage strings are already in `ios/App/App/Info.plist`. Built via Codemagic CI (`codemagic.yaml`) since there's no Mac locally — see **IOS_SETUP.md**. ⚠️ iOS push still needs FCM↔APNs bridging (IOS_SETUP.md).
 - **Backend:** Supabase (Postgres + Storage + Auth + Realtime). Push via Firebase Cloud Messaging (FCM).
 - **Service model:** real-world physical car wash → **NOT** digital goods. Payments use an **external card processor**, not Apple/Google in-app purchase (see §7).
 
@@ -13,7 +13,7 @@ deletion, UGC moderation, and payments. Grounded in the current implementation.
 
 ## 1. Account deletion (Play / App Store blocker)
 
-- **Public deletion URL (submit to Google Play "Data deletion" + App Store):** `https://<production-domain>/account/delete`
+- **Public deletion URL (submit to Google Play "Data deletion" + App Store):** `https://muluwash.com/account/delete` (deploy the consumer web app at `muluwash.com` so this route is publicly reachable without login)
   - Logged-in: runs the in-app deletion flow directly.
   - Logged-out: shows Hebrew instructions, what is deleted vs retained, and a support contact (`support@wash.co.il`).
 - **In-app:** Consumer `Settings → מחיקת חשבון` and Washer `Settings → מחיקת חשבון`. A type-to-confirm modal lists the consequences; on confirm it calls the `delete-account` Edge Function, unregisters the push token, and signs out.
@@ -44,7 +44,7 @@ Declared in `android/app/src/main/AndroidManifest.xml`:
 
 ---
 
-## 3. iOS — Info.plist usage strings (paste when the iOS target is added)
+## 3. iOS — Info.plist usage strings (already present in `ios/App/App/Info.plist`)
 
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
@@ -115,8 +115,10 @@ MULU sells a **real-world physical service** (washing a car). Per Apple App Stor
 
 ## 8. Pre-submission checklist
 
-- [ ] Set the production domain in the deletion URL (§1) and submit it in both consoles.
-- [ ] Confirm `POST_NOTIFICATIONS` is in the release merged manifest (Android 13+).
-- [ ] Finalize the card processor and update the Payment-info rows (§4, §7).
-- [ ] When adding iOS: paste the Info.plist strings (§3), enable Push Notifications capability, and fill the App Privacy form (§5).
-- [ ] Device-test the runtime permission prompts show the rationale copy (§2).
+- [x] Production domain = `muluwash.com` in the deletion URL (§1). **TODO:** deploy the consumer app there + submit the URL in both consoles.
+- [x] `POST_NOTIFICATIONS` confirmed in the merged manifest (added by `@capacitor/push-notifications`).
+- [ ] Finalize the card processor and update the Payment-info rows (§4, §7). *(Owner is sourcing an external payment company.)*
+- [x] iOS target added (Capacitor 8, SPM); Info.plist strings in place (§3). **TODO:** enable Push Notifications capability + APNs key, wire FCM↔APNs (see `IOS_SETUP.md`), and fill the App Privacy form (§5).
+- [ ] Device-test the runtime permission prompts show the rationale copy (§2) — Android 15 edge-to-edge included.
+- [ ] Generate the upload keystore (`android/key.properties.example`) and build the signed AAB (`release-android.ps1` locally, or Codemagic `android-release`).
+- [ ] Build/test iOS via Codemagic (`codemagic.yaml`, `ios-release` workflow); see `IOS_SETUP.md` for the Apple/CI setup.
