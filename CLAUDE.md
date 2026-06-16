@@ -69,13 +69,14 @@ UI to main/support.
 
 ## App-store submission & native build (Jun 2026)
 
-Submission prep is on branch `capacitor-8-upgrade` (device-tested; merge after a device smoke-test). Refs: **STORE_COMPLIANCE.md**, **STORE_LISTING.md**, **IOS_SETUP.md**.
+Capacitor 8 + submission prep are **merged to `main`** (PR #1, Jun 2026; device-tested on Android, deploys via `update.ps1` → Vercel). Refs: **STORE_COMPLIANCE.md**, **STORE_LISTING.md**, **IOS_SETUP.md**.
 
 - **Capacitor 8** (main + support, migrated 6→7→8 via `npx cap migrate`): `compileSdk`/`targetSdk` **36**, `minSdk` **24**, AGP **8.13.0**, Gradle **8.14.3**. Clears Google Play's targetSdk 35 (now) + 36 (Aug 31 2026) rules.
 - **Release signing:** `android/key.properties` (gitignored — copy `key.properties.example` + run the keytool cmd there). `./release-android.ps1` → **signed AAB** (`wash-release.aab`) = the Play upload, NOT the debug APKs `update.ps1` sideloads. `versionCode`/`versionName` overridable via `-Pvcode`/`-Pvname` (Codemagic uses `$BUILD_NUMBER`).
 - **iOS:** `ios/` target (Cap 8, **SPM — no CocoaPods**); no Mac locally → cloud-built via **`codemagic.yaml`** (`ios-release` → TestFlight; `android-release` → signed AAB). Info.plist usage strings (he) + push background mode present; app icon generated from `public/logo.png` via `@capacitor/assets`. **iOS push NOT wired yet** — `send-notification` already sends iOS via the FCM `apns` block, but the client stores an APNs token; needs swap to `@capacitor-firebase/messaging` + a Firebase iOS app (`GoogleService-Info.plist`). DEFERRED until that + a device exist (IOS_SETUP.md §5). Android push works, untouched.
 - **Review demo accounts:** `node scripts/seed-review-accounts.mjs` (service-role key) → a consumer + a pre-approved washer.
 - **Production domain:** `muluwash.com` (the public `/account/delete` + `/legal/*` privacy URLs resolve there; deploy the consumer app at it). **Payments:** real-world service → no IAP (Apple 3.1.3(e) / Google physical-services); external processor TBD.
+- **Consumer booking page (`Home.jsx`) simplifications (Jun 2026):** removed the water/power (ברז מים / שקע חשמל) site toggles — orders no longer set `site_has_water`/`site_has_power` (DB columns remain, `NOT NULL DEFAULT false`; the washer `JobDrawer` still reads them). Also dropped the "incl VAT / כולל מע״מ" header + inline breakdown (prices are VAT-inclusive/final).
 
 ## Load-bearing gotchas (do not remove)
 
