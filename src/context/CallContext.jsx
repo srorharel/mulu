@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { getIceServers } from '../lib/turn.js'
 import { FEATURES } from '../lib/featureFlags.js'
+import { primeRingtone, startRing, stopRing } from '../lib/ringtone.js'
 import CallSheet from '../components/call/CallSheet.jsx'
 
 // ── In-app WebRTC voice calling (Feature 2) ──────────────────────────────────
@@ -29,6 +30,7 @@ export function CallProvider({ children }) {
   const [callState, setCallState]  = useState('idle')
   const [call, setCall]            = useState(null) // { callId, peerId, peerName, orderId, role }
   const [muted, setMuted]          = useState(false)
+  const [speakerOn, setSpeakerOn]  = useState(true)
   const [durationSec, setDuration] = useState(0)
 
   const pcRef          = useRef(null)
@@ -52,6 +54,7 @@ export function CallProvider({ children }) {
     pendingIceRef.current = []
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null
     setMuted(false)
+    setSpeakerOn(true)
     setDuration(0)
     setCallState(finalState)
     if (finalState === 'idle') {
@@ -235,6 +238,28 @@ export function CallProvider({ children }) {
     setMuted(next)
   }, [muted])
 
+  // Best-effort speakerphone toggle. Routes the remote audio to a different
+  // output sink where the platform exposes earpiece vs speaker as distinct
+  // devices (desktop + newer Android Chrome via setSinkId). On mobile WebViews
+  // that don't expose separate sinks this flips the on-screen state only —
+  // guaranteed native earpiece/speaker routing there needs a Capacitor audio
+  // plugin (AudioManager / AVAudioSession). Audio defaults to speaker on.
+  const toggleSpeaker = useCallback(async () => {
+    const next = !speakerOn
+    setSpeakerOn(next)
+    const el = remoteAudioRef.current
+    if (!el || typeof el.setSinkId !== 'function') return
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const outs = devices.filter((d) => d.kind === 'audiooutput')
+      const target = next
+        ? (outs.find((d) => d.deviceId === 'default') || outs[0])
+        : (outs.find((d) => /ear|receiver|handset/i.test(d.label)) ||
+           outs.find((d) => d.deviceId !== 'default') || outs[0])
+      if (target) await el.setSinkId(target.deviceId)
+    } catch { /* routing not available — visual toggle only */ }
+  }, [speakerOn])
+
   // ── Incoming-call inbox: subscribe to the personal channel ────────────────────
   useEffect(() => {
     if (!enabled) return undefined
@@ -260,7 +285,23 @@ export function CallProvider({ children }) {
     if (!user && callRef.current) cleanup('idle')
   }, [user, cleanup])
 
-  const value = { enabled, callState, call, muted, durationSec, startCall, accept, decline, hangup, toggleMute }
+  // Unlock the ringtone's AudioContext on the first user gesture so an incoming
+  // call can actually sound (browsers suspend audio until a gesture).
+  useEffect(() => {
+    if (!enabled) return undefined
+    const prime = () => primeRingtone()
+    window.addEventListener('pointerdown', prime, { once: true })
+    return () => window.removeEventListener('pointerdown', prime)
+  }, [enabled])
+
+  // Ring (audible + vibrate) while a call is incoming; stop on answer/decline/end.
+  useEffect(() => {
+    if (callState === 'incoming') startRing()
+    else stopRing()
+    return () => stopRing()
+  }, [callState])
+
+  const value = { enabled, callState, call, muted, speakerOn, durationSec, startCall, accept, decline, hangup, toggleMute, toggleSpeaker }
 
   return (
     <CallContext.Provider value={value}>
@@ -277,8 +318,8 @@ export function useCall() {
   // unconditionally call useCall() without crashing.
   if (!ctx) {
     return {
-      enabled: false, callState: 'idle', call: null, muted: false, durationSec: 0,
-      startCall: () => {}, accept: () => {}, decline: () => {}, hangup: () => {}, toggleMute: () => {},
+      enabled: false, callState: 'idle', call: null, muted: false, speakerOn: true, durationSec: 0,
+      startCall: () => {}, accept: () => {}, decline: () => {}, hangup: () => {}, toggleMute: () => {}, toggleSpeaker: () => {},
     }
   }
   return ctx

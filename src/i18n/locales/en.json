@@ -30,6 +30,7 @@
     "end": "End call",
     "mute": "Mute",
     "unmute": "Unmute",
+    "speaker": "Speaker",
     "failed": "Call failed",
     "micDenied": "Microphone permission is needed for calls",
     "unavailable": "Calling isn't available right now"

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { Phone, PhoneOff, Mic, MicOff } from 'lucide-react'
+import { Phone, PhoneOff, Mic, MicOff, Volume2 } from 'lucide-react'
 import { useCall } from '../../context/CallContext.jsx'
 
 // In-call / incoming-call overlay (Feature 2). Rendered by CallProvider only
@@ -15,7 +15,7 @@ function fmt(sec) {
 
 export default function CallSheet() {
   const { t } = useTranslation()
-  const { callState, call, muted, durationSec, accept, decline, hangup, toggleMute } = useCall()
+  const { callState, call, muted, speakerOn, durationSec, accept, decline, hangup, toggleMute, toggleSpeaker } = useCall()
 
   if (callState === 'idle' || !call) return null
 
@@ -72,13 +72,21 @@ export default function CallSheet() {
             </button>
           </div>
         ) : (
-          <div className="mt-10 flex items-center justify-center gap-8">
+          <div className="mt-10 flex items-center justify-center gap-6">
             <button
               onClick={toggleMute}
               aria-label={muted ? t('call.unmute') : t('call.mute')}
               className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform"
             >
               {muted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+            </button>
+            <button
+              onClick={toggleSpeaker}
+              aria-label={t('call.speaker')}
+              aria-pressed={speakerOn}
+              className={`w-14 h-14 rounded-full flex items-center justify-center active:scale-95 transition-transform ${speakerOn ? 'bg-white text-ink' : 'bg-white/15 text-white'}`}
+            >
+              <Volume2 className="h-6 w-6" />
             </button>
             <button
               onClick={hangup}
