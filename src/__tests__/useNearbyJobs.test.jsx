@@ -113,6 +113,64 @@ describe('useNearbyJobs', () => {
     expect(result.current.jobs.map(j => j.id)).toContain('order-3')
   })
 
+  // ── Regression: realtime row with no usable coords (real-world production) ───
+  // In production the `orders.location` PostGIS column arrives over realtime as
+  // EWKB hex (not WKT `POINT`), and the generated lat/lng columns are stripped by
+  // logical replication — so the raw row can't be placed by coords. The hook must
+  // fall back to a silent refetch so a new order still pops in live.
+
+  it('INSERT whose realtime row lacks usable coords silently refetches so the order appears live', async () => {
+    rpcRows = [pendingRow('order-1', { distance_km: 1.2, lat: 32.0853, lng: 34.7818 })]
+    const { result } = renderHook(() => useNearbyJobs(WASHER, true))
+    await waitFor(() => expect(result.current.jobs).toHaveLength(1))
+    expect(rpcCallCount).toBe(1)
+
+    // Server now has a second in-range pending order; the next RPC returns both.
+    rpcRows = [
+      pendingRow('order-1', { distance_km: 1.2, lat: 32.0853, lng: 34.7818 }),
+      pendingRow('order-2', { distance_km: 0.5, lat: 32.0, lng: 34.8 }),
+    ]
+
+    // Realtime delivers the INSERT the way Postgres actually does: PostGIS EWKB in
+    // `location`, and NO lat/lng (generated columns are not replicated).
+    act(() => {
+      realtimeHandler({
+        eventType: 'INSERT',
+        new: { id: 'order-2', status: 'pending', location: '0101000020E6100000ABCDEF' },
+        old: {},
+      })
+    })
+
+    // The hook refetched in the background and the new order popped in…
+    await waitFor(() => expect(result.current.jobs.map(j => j.id)).toContain('order-2'))
+    expect(rpcCallCount).toBe(2)
+    // …with no visible "refresh": the list was non-empty, so no spinner toggled.
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('UPDATE of a still-pending order with no usable coords refetches instead of dropping it', async () => {
+    rpcRows = [
+      pendingRow('order-1', { distance_km: 1.2, lat: 32.0853, lng: 34.7818 }),
+      pendingRow('order-2', { distance_km: 3.7, lat: 32.0900, lng: 34.7900 }),
+    ]
+    const { result } = renderHook(() => useNearbyJobs(WASHER, true))
+    await waitFor(() => expect(result.current.jobs).toHaveLength(2))
+    expect(rpcCallCount).toBe(1)
+
+    // order-1 is edited (price change) but stays pending; realtime carries only EWKB.
+    act(() => {
+      realtimeHandler({
+        eventType: 'UPDATE',
+        new: { id: 'order-1', status: 'pending', base_price: 60, location: '0101000020E6100000ABCDEF' },
+        old: { id: 'order-1', status: 'pending' },
+      })
+    })
+
+    // Old code wrongly dropped order-1; now the refetch keeps the full list intact.
+    await waitFor(() => expect(rpcCallCount).toBe(2))
+    expect(result.current.jobs.map(j => j.id)).toEqual(['order-1', 'order-2'])
+  })
+
   it('UPDATE moving an order out of pending removes it from the list (no refetch)', async () => {
     rpcRows = [
       pendingRow('order-1', { distance_km: 1.2, lat: 32.0853, lng: 34.7818 }),

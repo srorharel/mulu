@@ -114,7 +114,7 @@ export default function MobileNav({
 
       {/* Drawer overlay (mobile only) */}
       <div
-        className={`md:hidden fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`}
+        className={`md:hidden fixed inset-0 z-50 overflow-hidden ${open ? '' : 'pointer-events-none'}`}
         aria-hidden={!open}
       >
         {/* Backdrop */}

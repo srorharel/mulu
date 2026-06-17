@@ -98,19 +98,21 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
 
   return (
     <div
-      className="flex flex-col shrink-0 border-e border-edge bg-surface-elevated h-full w-full md:w-80"
+      className="flex flex-col min-w-0 md:shrink-0 border-e border-edge bg-surface-elevated h-full w-full md:w-80"
     >
       {/* Column header */}
       <div className="px-[18px] pt-[18px] pb-3 border-b border-edge shrink-0">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[17px] font-bold text-ink" style={{ letterSpacing: '-0.3px' }}>
+        <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+          <h2 className="text-[17px] font-bold text-ink truncate min-w-0" style={{ letterSpacing: '-0.3px' }}>
             {t('queue.title')}
           </h2>
-          <Pill color="agent" dot>{t('queue.live')}</Pill>
+          <span className="shrink-0">
+            <Pill color="agent" dot>{t('queue.live')}</Pill>
+          </span>
         </div>
 
         <div
-          className="flex items-center gap-2 px-2.5 rounded-[10px] border border-edge bg-surface"
+          className="flex items-center gap-2 px-2.5 rounded-[10px] border border-edge bg-surface min-w-0"
           style={{ height: 36 }}
         >
           <Search size={14} className="text-ink-subtle shrink-0" />
@@ -119,7 +121,7 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t('queue.searchPlaceholder')}
-            className="flex-1 bg-transparent text-[12px] text-ink placeholder:text-ink-subtle outline-none"
+            className="flex-1 min-w-0 bg-transparent text-[12px] text-ink placeholder:text-ink-subtle outline-none"
           />
           <kbd className="shrink-0 text-[10px] text-ink-muted bg-surface-high border border-edge rounded px-1 py-px font-mono">
             ⌘K

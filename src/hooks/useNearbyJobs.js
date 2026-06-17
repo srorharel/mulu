@@ -63,9 +63,11 @@ export function useNearbyJobs(position, enabled = true) {
 
   // Full list fetch via the RPC. The searching/skeleton state is shown ONLY for
   // the initial empty fetch — never on a realtime- or GPS-driven refetch (that
-  // toggle was the visible "refresh").
-  const fetchJobs = useCallback(async (lat, lng) => {
-    const isInitial = jobsRef.current.length === 0
+  // toggle was the visible "refresh"). Pass { silent: true } to suppress it even
+  // when the list is currently empty: a realtime-driven refetch must never flash a
+  // spinner — the new order should just pop in.
+  const fetchJobs = useCallback(async (lat, lng, { silent = false } = {}) => {
+    const isInitial = !silent && jobsRef.current.length === 0
     if (isInitial) setLoading(true)
     setError(null)
     const { data, error } = await supabase.rpc('nearby_jobs', {
@@ -78,9 +80,10 @@ export function useNearbyJobs(position, enabled = true) {
     if (isInitial) setLoading(false)
   }, [commit])
 
-  // Incremental single-row merge for a realtime change — NEVER refetches the list.
-  // INSERT/UPDATE of an in-range pending order upserts that one row (distance
-  // recomputed client-side); leaving pending / moving out of range / DELETE drops it.
+  // Apply a realtime `orders` change. Removals (DELETE / left-pending / out-of-range)
+  // and coord-bearing upserts happen in place with no RPC. The one case that needs a
+  // refetch is a new/updated pending order whose coordinates the realtime row does
+  // NOT carry — see the fallback at the bottom.
   const applyRealtime = useCallback((payload) => {
     const next = payload?.new ?? {}
     const old  = payload?.old ?? {}
@@ -97,20 +100,32 @@ export function useNearbyJobs(position, enabled = true) {
       return
     }
 
-    // INSERT / UPDATE of a pending order: place it if we can locate it and it's
-    // in range. If we can't compute distance yet (no position / no coords), leave
-    // the list as-is — the next GPS-driven fetch reconciles it, without a refetch here.
-    const ll  = rowLatLng(next)
+    // INSERT / UPDATE of a pending order. If the realtime row carries usable coords
+    // we place it incrementally (one row in/out, no RPC — keeps the list stable).
     const pos = posRef.current
-    if (!ll || !pos) { dropIfPresent(); return }
+    const ll  = rowLatLng(next)
+    if (ll && pos) {
+      const distance_km = Math.round(haversineKm(pos.lat, pos.lng, ll.lat, ll.lng) * 100) / 100
+      if (distance_km > RADIUS_KM) { dropIfPresent(); return }
+      const existing = current.find(j => j.id === id)
+      const merged   = { ...existing, ...next, lat: ll.lat, lng: ll.lng, distance_km }
+      commit([...without, merged])
+      return
+    }
 
-    const distance_km = Math.round(haversineKm(pos.lat, pos.lng, ll.lat, ll.lng) * 100) / 100
-    if (distance_km > RADIUS_KM) { dropIfPresent(); return }
+    // We could NOT derive coordinates from the realtime row — the normal production
+    // case: Postgres logical replication serializes the PostGIS `location` as EWKB
+    // hex (not WKT `POINT(...)`) and strips the generated lat/lng columns entirely,
+    // so `next` has nothing to place the order from. Previously we bailed here, so a
+    // brand-new in-range order stayed invisible until the washer happened to move and
+    // a GPS tick refetched — i.e. it looked like you had to refresh. Instead refetch
+    // now: the same silent RPC a GPS tick runs ({ silent } = no spinner), with the
+    // signature no-op in commit() keeping it flicker-free, so the order just pops in.
+    if (pos) { fetchJobs(pos.lat, pos.lng, { silent: true }); return }
 
-    const existing = current.find(j => j.id === id)
-    const merged   = { ...existing, ...next, lat: ll.lat, lng: ll.lng, distance_km }
-    commit([...without, merged])
-  }, [commit])
+    // No washer position yet — can't refetch either; the initial GPS fetch reconciles.
+    dropIfPresent()
+  }, [commit, fetchJobs])
 
   // Fetch (and refetch on position change) — silent except for the initial load.
   useEffect(() => {

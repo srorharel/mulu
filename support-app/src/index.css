@@ -27,6 +27,9 @@
 
 @layer base {
   html, body, #root { height: 100%; }
+  /* Phones: never allow horizontal scroll/clip — RTL overflow would push the
+     left edge of content (status pill, timestamps, previews) off-screen. */
+  html, body { overflow-x: hidden; }
   body {
     @apply bg-surface text-ink font-sans;
     -webkit-tap-highlight-color: transparent;

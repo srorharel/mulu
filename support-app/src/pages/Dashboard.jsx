@@ -562,7 +562,7 @@ export default function Dashboard() {
         ) : (
           <div className="flex flex-1 overflow-hidden">
             {/* Queue list — hidden on mobile when chat is open */}
-            <div className={`${mobileShowChat ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none`}>
+            <div className={`${mobileShowChat ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none min-w-0`}>
               <QueueList
                 mine={mine}
                 others={others}
