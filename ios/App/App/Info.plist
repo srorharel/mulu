@@ -10,6 +10,8 @@
 	<string>הגישה לתמונות מאפשרת לצרף תמונות של הרכב במידת הצורך.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>שמירת תמונות הרכב במכשיר.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>המיקרופון משמש לשיחות קוליות בתוך האפליקציה בין הלקוח לשוטף, מבלי לחשוף מספרי טלפון.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

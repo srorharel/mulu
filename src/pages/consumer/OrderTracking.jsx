@@ -10,6 +10,8 @@ import { useReverseGeocode, looksLikeCoords } from '../../lib/geocode.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import SupportChatSheet from '../../components/support/SupportChatSheet.jsx'
 import OrderChatSheet from '../../components/chat/OrderChatSheet.jsx'
+import { FEATURES } from '../../lib/featureFlags.js'
+import { useCall } from '../../context/CallContext.jsx'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import TipCard from '../../components/consumer/TipCard.jsx'
 import { cancellationFeeFor } from '../../lib/pricing.js'
@@ -96,10 +98,11 @@ function TrackingDots({ status, t }) {
 }
 
 // ── Washer info card — ADR-018: no rating shown to consumer ──────────────────
-function WasherCard({ profile, onMessage, openingMessage, onOrderChat, chatDisabled, unreadCount, t }) {
+function WasherCard({ profile, orderId, onMessage, openingMessage, onOrderChat, chatDisabled, unreadCount, t }) {
   const initials    = getWasherInitials(profile)
   const name        = profile?.full_name || t('consumer.tracking.washer.unknown')
   const washerPhone = profile?.phone || null
+  const { startCall } = useCall()
 
   return (
     <div className="flex items-center gap-3 p-3 bg-primary-50 dark:bg-accent-muted rounded-glass-sm">
@@ -134,8 +137,20 @@ function WasherCard({ profile, onMessage, openingMessage, onOrderChat, chatDisab
             <span className="absolute top-0.5 end-0.5 w-2.5 h-2.5 rounded-full bg-danger-500 shrink-0" />
           )}
         </button>
-        {/* Call washer — only rendered when phone is known */}
-        {washerPhone ? (
+        {/* Call washer. With in-app calls ON: a masked WebRTC call (no real
+            number exposed). With the flag OFF: the existing tel: link. */}
+        {FEATURES.inAppCalls ? (
+          profile?.id ? (
+            <button
+              onClick={() => startCall({ peerId: profile.id, peerName: name, orderId })}
+              disabled={chatDisabled}
+              aria-label={t('call.callWasher')}
+              className={`w-10 h-10 rounded-[12px] bg-white flex items-center justify-center text-primary-800 shadow-sm transition-opacity ${chatDisabled ? 'opacity-40' : ''}`}
+            >
+              <Phone className="h-[18px] w-[18px]" />
+            </button>
+          ) : null
+        ) : washerPhone ? (
           <a
             href={chatDisabled ? undefined : `tel:${washerPhone}`}
             aria-label={t('consumer.tracking.washer.callWasher')}
@@ -396,6 +411,7 @@ export default function OrderTracking() {
           {order.washer_id && (
             <WasherCard
               profile={washerProfile}
+              orderId={id}
               onMessage={handleOpenSupport}
               openingMessage={openingSupport}
               onOrderChat={() => setOrderChatOpen(true)}

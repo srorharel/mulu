@@ -41,6 +41,7 @@ vi.mock('../../../components/ui/Toast.jsx', () => ({
 }))
 vi.mock('../../../components/support/SupportChatSheet.jsx', () => ({ default: () => null }))
 vi.mock('../../../components/chat/OrderChatSheet.jsx', () => ({ default: () => null }))
+vi.mock('../../../context/CallContext.jsx', () => ({ useCall: () => ({ startCall: () => {} }) }))
 vi.mock('../../../lib/support.js', () => ({
   getOrCreateOrderConversation: vi.fn().mockResolvedValue({ data: { id: 'c1' } }),
 }))

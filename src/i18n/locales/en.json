@@ -1,4 +1,39 @@
 {
+  "phoneVerify": {
+    "title": "Verify your phone",
+    "subtitle": "We sent a verification code to",
+    "codeLabel": "Verification code",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "resendIn": "Resend in {{seconds}}s",
+    "success": "Phone verified",
+    "errors": {
+      "wrongCode": "Wrong code. {{count}} attempts left",
+      "locked": "Too many attempts. Request a new code",
+      "expired": "Code expired. Request a new code",
+      "rateLimited": "Too many codes sent. Try again later",
+      "smsFailed": "Couldn't send the SMS. Try again",
+      "generic": "Something went wrong. Try again"
+    }
+  },
+  "call": {
+    "callWasher": "Call washer",
+    "callCustomer": "Call customer",
+    "incoming": "Incoming call",
+    "calling": "Calling…",
+    "ringing": "Ringing…",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "ended": "Call ended",
+    "accept": "Answer",
+    "decline": "Decline",
+    "end": "End call",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "failed": "Call failed",
+    "micDenied": "Microphone permission is needed for calls",
+    "unavailable": "Calling isn't available right now"
+  },
   "legal": {
     "modal": {
       "badge": "Updated document",

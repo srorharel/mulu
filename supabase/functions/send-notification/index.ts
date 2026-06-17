@@ -20,6 +20,7 @@ type EventType =
   | 'tier_changed'
   | 'admin_broadcast'
   | 'legal_update'
+  | 'incoming_call'
 
 interface SendPayload {
   user_id: string
@@ -176,6 +177,13 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
       },
     },
   },
+  incoming_call: {
+    // Backgrounded-ring nudge for an in-app voice call (Feature 2). The actual
+    // call rings in-app over Realtime when the app is foreground; this push is
+    // the fallback when it isn't.
+    en: { title: 'Incoming call', body: (d) => `${d.from_name || 'Someone'} is calling you` },
+    he: { title: 'שיחה נכנסת',     body: (d) => `${d.from_name || 'מישהו'} מתקשר אליך` },
+  },
 }
 
 // ── Route map (server-side fallback; trigger pre-computes data.route) ─────────
@@ -208,6 +216,8 @@ function routeFor(event_type: EventType, data: Record<string, string>): string {
       return data.doc_type === 'consumer_terms' ? '/legal/terms'
            : data.doc_type === 'washer_terms'   ? '/legal/washer-terms'
            : '/legal/privacy'
+    case 'incoming_call':
+      return data.route ?? '/home'
     default:
       return '/home'
   }

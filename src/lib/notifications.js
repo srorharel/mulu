@@ -20,6 +20,7 @@ const EVENT_ROUTE_FALLBACK = {
   customer_cancelled: ()  => '/washer',
   new_chat_message:   (d) => d.order_id ? `/order/${d.order_id}`      : '/home',
   new_job_nearby:     ()  => '/washer',
+  incoming_call:      (d) => d.route || '/home',
 }
 
 // One channel per sound. createChannel is idempotent on Android — safe to call

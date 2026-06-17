@@ -48,6 +48,7 @@ import Settings        from './pages/washer/Settings.jsx'
 
 import LegalViewer       from './pages/legal/LegalViewer.jsx'
 import LegalUpdateModal  from './components/legal/LegalUpdateModal.jsx'
+import PhoneVerifyModal  from './components/account/PhoneVerifyModal.jsx'
 import AccountDeletion   from './pages/AccountDeletion.jsx'
 
 // Initialises push notifications once a logged-in user is confirmed.
@@ -100,6 +101,8 @@ export function AppRouter() {
     <BrowserRouter>
       <NotificationsInit />
       <LegalUpdateModal />
+      {/* Phone-verification gate — self-gating (inert unless VITE_ENABLE_PHONE_VERIFY). */}
+      <PhoneVerifyModal />
       <Routes>
         {/* Public — redirect away if already logged in */}
         <Route path="/"       element={<AuthRedirect><Landing /></AuthRedirect>} />

@@ -20,6 +20,8 @@ import StatusTimeline from '../StatusTimeline.jsx'
 import Editable from '../editable/Editable.jsx'
 import OrderChatSheet from '../chat/OrderChatSheet.jsx'
 import PhotoLightbox from '../ui/PhotoLightbox.jsx'
+import { FEATURES } from '../../lib/featureFlags.js'
+import { useCall } from '../../context/CallContext.jsx'
 import InAppCamera from '../shared/InAppCamera.jsx'
 import { VAT_RATE } from '../../lib/pricing.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
@@ -437,6 +439,7 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
 
   const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
   const unreadCount  = useOrderUnreadCount(activeJob?.id)
+  const { startCall } = useCall()
 
   // Geofence failed-attempt tracking: array of timestamps
   const failedAttemptsRef = useRef([])
@@ -732,8 +735,23 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             </div>
           </div>
           <div className="flex gap-1.5 shrink-0">
-            {/* Call customer — hidden entirely when phone is unknown; always active regardless of order status */}
-            {consumerProfile?.phone && (
+            {/* Call customer. With in-app calls ON: a masked WebRTC call (no real
+                number exposed). With the flag OFF: the existing tel: link. */}
+            {FEATURES.inAppCalls ? (
+              consumerProfile?.id && (
+                <button
+                  onClick={() => startCall({
+                    peerId: consumerProfile.id,
+                    peerName: consumerProfile.full_name || '',
+                    orderId: order?.id,
+                  })}
+                  aria-label={t('call.callCustomer')}
+                  className="w-9 h-9 rounded-[11px] border border-glass-border bg-glass flex items-center justify-center text-ink"
+                >
+                  <Phone className="h-[16px] w-[16px]" />
+                </button>
+              )
+            ) : consumerProfile?.phone && (
               <a
                 href={`tel:${consumerProfile.phone}`}
                 aria-label={t('washer.drawer.callCustomer')}
