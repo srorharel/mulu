@@ -472,19 +472,31 @@ async function sendFcmMessage(opts: {
 }): Promise<SendResult> {
   const { token, platform, title, body, route, event_type, sound, data, fcmProjectId, accessToken } = opts
 
+  // Android incoming-call pushes are DATA-ONLY + high priority so our native
+  // IncomingCallService.onMessageReceived fires even when the app is
+  // backgrounded/killed and builds the full-screen ringing notification. A
+  // top-level `notification` block would make Android route it to the system
+  // tray instead (no custom code on a killed app). iOS keeps a normal alert
+  // until the CallKit/PushKit path is built.
+  const isAndroidCall = event_type === 'incoming_call' && platform === 'android'
+
   const message: Record<string, unknown> = {
     token,
-    notification: { title, body },
     data: { route, event_type, ...data },
+  }
+  if (!isAndroidCall) {
+    message.notification = { title, body }
   }
 
   if (platform === 'android') {
-    message.android = {
-      notification: {
-        channel_id: `wash_${sound || 'chirp'}`,
-        sound,            // filename without extension; must exist in res/raw/
-      },
-    }
+    message.android = isAndroidCall
+      ? { priority: 'high' }
+      : {
+          notification: {
+            channel_id: `wash_${sound || 'chirp'}`,
+            sound,        // filename without extension; must exist in res/raw/
+          },
+        }
   } else if (platform === 'ios') {
     message.apns = {
       payload: { aps: { sound: `${sound}.mp3` } },

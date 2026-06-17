@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { getIceServers } from '../lib/turn.js'
@@ -300,6 +302,33 @@ export function CallProvider({ children }) {
     else stopRing()
     return () => stopRing()
   }, [callState])
+
+  // Native deep link: when a backgrounded/killed app is opened from the
+  // full-screen incoming-call notification (IncomingCallService →
+  // mulu-call://incoming?call_id=...), reconstruct the call here since the
+  // original Realtime `ring` broadcast was missed while the app was down.
+  useEffect(() => {
+    if (!enabled || !Capacitor.isNativePlatform()) return undefined
+    let sub
+    const handleUrl = (url) => {
+      if (!url || !url.startsWith('mulu-call://') || callRef.current) return
+      try {
+        const u = new URL(url)
+        const callId = u.searchParams.get('call_id')
+        if (!callId) return
+        const peerName = u.searchParams.get('from') || ''
+        const action = u.searchParams.get('action') || 'show'
+        setCall({ callId, peerId: u.searchParams.get('from_id') || null, peerName, orderId: null, role: 'callee' })
+        setCallState('incoming')
+        joinCallChannel(callId, 'callee')
+        if (action === 'accept') accept()
+        else if (action === 'decline') decline()
+      } catch { /* malformed link — ignore */ }
+    }
+    CapacitorApp.getLaunchUrl().then((r) => handleUrl(r?.url)).catch(() => {})
+    CapacitorApp.addListener('appUrlOpen', (e) => handleUrl(e.url)).then((s) => { sub = s })
+    return () => { sub?.remove?.() }
+  }, [enabled, joinCallChannel, accept, decline])
 
   const value = { enabled, callState, call, muted, speakerOn, durationSec, startCall, accept, decline, hangup, toggleMute, toggleSpeaker }
 

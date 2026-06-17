@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
       event_type: 'incoming_call',
       data: {
         call_id: body.call_id ?? '',
+        from_id: userData.user.id,
         from_name: body.from_name ?? '',
         order_id: body.order_id ?? '',
         sound: 'bell',
