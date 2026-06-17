@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5FDC95"/>
+      <stop offset="1" stop-color="#26B55F"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="94" height="94" rx="26" fill="url(#g)"/>
+  <ellipse cx="50" cy="16" rx="42" ry="12" fill="rgba(255,255,255,0.18)"/>
+  <text x="50" y="63" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="30" fill="#FFFFFF">MULU</text>
+</svg>
