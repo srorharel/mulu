@@ -622,6 +622,8 @@
       },
       "stage": {
         "label": "Progress",
+        "stepOf": "Step {{n}} of 4",
+        "enRoute": "En route",
         "arrived": "Arrived",
         "preRinse": "Pre-rinse",
         "wash": "Wash",

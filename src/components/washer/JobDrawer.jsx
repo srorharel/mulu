@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } fr
 import {
   MoonStar, Sparkles, ChevronRight, Loader2, Clock,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
-  Phone, ArrowLeft, Check, ParkingSquare, CloudOff, RotateCcw,
+  Phone, ArrowLeft, Check, ParkingSquare, CloudOff, RotateCcw, Droplets, Flag,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 import { useTranslation } from 'react-i18next'
@@ -194,50 +194,56 @@ function StatusBadge({ status, t }) {
   )
 }
 
-// ── Horizontal 4-step washer stage tracker ────────────────────────────────────
-// Maps order status → active stage index (0–3). Stages: Arrived / Pre-rinse / Wash / Complete.
-// accepted/en_route = -1 (driving, no stage active yet).
-// arrived = 1 (Arrived ✓ done, Pre-rinse active — washer is setting up).
-// in_progress = 2 (Arrived + Pre-rinse ✓, Wash active).
-// pending_approval/completed = 3 (all done, Complete active).
+// ── Horizontal 4-step washer journey tracker ──────────────────────────────────
+// One step per real status, in journey order (RTL → first step on the right):
+//   0 בדרך   accepted / en_route  (driving to the customer)
+//   1 הגעתי  arrived
+//   2 שטיפה  in_progress          (washing)
+//   3 הושלם  pending_approval / completed
+// current = the active step; everything before it is done, after it is upcoming.
+const STAGES = [
+  { key: 'enRoute',  icon: Car },
+  { key: 'arrived',  icon: MapPin },
+  { key: 'wash',     icon: Droplets },
+  { key: 'complete', icon: Flag },
+]
 const STATUS_TO_STAGE = {
-  accepted: -1, en_route: -1,
+  accepted: 0, en_route: 0,
   arrived: 1, in_progress: 2,
   pending_approval: 3, completed: 3,
 }
 
 function WasherStageDots({ status, t }) {
-  const stages = [
-    t('washer.drawer.stage.arrived'),
-    t('washer.drawer.stage.preRinse'),
-    t('washer.drawer.stage.wash'),
-    t('washer.drawer.stage.complete'),
-  ]
-  const current = STATUS_TO_STAGE[status] ?? -1
-
+  const current = STATUS_TO_STAGE[status] ?? 0
   return (
-    <div className="flex items-center gap-1.5 px-1">
-      {stages.map((label, i) => {
+    <div className="flex items-start gap-1">
+      {STAGES.map((stage, i) => {
         const done   = i < current
         const active = i === current
+        const StepIcon = stage.icon
         return (
-          <Fragment key={label}>
-            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <div className={`w-[14px] h-[14px] rounded-full flex items-center justify-center shrink-0 ${
-                done   ? 'bg-primary-500' :
-                active ? 'bg-primary-500 ring-[3px] ring-primary-700' :
-                         'bg-white/12'
-              }`} style={active ? { boxShadow: '0 0 0 3px rgba(125,217,162,0.25)' } : {}}>
-                {done && <Check className="h-[8px] w-[8px] text-white" strokeWidth={4} />}
+          <Fragment key={stage.key}>
+            <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+              <div
+                className={`flex items-center justify-center rounded-full shrink-0 transition-colors ${
+                  active ? 'w-8 h-8 bg-primary-600 text-white'
+                  : done ? 'w-7 h-7 bg-primary-600 text-white'
+                  : 'w-7 h-7 border-2 border-edge text-ink-subtle'
+                }`}
+                style={active ? { boxShadow: '0 0 0 5px rgba(125,217,162,0.22)' } : undefined}
+              >
+                {done
+                  ? <Check className="h-4 w-4" strokeWidth={3} />
+                  : <StepIcon className={active ? 'h-[17px] w-[17px]' : 'h-4 w-4'} strokeWidth={2} />}
               </div>
-              <p className={`text-[10px] leading-tight text-center ${
-                active ? 'font-bold text-ink' : 'font-medium text-ink-muted'
-              }`}>{label}</p>
+              <p className={`text-[11px] leading-tight text-center ${
+                active ? 'font-bold text-ink'
+                : done ? 'font-medium text-primary-700 dark:text-accent'
+                : 'font-medium text-ink-muted'
+              }`}>{t(`washer.drawer.stage.${stage.key}`)}</p>
             </div>
-            {i < stages.length - 1 && (
-              <div className={`flex-[0.3] h-0.5 rounded-full mb-4 shrink-0 ${
-                done ? 'bg-primary-500' : 'bg-white/10'
-              }`} />
+            {i < STAGES.length - 1 && (
+              <div className={`flex-[0.5] h-[3px] rounded-full mt-3.5 shrink-0 ${done ? 'bg-primary-600' : 'bg-edge'}`} />
             )}
           </Fragment>
         )
@@ -779,10 +785,15 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
       </div>
 
       {/* ── Stage progress ── */}
-      <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 flex flex-col gap-3">
-        <p className="text-[11px] font-bold text-accent uppercase tracking-[0.4px]">
-          {t('washer.drawer.stage.label')}
-        </p>
+      <div className="bg-surface-elevated border border-edge rounded-glass p-4 flex flex-col gap-3.5">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-bold text-primary-700 dark:text-accent uppercase tracking-[0.4px]">
+            {t('washer.drawer.stage.label')}
+          </p>
+          <p className="text-[11px] font-semibold text-ink-muted">
+            {t('washer.drawer.stage.stepOf', { n: (STATUS_TO_STAGE[order.status] ?? 0) + 1 })}
+          </p>
+        </div>
         <WasherStageDots status={order.status} t={t} />
       </div>
 
@@ -836,18 +847,21 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
 
       {/* ── Pending approval state ── */}
       {order.status === 'pending_approval' && (
-        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 text-center">
-          <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-accent/10 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-accent" />
+        <div className="bg-surface-elevated border border-edge rounded-glass p-5 text-center flex flex-col items-center gap-2">
+          <div className="w-12 h-12 rounded-2xl bg-warning-500/15 flex items-center justify-center">
+            <Clock className="w-6 h-6 text-warning-600 dark:text-warning-500" />
           </div>
-          <p className="font-semibold text-accent">{t('washer.drawer.submitted')}</p>
-          <p className="text-xs text-ink-muted mt-1">{t('washer.drawer.submittedDesc')}</p>
-          <p className="text-xs text-ink-muted/70 mt-2">{t('washer.drawer.submittedHelper')}</p>
+          <p className="text-[15px] font-bold text-ink">{t('washer.drawer.submitted')}</p>
+          <p className="text-xs text-ink-muted leading-relaxed max-w-[260px]">{t('washer.drawer.submittedDesc')}</p>
+          <p className="text-[11px] text-ink-subtle leading-relaxed max-w-[260px]">{t('washer.drawer.submittedHelper')}</p>
         </div>
       )}
       {order.status === 'completed' && (
-        <div className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-4 text-center">
-          <p className="font-semibold text-accent">{t('washer.drawer.jobCompleted')}</p>
+        <div className="bg-surface-elevated border border-edge rounded-glass p-5 text-center flex flex-col items-center gap-2">
+          <div className="w-12 h-12 rounded-2xl bg-accent-muted flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-primary-600 dark:text-accent" />
+          </div>
+          <p className="text-[15px] font-bold text-ink">{t('washer.drawer.jobCompleted')}</p>
         </div>
       )}
 
