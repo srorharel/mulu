@@ -259,6 +259,27 @@ describe('useNearbyJobs', () => {
     expect(result.current.jobs[0].id).toBe('order-near') // closest row leads
   })
 
+  // ── New: going offline empties the list ─────────────────────────────────────
+  // Reported bug: a washer who goes offline kept seeing (and could tap) the jobs
+  // they had while online. Toggling `enabled` false must clear the list so the
+  // drawer/map show nothing until the washer goes back online.
+  it('clears the jobs list when the washer goes offline', async () => {
+    rpcRows = [
+      pendingRow('order-1', { distance_km: 1.2, lat: 32.0853, lng: 34.7818 }),
+      pendingRow('order-2', { distance_km: 3.7, lat: 32.0900, lng: 34.7900 }),
+    ]
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useNearbyJobs(WASHER, enabled),
+      { initialProps: { enabled: true } },
+    )
+    await waitFor(() => expect(result.current.jobs).toHaveLength(2))
+
+    // Washer flips offline.
+    rerender({ enabled: false })
+
+    await waitFor(() => expect(result.current.jobs).toEqual([]))
+  })
+
   // ── New: backstop poll prunes an order another washer accepted ──────────────
   // When another washer accepts a pending order it leaves the pending pool, and
   // RLS revokes THIS washer's read access — so the pending→accepted UPDATE never

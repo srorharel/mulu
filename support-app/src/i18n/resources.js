@@ -176,6 +176,8 @@ export const resources = {
         consumerTotal: 'סה"כ לצרכן',
         washerPayout: 'תשלום לשוטף',
         linkedOrder: 'הזמנה מקושרת',
+        customerPhotos: 'תמונות הלקוח',
+        photoSlots: { front: 'חזית', back: 'אחורי', driver: 'נהג', passenger: 'נוסע' },
       },
 
       user: {
@@ -546,6 +548,8 @@ export const resources = {
         consumerTotal: 'Consumer total',
         washerPayout: 'Washer payout',
         linkedOrder: 'Linked order',
+        customerPhotos: 'Customer photos',
+        photoSlots: { front: 'Front', back: 'Back', driver: 'Driver', passenger: 'Passenger' },
       },
 
       user: {

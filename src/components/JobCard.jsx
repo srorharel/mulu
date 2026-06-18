@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import { Car, MapPin, Navigation, Clock, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useReverseGeocode } from '../lib/geocode.js'
+import { useReverseGeocode, looksLikeCoords } from '../lib/geocode.js'
 
 const SPRING         = { type: 'spring', stiffness: 400, damping: 35 }
 const SWIPE_VELOCITY = 500
@@ -24,8 +24,19 @@ export default function JobCard({ job, onClick, highlight = false }) {
   const navigate     = useNavigate()
   const containerRef = useRef(null)
   const x            = useMotionValue(0)
-  const { address }  = useReverseGeocode(job.lat, job.lng)
   const { t }        = useTranslation()
+
+  // Prefer the address the customer actually confirmed at booking
+  // (order.address_label, e.g. "אבן גבירול, תל אביב"). Reverse-geocoding the pin
+  // coordinates is unreliable near city boundaries (a Tel Aviv pin can resolve to
+  // Holon) and silently shows the washer the wrong city. Fall back to
+  // reverse-geocode only for legacy orders with no label or a coords-only label.
+  const hasLabel    = !!job.address_label && !looksLikeCoords(job.address_label)
+  const { address: geocoded } = useReverseGeocode(
+    hasLabel ? null : job.lat,
+    hasLabel ? null : job.lng,
+  )
+  const address = hasLabel ? job.address_label : geocoded
 
   const distKm    = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
   const posted    = postedAgo(job.created_at, t)

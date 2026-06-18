@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { JobCardSkeleton } from '../Skeleton.jsx'
 import JobCard from '../JobCard.jsx'
 import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
-import { useReverseGeocode } from '../../lib/geocode.js'
+import { useReverseGeocode, looksLikeCoords } from '../../lib/geocode.js'
 import { haversineKm } from '../../lib/geo.js'
 import { supabase } from '../../lib/supabase.js'
 import { useToast } from '../ui/Toast.jsx'
@@ -407,7 +407,16 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
   const navigate  = useNavigate()
   const showToast = useToast()
   const { t }     = useTranslation()
-  const { address } = useReverseGeocode(activeJob?.lat, activeJob?.lng)
+  // Show the customer-confirmed booking address (order.address_label), not a
+  // reverse-geocode of the pin — the latter picks the wrong city near boundaries
+  // (a Tel Aviv pin resolving to Holon). Legacy orders without a real label
+  // (missing, or a coords-only string) still fall back to reverse-geocoding.
+  const hasLabel  = !!order?.address_label && !looksLikeCoords(order.address_label)
+  const { address: geocoded } = useReverseGeocode(
+    hasLabel ? null : activeJob?.lat,
+    hasLabel ? null : activeJob?.lng,
+  )
+  const address = hasLabel ? order.address_label : geocoded
 
   const [advancing, setAdvancing]         = useState(false)
   const advancingRef                      = useRef(false)
@@ -1163,7 +1172,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
               jobs fade out in place, without the list re-rendering as a block.
               Reduced-motion: opacity-only, no transform (DESIGN.md §8). */}
           <AnimatePresence initial={false}>
-            {jobs.map(job => (
+            {online && jobs.map(job => (
               <motion.div
                 key={job.id}
                 ref={el => { cardRefs.current[job.id] = el }}

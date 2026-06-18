@@ -173,9 +173,19 @@ export function useNearbyJobs(position, enabled = true) {
     fetchJobs(position.lat, position.lng)
   }, [position?.lat, position?.lng, enabled, fetchJobs]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Going offline clears the movement anchor so the next online session refetches.
+  // Going offline must EMPTY the list — otherwise the washer keeps seeing (and
+  // could tap) the pool they had while online, even though they're no longer
+  // receiving/accepting jobs. Clear: the rendered state, the module cache (so a
+  // dashboard remount can't reseed the stale list), the movement anchor, and the
+  // "loaded once" flag (so the next online session shows the looking-for-jobs
+  // skeleton instead of a bare empty list). The realtime/poll/fetch effects are
+  // already gated on `enabled`, so nothing repopulates it while offline.
   useEffect(() => {
-    if (!enabled) lastFetchRef.current = null
+    if (enabled) return
+    lastFetchRef.current  = null
+    loadedOnceRef.current = false
+    if (CACHE_ENABLED) cachedJobs = []
+    setJobs(prev => (prev.length ? [] : prev))
   }, [enabled])
 
   // Subscribe once per online session (not per GPS tick). Listen to all orders

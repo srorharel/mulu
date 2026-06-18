@@ -76,6 +76,8 @@ export async function fetchOrderDetails(orderId) {
       id, status, car_type, service_type, base_price, total_price, created_at,
       address_label, addon_wiper_fluid, addon_tire_pressure, is_underground_parking,
       car_plate, car_make, car_model, car_year, car_color, payout_amount,
+      car_photo_front, car_photo_back, car_photo_driver, car_photo_passenger,
+      car_photo_1_path, car_photo_2_path,
       consumer:profiles!consumer_id(id, full_name, phone),
       washer:profiles!washer_id(id, full_name, phone, last_lat, last_lng, last_location_at)
     `)

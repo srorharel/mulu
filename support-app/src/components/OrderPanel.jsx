@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Car, Phone } from 'lucide-react'
+import { Car, Phone, Camera } from 'lucide-react'
 import { fetchOrderDetails } from '../lib/support.js'
 import { supabase } from '../lib/supabase.js'
 import { useReverseGeocode } from '../lib/geocode.js'
 import Pill from './Pill.jsx'
+import PhotoLightbox from './PhotoLightbox.jsx'
+
+const PHOTO_SLOTS = ['front', 'back', 'driver', 'passenger']
 
 const MiniMap = lazy(() => import('./MiniMap.jsx'))
 
@@ -41,6 +44,100 @@ function WasherLocationCard({ washerLoc }) {
       ) : (
         <p className="text-sm text-ink-muted">{t('user.locationUnavailable')}</p>
       )}
+    </div>
+  )
+}
+
+// Customer-uploaded vehicle photos (the 4 angles captured at booking), the same
+// set the washer sees in JobDrawer. New orders use car_photo_{slot}; legacy orders
+// use car_photo_1/2_path. Signed against the `car-photos` bucket on demand.
+function CustomerPhotos({ order }) {
+  const { t, i18n } = useTranslation()
+  const [urls, setUrls]                   = useState(null) // null = loading
+  const [lightboxIndex, setLightboxIndex] = useState(null)
+
+  const isNewShape = !!order.car_photo_front
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setUrls(null)
+      const paths = isNewShape
+        ? PHOTO_SLOTS.map(slot => ({ key: slot, path: order[`car_photo_${slot}`] }))
+        : [order.car_photo_1_path, order.car_photo_2_path]
+            .filter(Boolean)
+            .map((path, i) => ({ key: `legacy_${i}`, path }))
+      const signed = await Promise.all(
+        paths.map(async ({ key, path }) => {
+          if (!path) return { key, url: null }
+          const { data } = await supabase.storage.from('car-photos').createSignedUrl(path, 3600)
+          return { key, url: data?.signedUrl ?? null }
+        })
+      )
+      if (!cancelled) setUrls(Object.fromEntries(signed.map(s => [s.key, s.url])))
+    }
+    load()
+    return () => { cancelled = true }
+  }, [order.id, isNewShape]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Thumbnails rendered in fixed slot order (new shape) or as captured (legacy)
+  const slots = isNewShape
+    ? PHOTO_SLOTS.map(slot => ({ key: slot, label: t(`order.photoSlots.${slot}`) }))
+    : [order.car_photo_1_path, order.car_photo_2_path]
+        .filter(Boolean)
+        .map((_, i) => ({ key: `legacy_${i}`, label: '' }))
+
+  // Only resolved (non-null) URLs are navigable in the lightbox
+  const lightboxPhotos = useMemo(
+    () => slots.map(s => ({ ...s, url: urls?.[s.key] })).filter(p => p.url),
+    [slots, urls],
+  )
+
+  return (
+    <div>
+      <p className={`text-[10.5px] text-ink-subtle font-bold ${i18n.language === 'en' ? 'uppercase tracking-[0.05em]' : 'font-semibold'} mb-1.5`}>
+        {t('order.customerPhotos')}
+      </p>
+      <div className={`grid gap-1.5 ${isNewShape ? 'grid-cols-4' : 'grid-cols-2'}`}>
+        {slots.map(({ key, label }) => {
+          const url = urls?.[key]
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                if (!url) return
+                const idx = lightboxPhotos.findIndex(p => p.key === key)
+                if (idx >= 0) setLightboxIndex(idx)
+              }}
+              disabled={!url}
+              className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
+                url ? 'border-edge hover:border-agent/50 cursor-pointer' : 'border-edge/40 cursor-default'
+              } bg-surface`}
+            >
+              {urls === null ? (
+                <div className="w-full aspect-square animate-pulse bg-surface-elevated" />
+              ) : url ? (
+                <img src={url} alt={label || t('order.customerPhotos')} className="w-full aspect-square object-cover" />
+              ) : (
+                <div className="w-full aspect-square flex items-center justify-center opacity-40">
+                  <Camera className="h-4 w-4 text-ink-muted" />
+                </div>
+              )}
+              {label && (
+                <span className="text-[11px] text-ink-muted font-medium text-center py-1 px-1 truncate">{label}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <PhotoLightbox
+        photos={lightboxPhotos}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+      />
     </div>
   )
 }
@@ -204,6 +301,7 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
   const washerName   = order.washer?.full_name   || '—'
   const plate        = order.car_plate
   const vehicleParts = [order.car_make, order.car_model, order.car_year && String(order.car_year)].filter(Boolean)
+  const hasCustomerPhotos = !!(order.car_photo_front || order.car_photo_1_path || order.car_photo_2_path)
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -243,6 +341,9 @@ export default function OrderPanel({ orderId, conversationStatus, openerRole }) 
             </div>
           </div>
         )}
+
+        {/* Customer-uploaded vehicle photos (same 4 angles the washer sees) */}
+        {hasCustomerPhotos && <CustomerPhotos order={order} />}
 
         {/* Address */}
         {order.address_label && (
