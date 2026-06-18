@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AlertTriangle, Loader2 } from 'lucide-react'
+import Modal, { modalBtn } from './Modal.jsx'
 import { useHistoryDismissible } from '../../hooks/useHistoryDismissible.js'
 
-const MODAL_SPRING = { type: 'spring', stiffness: 350, damping: 30 }
-
+// Confirm/alert dialog built on the shared Modal scaffold (light + dark).
+// A tone-tinted icon chip anchors the dialog; the confirm + cancel are real
+// stacked buttons (confirm on top, emphasised in tone; cancel below, neutral).
+//
+// Back-compat: title / message / confirmLabel / cancelLabel / onConfirm /
+// onCancel / destructive are unchanged. New optional props:
+//   tone    'default' | 'danger' | 'warning'  (defaults to danger when destructive)
+//   icon    a Lucide icon component for the chip (defaults to AlertTriangle for danger)
+//   loading shows a spinner on confirm + blocks the action
 export default function ConfirmDialog({
   open,
   onConfirm,
@@ -14,12 +21,19 @@ export default function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   destructive = false,
+  tone,
+  icon,
+  loading = false,
 }) {
+  const resolvedTone = tone ?? (destructive ? 'danger' : 'default')
+  const Icon = icon ?? (resolvedTone === 'default' ? undefined : AlertTriangle)
+  const confirmCls = resolvedTone === 'danger' ? modalBtn.danger : modalBtn.primary
+
   const pendingConfirmRef = useRef(false)
 
   // Route both close paths (back-gesture and user-initiated) through one callback
-  // so that the back-gesture history entry is always cleaned up before the
-  // caller's open state changes.
+  // so the back-gesture history entry is always cleaned up before the caller's
+  // open state changes.
   const handleClose = useCallback(() => {
     if (pendingConfirmRef.current) {
       pendingConfirmRef.current = false
@@ -39,59 +53,29 @@ export default function ConfirmDialog({
   }, [open, dismiss])
 
   function handleConfirm() {
+    if (loading) return
     pendingConfirmRef.current = true
     dismiss()
   }
 
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="confirm-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            onClick={dismiss}
-          />
-
-          <div className="fixed inset-0 z-[51] flex items-center justify-center pointer-events-none px-6">
-            <motion.div
-              key="confirm-dialog"
-              role="dialog"
-              aria-modal="true"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              transition={MODAL_SPRING}
-              className="pointer-events-auto w-full max-w-sm bg-surface-elevated border border-edge rounded-3xl p-6 flex flex-col gap-5 shadow-2xl"
-            >
-              <div className="flex flex-col gap-2">
-                <p className="text-base font-bold text-ink">{title}</p>
-                <p className="text-sm text-ink-muted leading-snug">{message}</p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={dismiss}
-                  className="btn-ghost flex-1"
-                >
-                  {cancelLabel}
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  className={`flex-1 ${destructive ? 'btn-ghost text-danger-500' : 'btn-primary'}`}
-                >
-                  {confirmLabel}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>,
-    document.body
+  return (
+    <Modal
+      open={open}
+      onClose={dismiss}
+      icon={Icon}
+      tone={resolvedTone}
+      title={title}
+      subtitle={message}
+    >
+      <div className="flex flex-col gap-2.5">
+        <button onClick={handleConfirm} disabled={loading} className={confirmCls}>
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {confirmLabel}
+        </button>
+        <button onClick={dismiss} className={modalBtn.neutral}>
+          {cancelLabel}
+        </button>
+      </div>
+    </Modal>
   )
 }

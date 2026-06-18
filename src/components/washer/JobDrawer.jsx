@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } fr
 import {
   MoonStar, Sparkles, ChevronRight, Loader2, Clock,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
-  Phone, Droplets, Zap, Star, ArrowLeft, Check, ParkingSquare, CloudOff,
+  Phone, Droplets, Zap, Star, ArrowLeft, Check, ParkingSquare, CloudOff, RotateCcw,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 import { useTranslation } from 'react-i18next'
@@ -1205,6 +1205,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
         confirmLabel={t('washer.drawer.cancel.confirmLabel')}
         cancelLabel={t('washer.drawer.cancel.cancelLabel')}
         destructive
+        icon={RotateCcw}
       />
     </motion.div>
   )

@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check, ParkingSquare } from 'lucide-react'
+import { ArrowLeft, MessageCircle, MessageSquare, Phone, Star, Check, ParkingSquare, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import IsraeliPlate from '../../components/ui/IsraeliPlate.jsx'
@@ -527,6 +527,7 @@ export default function OrderTracking() {
         confirmLabel={t('consumer.tracking.cancelConfirm.confirm')}
         cancelLabel={t('consumer.tracking.cancelConfirm.keep')}
         destructive
+        icon={XCircle}
       />
 
       <SupportChatSheet

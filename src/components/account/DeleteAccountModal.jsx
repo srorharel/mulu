@@ -5,6 +5,7 @@ import { AlertTriangle, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../ui/Toast.jsx'
+import { modalBtn } from '../ui/Modal.jsx'
 import { unregisterToken } from '../../lib/notifications.js'
 
 // Type-to-confirm account-deletion modal. On confirm it calls the delete-account
@@ -37,10 +38,7 @@ export default function DeleteAccountModal({ onClose }) {
   }
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-    >
+    <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center p-4 bg-black/60">
       <div
         dir={dir}
         role="dialog"
@@ -50,8 +48,10 @@ export default function DeleteAccountModal({ onClose }) {
         style={{ maxHeight: 'min(90dvh, 640px)' }}
       >
         <div className="px-6 pt-5 pb-3 flex items-start justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-danger-500" />
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-danger-50 dark:bg-danger-500/15 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5 text-danger-600 dark:text-danger-400" />
+            </div>
             <p className="text-[17px] font-bold text-ink">{t('account.delete.title')}</p>
           </div>
           <button
@@ -82,18 +82,18 @@ export default function DeleteAccountModal({ onClose }) {
           />
         </div>
 
-        <div className="px-6 pb-6 pt-3 flex flex-col gap-2 shrink-0">
+        <div className="px-6 pb-6 pt-3 flex flex-col gap-2.5 shrink-0">
           <button
             onClick={handleDelete}
             disabled={!canDelete}
-            className="w-full py-3 rounded-xl bg-danger-500 text-white text-sm font-semibold disabled:opacity-40"
+            className={modalBtn.danger}
           >
             {busy ? '…' : t('account.delete.confirmButton')}
           </button>
           <button
             onClick={onClose}
             disabled={busy}
-            className="w-full py-2.5 rounded-xl border border-edge text-sm font-semibold text-ink-muted disabled:opacity-50"
+            className={modalBtn.neutral}
           >
             {t('common.cancel')}
           </button>

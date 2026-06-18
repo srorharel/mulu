@@ -133,10 +133,7 @@ function FullscreenPhoto({ url, label, onClose }) {
 // ── Backdrop ──────────────────────────────────────────────────────────────────
 function Backdrop({ children }) {
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60">
       {children}
     </div>
   )

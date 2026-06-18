@@ -175,6 +175,7 @@ export default function Vehicles() {
         confirmLabel={t('consumer.vehicles.deleteConfirm.confirm')}
         cancelLabel={t('consumer.vehicles.deleteConfirm.cancel')}
         destructive
+        icon={Trash2}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDeleteId(null)}
       />

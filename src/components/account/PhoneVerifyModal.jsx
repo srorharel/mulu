@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ShieldCheck } from 'lucide-react'
 import { usePhoneVerification } from '../../hooks/usePhoneVerification.js'
 import { useToast } from '../ui/Toast.jsx'
+import { modalBtn } from '../ui/Modal.jsx'
 
 // Global phone-verification gate (Feature 1). Mounted once at the router level.
 // Renders nothing unless usePhoneVerification().needed — which is false whenever
@@ -79,10 +80,7 @@ export default function PhoneVerifyModal() {
   }
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-    >
+    <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-4 bg-black/60">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -121,7 +119,7 @@ export default function PhoneVerifyModal() {
           <button
             onClick={doVerify}
             disabled={verifying || code.length !== 6}
-            className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
+            className={modalBtn.primary}
           >
             {verifying ? '…' : t('phoneVerify.verify')}
           </button>

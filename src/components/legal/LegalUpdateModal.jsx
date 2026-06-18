@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useLegalAcknowledgment } from '../../hooks/useLegalAcknowledgment.js'
 import { useToast } from '../ui/Toast.jsx'
+import { modalBtn } from '../ui/Modal.jsx'
 import Markdown from './Markdown.jsx'
 
 // Global acknowledgment gate. Mounted once at the router level (covers consumer
@@ -30,10 +31,7 @@ export default function LegalUpdateModal() {
   }
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-    >
+    <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-4 bg-black/60">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -63,7 +61,7 @@ export default function LegalUpdateModal() {
           <button
             onClick={handleAck}
             disabled={busy}
-            className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
+            className={modalBtn.primary}
           >
             {busy ? '…' : t('legal.modal.acknowledge')}
           </button>

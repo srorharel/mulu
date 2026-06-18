@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Gift, Sparkles } from 'lucide-react'
+import { modalBtn } from '../ui/Modal.jsx'
 
 const SPRING = { type: 'spring', stiffness: 340, damping: 30 }
 
@@ -20,8 +21,7 @@ export default function FirstWashGiftModal({ open, percent, onClose }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60"
           onClick={onClose}
         >
           <motion.div
@@ -66,7 +66,7 @@ export default function FirstWashGiftModal({ open, percent, onClose }) {
                 whileTap={{ scale: 0.97 }}
                 transition={SPRING}
                 onClick={onClose}
-                className="mt-3 w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold"
+                className={`mt-3 ${modalBtn.primary}`}
               >
                 {t('firstWashGift.cta')}
               </motion.button>
