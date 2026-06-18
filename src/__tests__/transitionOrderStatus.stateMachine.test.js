@@ -51,8 +51,12 @@ const REQUIRED_RULES = [
   // computed below); pending/accepted stay free.
   ['consumer can cancel pending/accepted/en_route/arrived',
     "v_order.status in ('pending', 'accepted', 'en_route', 'arrived') and v_actor_role = 'consumer'"],
-  ['washer can only cancel accepted/en_route',
-    "v_order.status in ('accepted', 'en_route') and v_actor_role = 'washer'"],
+  // 0127: a washer no longer cancels to terminal — they RELEASE the job back to
+  // 'pending'. This un-assigns the washer (washer_id → null) so it re-enters the pool.
+  ['washer releases accepted/en_route back to pending',
+    "v_order.status in ('accepted', 'en_route') and new_status = 'pending' and v_actor_role = 'washer'"],
+  ['washer release un-assigns the washer (washer_id → null)',
+    'when v_washer_release then null'],
   ['agent can cancel any non-terminal order',
     "v_actor_role = 'agent' and v_order.status not in ('completed', 'cancelled')"],
 
@@ -76,6 +80,15 @@ describe(`transition_order_status state machine (latest def: ${file})`, () => {
       expect(sql, `expected to find: ${needle}`).toContain(needle)
     })
   }
+
+  it('a washer can NO LONGER cancel to terminal (0127: that branch is removed)', () => {
+    // The old terminal washer-cancel branch was exactly this substring (with the
+    // washer_id check following). The 0127 release branch inserts `new_status =
+    // 'pending'`, so the old form must be gone — a washer can never set 'cancelled'.
+    expect(sql).not.toContain(
+      "v_order.status in ('accepted', 'en_route') and v_actor_role = 'washer' then"
+    )
+  })
 
   it('is SECURITY DEFINER and derives the actor role server-side (never trusts caller)', () => {
     expect(sql).toContain('security definer')

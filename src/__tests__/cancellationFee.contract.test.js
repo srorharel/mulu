@@ -28,7 +28,8 @@ const PRESERVED_BRANCHES = [
   ['admin override branch intact',           '(p_admin_override is true)'],
   ['underground relaxation intact',          'is_underground_parking'],
   ['config-driven arrival geofence intact',  "get_config_number('arrival_geofence_meters', 100)"],
-  ['washer self-cancel branch intact',       "v_order.status in ('accepted', 'en_route') and v_actor_role = 'washer'"],
+  // 0127: the washer no longer cancels to terminal — they release back to 'pending'.
+  ['washer release-to-pending branch intact', "v_order.status in ('accepted', 'en_route') and new_status = 'pending' and v_actor_role = 'washer'"],
   ['order_events audit insert intact',       'insert into public.order_events'],
 ]
 

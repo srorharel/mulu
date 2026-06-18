@@ -666,13 +666,13 @@
       "uploaded": "הועלה",
       "uploading": "מעלה...",
       "cancelJob": "ביטול עבודה",
-      "cancelling": "מבטל...",
+      "cancelling": "משחרר...",
       "cancel": {
-        "title": "לבטל את העבודה?",
-        "message": "הלקוח יקבל הודעה. לא ניתן לבטל פעולה זו.",
-        "confirmLabel": "כן, לבטל",
+        "title": "לשחרר את העבודה?",
+        "message": "העבודה תחזור לרשימת ההזמנות ותוצע לשוטפים אחרים.",
+        "confirmLabel": "כן, לשחרר",
         "cancelLabel": "להשאיר את העבודה",
-        "shortLabel": "ביטול"
+        "shortLabel": "שחרור"
       },
       "jobCompleted": "עבודה הושלמה. כל הכבוד!",
       "vehicle": {

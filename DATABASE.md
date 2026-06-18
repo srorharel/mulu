@@ -36,7 +36,7 @@ Deep reference for the MULU backend: Supabase Postgres + PostGIS, RPCs, migratio
 
 - `nearby_jobs(washer_lat, washer_lng, radius_km)` — spatial query returning pending orders within distance; **deliberately excludes `key_location`** until after acceptance (ADR-007); excludes washers with active or `pending_approval` orders (ADR-024). **Return shape includes `lat`/`lng`** (computed via `ST_Y`/`ST_X`) — consumed by `WorkerMap.jsx` to render pin markers. Any rewrite must preserve the 13-column shape (superset only) AND use `DROP FUNCTION IF EXISTS` first — `CREATE OR REPLACE FUNCTION` fails if the `RETURNS TABLE` shape differs. `scripts/verify-db.js`, `src/__tests__/useNearbyJobs.test.jsx`, and `src/__tests__/nearbyJobsShape.contract.test.js` guard this contract.
 - `get_washer_active_job()` — returns the washer's current in-flight order (includes `pending_approval` status per ADR-024)
-- `transition_order_status(order_id, new_status, washer_lat?, washer_lng?, p_admin_override?)` — enforces allowed state transitions; requires 4 arrival photos + arrival-geofence (100 m hardcoded as of 0083) for `en_route → arrived`; requires 4 completion photos + GPS for `in_progress → pending_approval`; blocks `pending → accepted` if washer has active/pending-approval job; agent can cancel or force-complete from any non-terminal status; writes `approved_at`/`approved_by` on agent completes; writes `submitted_for_approval_at` on submission; writes `approval_audit` on agent approve. **5-arg as of migration 0083:** added `p_admin_override boolean DEFAULT false` — when true AND caller is super_admin, photo/GPS/geofence checks are bypassed (audited to `admin_order_audit`). The DEFAULT preserves all existing 4-arg call sites. Allowed-transition matrix + gates are guarded by `src/__tests__/transitionOrderStatus.stateMachine.test.js`; param names by `transitionOrderStatus.contract.test.js`.
+- `transition_order_status(order_id, new_status, washer_lat?, washer_lng?, p_admin_override?)` — enforces allowed state transitions; requires 4 arrival photos + arrival-geofence (100 m hardcoded as of 0083) for `en_route → arrived`; requires 4 completion photos + GPS for `in_progress → pending_approval`; blocks `pending → accepted` if washer has active/pending-approval job; agent can cancel or force-complete from any non-terminal status; **a washer "cancel" RELEASES the job back to `pending` (0127) — `accepted`/`en_route` → `pending`, un-assigning the washer + clearing arrival photos — rather than terminally cancelling it**; writes `approved_at`/`approved_by` on agent completes; writes `submitted_for_approval_at` on submission; writes `approval_audit` on agent approve. **5-arg as of migration 0083:** added `p_admin_override boolean DEFAULT false` — when true AND caller is super_admin, photo/GPS/geofence checks are bypassed (audited to `admin_order_audit`). The DEFAULT preserves all existing 4-arg call sites. Allowed-transition matrix + gates are guarded by `src/__tests__/transitionOrderStatus.stateMachine.test.js`; param names by `transitionOrderStatus.contract.test.js`.
 - `decline_order(p_order_id, p_reason)` — agent-only; reverts `pending_approval → in_progress` with reason (≥3 chars); increments `decline_count`; writes `approval_audit`; auto-creates support ticket at the config-driven threshold (`decline_auto_escalate_count`, default 3, per 0077). Guarded by `src/__tests__/declineOrder.contract.test.js`.
 - `washer_has_pending_approval(p_washer_id)` — returns boolean; used by client for pre-flight lockout check
 - `find_nearby_washers_for_order(p_order_id, p_radius_m)` — spatial query called by fan-out Edge Function; excludes washers already in `order_washer_notifications` and washers with active/pending-approval orders (ADR-024)
@@ -106,6 +106,7 @@ Migrations live in `supabase/migrations/` (0001–0110). Run `npm run db:migrate
 - `0113_receipts.sql` — `receipts` table (sequential `receipt_number_seq` from 1001, UNIQUE order_id, consumer + business + financial snapshots) + 9 admin-editable `app_config` receipt keys + `issue_receipt_on_completion` SECURITY DEFINER trigger (orders → `'completed'`: insert receipt, ONE `net.http_post` to `send-receipt` via Vault **`send_receipt_url`**) + `admin_resend_receipt(uuid)` (super_admin-gated re-fire). RLS: consumer own SELECT + super_admin SELECT. Receipt email = Resend API (ADR-041). Pinned by `receipts.contract.test.js`.
 - `0114_receipts_backup.sql` — `receipts.pdf_path` + private `receipts` storage bucket (PDF-only, 5 MB) + `super_admin_read_receipts` storage policy. `send-receipt` archives every חשבונית מס/קבלה PDF to `<year>/invoice-receipt-<n>.pdf` before emailing; admin tab downloads via signed URL. **Deliberately not purged by delete-account** (retained financial records).
 - `0121_seed_legal_consent_on_signup.sql` — redefines `handle_new_user` (CREATE OR REPLACE, trigger binding preserved) to seed `user_legal_acknowledgments` at account creation when the signup form passes `accepted_legal` (consumer → consumer_terms+privacy_policy; washer → privacy_policy only — the post-approval washer contract is NOT seeded). Fixes `LegalUpdateModal` re-prompting a user immediately after they consented at registration; the modal now reappears only on a version bump. One-time non-destructive backfill (`on conflict do nothing`) for existing consumer/washer accounts. Pinned by `legalConsentOnSignup.contract.test.js`.
+- `0127_washer_release_to_pending.sql` — **a washer "cancel" now RELEASES the order back to `pending` instead of terminally cancelling it.** Redefines `transition_order_status` (now the latest def; reproduces 0116 byte-for-byte) with two changes: (1) the washer self-cancel-to-`cancelled` branch is **removed** — a washer can never set `cancelled`; (2) the assigned washer may move an `accepted`/`en_route` order → `pending` (release), which un-assigns the washer (`washer_id`/`accepted_at` → NULL) and clears that washer's arrival-photo evidence. Client: `JobDrawer.releaseJob` calls the RPC with `new_status:'pending'` (was `'cancelled'`); copy reworded to "release". Also adds `notify_on_order_repend()` + `trg_notify_on_order_repend` (AFTER UPDATE, `WHEN NEW.status='pending' AND OLD.status IS DISTINCT FROM 'pending'`): resets the `order_washer_notifications` dedup table (keeping the releasing washer excluded that round) and re-invokes the `fan-out-nearby-job` Edge Fn so nearby washers are re-notified — same reach as a fresh order's 0053 AFTER INSERT fan-out. Pinned by `transitionOrderStatus.stateMachine.test.js` + `cancellationFee.contract.test.js` + `undergroundParking.migration.test.js` (all ride the latest def). **No new Vault secret** — reuses `fan_out_nearby_job_url` + `service_role_key`.
 
 ### Migration discipline (lessons from the 0066 saga)
 - `npm run db:migrate --bootstrap` records every migration as applied *without* executing its SQL. A subsequent normal `db:migrate` will then skip the file. If schema objects are missing despite a migration existing for them, add a new heal migration (idempotent `… IF NOT EXISTS`) rather than running raw `ALTER` in the dashboard — the runner will pick it up on the next deploy.
@@ -128,9 +129,10 @@ Migrations live in `supabase/migrations/` (0001–0110). Run `npm run db:migrate
 
 ```
 pending → accepted → en_route → arrived → in_progress → pending_approval → completed
-                                     ↑                             ↑            ↑
-                         100 m geofence + 4 arrival photos   4 completion   agent approves
-                                                             photos + GPS
+   ↑  ↖_____________/                ↑                             ↑            ↑
+   │  washer release    100 m geofence + 4 arrival photos   4 completion   agent approves
+   │  (accepted/en_route)                                   photos + GPS
+   └─ re-enters the pool, re-offered to all washers
 
 pending_approval:
   - Washer LOCKED: cannot accept or be offered new jobs
@@ -142,8 +144,13 @@ pending_approval:
 Agent overrides:
   agent can cancel from any non-terminal status
   agent can force-complete from any non-terminal status (bypasses photos/pending_approval)
-Consumer can cancel: pending or accepted only
-Washer can cancel: accepted or en_route only (their own job)
+Consumer can cancel: pending/accepted (free) or en_route/arrived (50 ₪ fee, 0116)
+Washer can RELEASE (0127): accepted/en_route → pending (their own job). This is the
+  washer's "cancel" — it does NOT terminate the order; it un-assigns the washer
+  (washer_id/accepted_at → NULL, arrival photos cleared) and returns the order to
+  the pending pool. A washer can no longer move an order to 'cancelled'.
+  Re-pending fires trg_notify_on_order_repend → resets the per-order nearby-job
+  dedup table + re-invokes fan-out-nearby-job (Edge Fn) so washers are re-notified.
 Any terminal state: no further transitions
 ```
 

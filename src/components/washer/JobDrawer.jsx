@@ -984,13 +984,17 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   // en_route (accepted) it stays locked fully-expanded as before.
   const releasable = isActive && RELEASABLE_STATUSES.includes(order?.status)
 
-  async function cancelJob() {
+  // Washer "cancel" = RELEASE the job back to the pending pool (migration 0127).
+  // It un-assigns the washer and re-offers the order to every washer instead of
+  // cancelling the customer's order. The server enforces accepted/en_route only
+  // and clears washer_id + this washer's arrival-photo evidence.
+  async function releaseJob() {
     if (cancellingRef.current) return
     cancellingRef.current = true
     setCancelling(true)
     const { error } = await supabase.rpc('transition_order_status', {
       order_id:   activeJob.id,
-      new_status: 'cancelled',
+      new_status: 'pending',
     })
     cancellingRef.current = false
     setCancelling(false)
@@ -1194,7 +1198,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
 
       <ConfirmDialog
         open={cancelConfirmOpen}
-        onConfirm={() => { setCancelConfirmOpen(false); cancelJob() }}
+        onConfirm={() => { setCancelConfirmOpen(false); releaseJob() }}
         onCancel={() => setCancelConfirmOpen(false)}
         title={t('washer.drawer.cancel.title')}
         message={t('washer.drawer.cancel.message')}
