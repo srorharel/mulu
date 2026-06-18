@@ -50,6 +50,14 @@ export function useNearbyJobs(position, enabled = true) {
   // re-created (and without re-subscribing the channel) on every GPS tick.
   const posRef  = useRef(position)
   const jobsRef = useRef(jobs)
+  // The skeleton/"looking for jobs" state shows ONLY for the genuine first load of
+  // a session. Every later update (GPS movement, realtime, refresh()) reconciles
+  // the list silently/in place — so it never re-flashes a refresh spinner, even
+  // while the list is momentarily empty.
+  const loadedOnceRef = useRef(false)
+  // Position we last actually refetched at. Used to ignore sub-50 m GPS jitter so
+  // the list doesn't churn + re-sort on every watch tick.
+  const lastFetchRef  = useRef(null)
   useEffect(() => { posRef.current = position }, [position?.lat, position?.lng]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { jobsRef.current = jobs }, [jobs])
 
@@ -67,7 +75,9 @@ export function useNearbyJobs(position, enabled = true) {
   // when the list is currently empty: a realtime-driven refetch must never flash a
   // spinner — the new order should just pop in.
   const fetchJobs = useCallback(async (lat, lng, { silent = false } = {}) => {
-    const isInitial = !silent && jobsRef.current.length === 0
+    // First load only — keyed on "have we ever fetched", NOT on list emptiness, so
+    // a later refetch over an empty list can't re-flash the skeleton.
+    const isInitial = !silent && !loadedOnceRef.current
     if (isInitial) setLoading(true)
     setError(null)
     const { data, error } = await supabase.rpc('nearby_jobs', {
@@ -77,6 +87,7 @@ export function useNearbyJobs(position, enabled = true) {
     })
     if (error) setError(error.message)
     else commit(data ?? [])
+    loadedOnceRef.current = true
     if (isInitial) setLoading(false)
   }, [commit])
 
@@ -128,10 +139,21 @@ export function useNearbyJobs(position, enabled = true) {
   }, [commit, fetchJobs])
 
   // Fetch (and refetch on position change) — silent except for the initial load.
+  // Ignore sub-50 m GPS jitter: a watch tick that barely moved would otherwise
+  // refetch + re-sort the list every second. New/removed orders still arrive live
+  // over the realtime channel, so the list stays current without that churn.
   useEffect(() => {
     if (!enabled || !position) return
+    const last = lastFetchRef.current
+    if (last && haversineKm(last.lat, last.lng, position.lat, position.lng) < 0.05) return
+    lastFetchRef.current = { lat: position.lat, lng: position.lng }
     fetchJobs(position.lat, position.lng)
   }, [position?.lat, position?.lng, enabled, fetchJobs]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Going offline clears the movement anchor so the next online session refetches.
+  useEffect(() => {
+    if (!enabled) lastFetchRef.current = null
+  }, [enabled])
 
   // Subscribe once per online session (not per GPS tick). Listen to all orders
   // changes and decide client-side, so we also catch pending → accepted/cancelled
