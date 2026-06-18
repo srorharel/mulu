@@ -465,13 +465,15 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     return () => { cancelled = true }
   }, [underground, activeJob?.id])
 
-  // Realtime consumer-cancel detection + pending_approval auto-clear
+  // Realtime consumer-cancel detection. pending_approval is a LOCKED state
+  // (ADR-024): the washer is held on the "submitted, under review" panel and
+  // nearby_jobs returns nothing for them until an agent approves (→ completed,
+  // cleared by the Dashboard realtime handler) or declines (→ in_progress,
+  // panel reverts to the working state). Do NOT auto-clear pending_approval —
+  // that strands the washer on an empty job list and flashes the panel for ~1s
+  // on every dashboard re-entry (the safety-net fetch re-surfaces the order).
   useEffect(() => {
     if (order?.status === 'cancelled') onJobDone()
-    if (order?.status === 'pending_approval') {
-      const t = setTimeout(onJobDone, 1500)
-      return () => clearTimeout(t)
-    }
   }, [order?.status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function recordGeofenceFailure() {
