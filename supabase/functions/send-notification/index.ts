@@ -472,35 +472,27 @@ async function sendFcmMessage(opts: {
 }): Promise<SendResult> {
   const { token, platform, title, body, route, event_type, sound, data, fcmProjectId, accessToken } = opts
 
-  // Android incoming-call pushes are DATA-ONLY + high priority so our native
-  // IncomingCallService.onMessageReceived fires even when the app is
-  // backgrounded/killed and builds the full-screen ringing notification. A
-  // top-level `notification` block would make Android route it to the system
-  // tray instead (no custom code on a killed app). iOS keeps a normal alert
-  // until the CallKit/PushKit path is built.
-  const isAndroidCall = event_type === 'incoming_call' && platform === 'android'
+  // Incoming calls are a NORMAL notification message (not data-only) on a
+  // dedicated max-importance 'incoming_calls' channel (created client-side).
+  // This makes the call ring as a heads-up notification even when the app is
+  // minimized or closed — exactly like every other notification. (A data-only
+  // message + custom native service was tried for a full-screen ring, but data
+  // messages aren't delivered reliably to a backgrounded/killed app, so the
+  // ring never showed. A normal notification is the robust path.)
+  const isCall = event_type === 'incoming_call'
 
   const message: Record<string, unknown> = {
     token,
+    notification: { title, body },
     data: { route, event_type, ...data },
-  }
-  if (!isAndroidCall) {
-    message.notification = { title, body }
   }
 
   if (platform === 'android') {
-    message.android = isAndroidCall
-      ? { priority: 'high' }
-      : {
-          notification: {
-            channel_id: `wash_${sound || 'chirp'}`,
-            sound,        // filename without extension; must exist in res/raw/
-          },
-        }
+    message.android = isCall
+      ? { priority: 'high', notification: { channel_id: 'incoming_calls', sound: 'bell' } }
+      : { notification: { channel_id: `wash_${sound || 'chirp'}`, sound } }
   } else if (platform === 'ios') {
-    message.apns = {
-      payload: { aps: { sound: `${sound}.mp3` } },
-    }
+    message.apns = { payload: { aps: { sound: `${sound}.mp3` } } }
   }
 
   let res: Response

@@ -50,6 +50,21 @@ async function createChannels() {
       console.warn(`[MULU-NOTIF] Failed to create channel ${ch.id}`, e)
     }
   }
+  // Dedicated max-importance channel for incoming in-app calls — rings + heads-up
+  // even when the app is minimized/closed. send-notification routes
+  // event_type='incoming_call' here.
+  try {
+    await PushNotifications.createChannel({
+      id:         'incoming_calls',
+      name:       'שיחות נכנסות',
+      importance: 5,         // MAX — full heads-up + sound
+      sound:      'bell.mp3',
+      vibration:  true,
+      lights:     true,
+    })
+  } catch (e) {
+    console.warn('[MULU-NOTIF] Failed to create incoming_calls channel', e)
+  }
 }
 
 /**
@@ -118,6 +133,9 @@ export async function initNotifications({ navigate, showToast }) {
 
   // ── Foreground delivery (app is open) ────────────────────────────────────
   PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    // Incoming calls are handled in-app by the Realtime ring + CallSheet; don't
+    // also pop a toast for them.
+    if (notification.data?.event_type === 'incoming_call') return
     const message = notification.body || notification.title || 'New notification'
     showToast(message, 'success', 5000)
   })
@@ -125,6 +143,15 @@ export async function initNotifications({ navigate, showToast }) {
   // ── Notification tap (app was backgrounded or closed) ────────────────────
   PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
     const data = notification.data ?? {}
+
+    // Incoming-call tap: reconstruct the call in-app (the original Realtime
+    // `ring` was missed while the app was down). CallContext listens for this.
+    if (data.event_type === 'incoming_call' && data.call_id) {
+      window.dispatchEvent(new CustomEvent('mulu:incoming-call', {
+        detail: { callId: data.call_id, from: data.from_name, fromId: data.from_id },
+      }))
+      return
+    }
 
     // Primary: use pre-computed route from the trigger payload.
     if (data.route) {

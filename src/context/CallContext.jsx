@@ -1,6 +1,4 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
-import { Capacitor } from '@capacitor/core'
-import { App as CapacitorApp } from '@capacitor/app'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { getIceServers } from '../lib/turn.js'
@@ -303,32 +301,21 @@ export function CallProvider({ children }) {
     return () => stopRing()
   }, [callState])
 
-  // Native deep link: when a backgrounded/killed app is opened from the
-  // full-screen incoming-call notification (IncomingCallService →
-  // mulu-call://incoming?call_id=...), reconstruct the call here since the
-  // original Realtime `ring` broadcast was missed while the app was down.
+  // Tapping a backgrounded/closed incoming-call notification reconstructs the
+  // call here — the original Realtime `ring` broadcast was missed while the app
+  // was down. notifications.js dispatches 'mulu:incoming-call' on that tap.
   useEffect(() => {
-    if (!enabled || !Capacitor.isNativePlatform()) return undefined
-    let sub
-    const handleUrl = (url) => {
-      if (!url || !url.startsWith('mulu-call://') || callRef.current) return
-      try {
-        const u = new URL(url)
-        const callId = u.searchParams.get('call_id')
-        if (!callId) return
-        const peerName = u.searchParams.get('from') || ''
-        const action = u.searchParams.get('action') || 'show'
-        setCall({ callId, peerId: u.searchParams.get('from_id') || null, peerName, orderId: null, role: 'callee' })
-        setCallState('incoming')
-        joinCallChannel(callId, 'callee')
-        if (action === 'accept') accept()
-        else if (action === 'decline') decline()
-      } catch { /* malformed link — ignore */ }
+    if (!enabled) return undefined
+    const onIncoming = (e) => {
+      const { callId, from, fromId } = e.detail || {}
+      if (!callId || callRef.current) return
+      setCall({ callId, peerId: fromId || null, peerName: from || '', orderId: null, role: 'callee' })
+      setCallState('incoming')
+      joinCallChannel(callId, 'callee')
     }
-    CapacitorApp.getLaunchUrl().then((r) => handleUrl(r?.url)).catch(() => {})
-    CapacitorApp.addListener('appUrlOpen', (e) => handleUrl(e.url)).then((s) => { sub = s })
-    return () => { sub?.remove?.() }
-  }, [enabled, joinCallChannel, accept, decline])
+    window.addEventListener('mulu:incoming-call', onIncoming)
+    return () => window.removeEventListener('mulu:incoming-call', onIncoming)
+  }, [enabled, joinCallChannel])
 
   const value = { enabled, callState, call, muted, speakerOn, durationSec, startCall, accept, decline, hangup, toggleMute, toggleSpeaker }
 

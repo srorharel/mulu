@@ -38,6 +38,11 @@ Deno.serve(async (req) => {
 
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const url = Deno.env.get('SUPABASE_URL')!
+  // send-notification authenticates the bearer against TRIGGER_SECRET (NOT the
+  // service-role key — the two are not necessarily the same value). Every working
+  // internal caller (fan-out-nearby-job, fan-out-legal-update) uses TRIGGER_SECRET,
+  // so we must too, or send-notification 401s and the call push is silently dropped.
+  const triggerSecret = Deno.env.get('TRIGGER_SECRET') ?? serviceKey
 
   // Verify the caller is authenticated (we don't restrict who they call — that's
   // already constrained by the app surfacing the button only on an active order).
@@ -45,10 +50,10 @@ Deno.serve(async (req) => {
   const { data: userData, error: userErr } = await admin.auth.getUser(jwt)
   if (userErr || !userData?.user) return jsonResponse({ ok: false, error: 'unauthorized' })
 
-  // Fan out via send-notification (same service-role bearer it expects).
+  // Fan out via send-notification (TRIGGER_SECRET bearer — see note above).
   const res = await fetch(`${url}/functions/v1/send-notification`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${triggerSecret}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       user_id: body.to_user_id,
       event_type: 'incoming_call',

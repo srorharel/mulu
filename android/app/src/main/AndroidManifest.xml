@@ -25,22 +25,6 @@
 
         </activity>
 
-        <!-- In-app calling: our FCM handler replaces the push plugin's so an
-             'incoming_call' data message builds a full-screen ringing
-             notification (backgrounded/killed app). Non-call messages delegate
-             to the plugin via super. The plugin's own service is removed so
-             only ours handles MESSAGING_EVENT. -->
-        <service
-            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
-            tools:node="remove" />
-        <service
-            android:name=".IncomingCallService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -61,11 +45,9 @@
     <!-- In-app voice calls (Feature 2 — WebRTC microphone). Harmless if unused. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <!-- Full-screen incoming-call ring (backgrounded/killed app). -->
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Incoming-call notification (heads-up ring on the incoming_calls channel). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
