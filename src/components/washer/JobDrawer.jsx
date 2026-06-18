@@ -1187,7 +1187,7 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
               >
                 <JobCard
                   job={job}
-                  onClick={() => navigate(`/washer/job/${job.id}`)}
+                  onClick={() => navigate(`/washer/job/${job.id}`, { state: { job } })}
                   highlight={selectedJobId === job.id}
                 />
               </motion.div>

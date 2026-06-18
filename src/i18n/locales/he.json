@@ -512,7 +512,21 @@
       "noWater": "אין מים",
       "powerAvailable": "חשמל זמין",
       "ownPower": "הביאו ציוד עצמאי",
-      "accessHidden": "הוראות גישה יחשפו לאחר הקבלה.",
+      "accessHidden": "הכתובת המדויקת והוראות הגישה יישלחו אליך מיד לאחר קבלת העבודה.",
+      "payoutLabel": "תשלום מובטח",
+      "info": {
+        "vehicle": "סוג רכב",
+        "area": "כתובת",
+        "distance": "מרחק ממך",
+        "posted": "פורסם"
+      },
+      "distanceKm": "{{km}} ק״מ",
+      "postedAgo": {
+        "justNow": "הרגע",
+        "minutes": "לפני {{n}} דק׳",
+        "hours": "לפני {{n}} שע׳",
+        "days": "לפני {{n}} ימים"
+      },
       "unavailable": "העבודה כבר אינה זמינה",
       "acceptJob": "קבלו עבודה",
       "accepting": "מקבלים...",

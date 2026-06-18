@@ -512,7 +512,21 @@
       "noWater": "No water",
       "powerAvailable": "Power available",
       "ownPower": "Bring own power",
-      "accessHidden": "Access instructions revealed after accepting.",
+      "accessHidden": "The exact address and access instructions are sent to you the moment you accept.",
+      "payoutLabel": "Guaranteed payout",
+      "info": {
+        "vehicle": "Vehicle",
+        "area": "Address",
+        "distance": "Distance from you",
+        "posted": "Posted"
+      },
+      "distanceKm": "{{km}} km",
+      "postedAgo": {
+        "justNow": "Just now",
+        "minutes": "{{n}} min ago",
+        "hours": "{{n}}h ago",
+        "days": "{{n}}d ago"
+      },
       "unavailable": "This job is no longer available",
       "acceptJob": "Accept Job",
       "accepting": "Accepting…",

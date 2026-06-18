@@ -1,20 +1,48 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Car, DollarSign, MapPin, Lock, Loader2, Droplets, Zap, ParkingSquare } from 'lucide-react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft, Car, MapPin, Navigation, Clock, Lock, Loader2, ParkingSquare, Banknote } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { payoutForTier } from '../../lib/payout.js'
 import PageShell from '../../components/ui/PageShell.jsx'
-import Badge from '../../components/ui/Badge.jsx'
 import Editable from '../../components/editable/Editable.jsx'
 
+// Relative "posted X ago" — minutes / hours / days, i18n-driven. Uses a plain {{n}}
+// var (not i18next `count`) so no plural-suffix resolution kicks in across locales.
+function postedAgo(iso, t) {
+  if (!iso) return null
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (min < 1)  return t('washer.jobDetail.postedAgo.justNow')
+  if (min < 60) return t('washer.jobDetail.postedAgo.minutes', { n: min })
+  const hr = Math.floor(min / 60)
+  if (hr < 24)  return t('washer.jobDetail.postedAgo.hours', { n: hr })
+  return t('washer.jobDetail.postedAgo.days', { n: Math.floor(hr / 24) })
+}
+
+// One labelled info line: tinted icon chip + label/value. Brand-green in light
+// (saturated, AA on the light tint), mint accent in dark — matching the app.
+function InfoRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <div className="w-[38px] h-[38px] rounded-xl bg-primary-100 dark:bg-accent-muted flex items-center justify-center shrink-0">
+        <Icon className="h-[19px] w-[19px] text-primary-700 dark:text-accent" strokeWidth={2} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] text-ink-muted leading-none">{label}</p>
+        <p className="text-[15px] font-semibold text-ink truncate mt-1">{value}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function JobDetail() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const showToast = useToast()
-  const { t } = useTranslation()
+  const { id }     = useParams()
+  const navigate   = useNavigate()
+  const { state }  = useLocation()
+  const showToast  = useToast()
+  const { t }      = useTranslation()
   const { profile } = useAuth()
   const [order, setOrder]         = useState(null)
   const [loading, setLoading]     = useState(true)
@@ -65,110 +93,80 @@ export default function JobDetail() {
     </PageShell>
   )
 
-  const hasAddons = order.addon_wiper_fluid || order.addon_tire_pressure
+  const payout       = payoutForTier(profile?.current_tier)
+  const vehicleLabel = t(`carLabels.${order.car_type}`, { defaultValue: '' })
+  const serviceLabel = t(`serviceLabels.${order.service_type || 'wash'}`)
+  // Distance is passed from the job list (nearby_jobs row) via nav state — shown
+  // only when present (e.g. deep links / map entry won't have it).
+  const distanceKm   = state?.job?.distance_km
+  const posted       = postedAgo(order.created_at, t)
+  const isPending    = order.status === 'pending'
 
   return (
     <PageShell noNav>
-      <div className="px-5 pt-6 pb-8 flex flex-col gap-5">
+      <div className="px-5 pt-6 pb-8 flex flex-col gap-5 min-h-full">
         <button onClick={() => navigate('/washer')} className="flex items-center gap-2 text-ink-muted text-sm -ms-1">
           <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('washer.jobDetail.back')}
         </button>
 
-        <h1 className="text-xl font-bold">{t('washer.jobDetail.title')}</h1>
+        <h1 className="text-xl font-bold text-ink">{t('washer.jobDetail.title')}</h1>
 
         {order.is_underground_parking && (
-          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-warning-50 border border-warning-200 text-warning-700">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-warning-500/10 border border-warning-500/30 text-warning-600 dark:text-warning-500">
             <ParkingSquare className="h-4 w-4 shrink-0" />
             <span className="text-sm font-semibold">{t('washer.drawer.underground.badge')}</span>
           </div>
         )}
 
-        <div className="card flex flex-col gap-3">
-          {/* Car + service */}
-          <div className="flex items-center gap-3">
-            <span className="rounded-lg bg-primary-50 dark:bg-accent-muted p-2">
-              <Car className="h-5 w-5 text-primary-500 dark:text-accent" />
-            </span>
-            <div>
-              <p className="font-semibold">{t(`carLabels.${order.car_type}`)}</p>
-              <p className="text-sm text-ink-muted">{t(`serviceLabels.${order.service_type || 'wash'}`)}</p>
-            </div>
+        {/* ── Payout hero — the number is what the washer decides on ── */}
+        <div className="rounded-3xl border border-primary-200 dark:border-accent/25 bg-primary-50 dark:bg-accent-muted p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-accent/20 flex items-center justify-center shrink-0">
+            <Banknote className="h-6 w-6 text-primary-700 dark:text-accent" strokeWidth={2} />
           </div>
-
-          {/* Add-ons */}
-          {hasAddons && (
-            <div className="flex items-center gap-2 text-sm text-ink-muted ps-1">
-              <span className="text-xs font-medium text-ink-muted uppercase tracking-wide">{t('washer.jobDetail.addons')}</span>
-              {order.addon_wiper_fluid   && (
-                <Badge variant="default" className="bg-neutral-100 dark:bg-edge dark:text-ink-muted">
-                  {t('washer.jobDetail.wiperFluid')}
-                </Badge>
-              )}
-              {order.addon_tire_pressure && (
-                <Badge variant="default" className="bg-neutral-100 dark:bg-edge dark:text-ink-muted">
-                  {t('washer.jobDetail.tirePressure')}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Payout — based on washer's current tier, locked at acceptance */}
-          <div className="flex items-center gap-3">
-            <span className="rounded-lg bg-primary-50 dark:bg-accent-muted p-2">
-              <DollarSign className="h-5 w-5 text-primary-500 dark:text-accent" />
-            </span>
-            <div>
-              <p className="font-semibold">{t('washer.jobDetail.payout', { amount: payoutForTier(profile?.current_tier) })}</p>
-            </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold text-primary-700 dark:text-accent">{t('washer.jobDetail.payoutLabel')}</p>
+            <p className="text-[30px] font-extrabold text-primary-700 dark:text-accent leading-none mt-1" dir="ltr">₪{payout}</p>
           </div>
-
-          {/* Address */}
-          {order.address_label && (
-            <div className="flex items-center gap-3">
-              <span className="rounded-lg bg-primary-50 dark:bg-accent-muted p-2 shrink-0">
-                <MapPin className="h-5 w-5 text-primary-500 dark:text-accent" />
-              </span>
-              <p className="text-sm text-ink-muted truncate">{order.address_label}</p>
-            </div>
-          )}
-
-          {/* Site resources */}
-          <div className="border-t border-neutral-100 dark:border-edge pt-3 flex items-center gap-3 text-sm flex-wrap">
-            <span className="text-xs font-medium text-ink-muted uppercase tracking-wide w-full">{t('washer.jobDetail.siteResources')}</span>
-            <span className={`flex items-center gap-1 ${order.site_has_water ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}`}>
-              <Droplets className="h-3.5 w-3.5 shrink-0" />
-              {order.site_has_water ? t('washer.jobDetail.waterAvailable') : t('washer.jobDetail.noWater')}
-            </span>
-            <span className="text-neutral-200 dark:text-edge">·</span>
-            <span className={`flex items-center gap-1 ${order.site_has_power ? 'text-primary-600 dark:text-accent font-medium' : 'text-ink-muted'}`}>
-              <Zap className="h-3.5 w-3.5 shrink-0" />
-              {order.site_has_power ? t('washer.jobDetail.powerAvailable') : t('washer.jobDetail.ownPower')}
-            </span>
-          </div>
-
-          {/* Key location placeholder */}
-          <div className="border-t border-neutral-100 dark:border-edge pt-3 flex items-center gap-3">
-            <span className="rounded-lg bg-neutral-50 dark:bg-surface p-2 shrink-0">
-              <Lock className="h-5 w-5 text-neutral-300 dark:text-ink-muted" />
-            </span>
-            <p className="text-sm text-ink-muted italic">{t('washer.jobDetail.accessHidden')}</p>
-          </div>
+          <span className="text-[11px] font-medium text-primary-700/80 dark:text-accent/80 self-start">{serviceLabel}</span>
         </div>
 
-        {order.status !== 'pending' && (
-          <div className="card bg-warning-50 text-warning-600 text-sm text-center">
-            {t('washer.jobDetail.unavailable')}
-          </div>
-        )}
+        {/* ── Decision info ── */}
+        <div className="rounded-3xl border border-edge bg-surface-elevated px-4 divide-y divide-edge">
+          {vehicleLabel && <InfoRow icon={Car} label={t('washer.jobDetail.info.vehicle')} value={vehicleLabel} />}
+          {order.address_label && <InfoRow icon={MapPin} label={t('washer.jobDetail.info.area')} value={order.address_label} />}
+          {distanceKm != null && (
+            <InfoRow icon={Navigation} label={t('washer.jobDetail.info.distance')} value={t('washer.jobDetail.distanceKm', { km: distanceKm })} />
+          )}
+          {posted && <InfoRow icon={Clock} label={t('washer.jobDetail.info.posted')} value={posted} />}
+        </div>
 
-        {order.status === 'pending' && (
-          <Editable id="washer.job.acceptCta">
-          <button onClick={acceptJob} disabled={accepting} className="btn-primary mt-auto">
-            {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {accepting ? t('washer.jobDetail.accepting') : t('washer.jobDetail.acceptJob')}
-          </button>
-          </Editable>
-        )}
+        {/* ── Bottom action area (pinned low on short screens) ── */}
+        <div className="mt-auto flex flex-col gap-4 pt-2">
+          <div className="flex items-center gap-2.5 px-1">
+            <Lock className="h-4 w-4 text-ink-muted shrink-0" />
+            <p className="text-xs text-ink-muted leading-relaxed">{t('washer.jobDetail.accessHidden')}</p>
+          </div>
+
+          {!isPending && (
+            <div className="rounded-xl bg-warning-500/10 border border-warning-500/30 text-warning-600 dark:text-warning-500 text-sm text-center py-3 px-4">
+              {t('washer.jobDetail.unavailable')}
+            </div>
+          )}
+
+          {isPending && (
+            <Editable id="washer.job.acceptCta">
+              <button
+                onClick={acceptJob}
+                disabled={accepting}
+                className="w-full h-[54px] rounded-2xl bg-gradient-to-b from-primary-500 to-primary-700 text-white font-extrabold text-[16px] flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ boxShadow: '0 8px 22px rgba(38,181,95,0.40), inset 0 1px 0 rgba(255,255,255,0.3)' }}
+              >
+                {accepting && <Loader2 className="h-5 w-5 animate-spin" />}
+                {accepting ? t('washer.jobDetail.accepting') : t('washer.jobDetail.acceptJob')}
+              </button>
+            </Editable>
+          )}
+        </div>
       </div>
     </PageShell>
   )
