@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useMotionValue } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
@@ -11,6 +11,7 @@ import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useTheme } from '../../hooks/useTheme.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useNearbyJobs } from '../../hooks/useNearbyJobs.js'
+import { useAppForeground } from '../../hooks/useAppForeground.js'
 import { payoutForTier } from '../../lib/payout.js'
 import JobDrawer, { getSnaps } from '../../components/washer/JobDrawer.jsx'
 import RecenterButton from '../../components/washer/RecenterButton.jsx'
@@ -261,19 +262,39 @@ export default function WasherDashboard() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch active job as safety net.
+  // Resolve the washer's active job from the server. `allowClear` lets a refetch
+  // CLEAR a stale panel when the server says there's no longer an active job —
+  // e.g. an agent approved/declined-to-terminal the wash while the app was
+  // backgrounded and the realtime 'completed' event was missed (the socket is
+  // dead in the background and missed events are not replayed on reconnect).
+  // On the initial/online fetch we never clear, so a just-accepted job passed via
+  // navigation state can't be wiped by a momentary RPC race.
+  const fetchActiveJob = useCallback(async ({ allowClear = false } = {}) => {
+    const { data, error } = await supabase.rpc('get_washer_active_job').maybeSingle()
+    if (error) { console.error('[Dashboard] Failed to fetch active job:', error); return }
+    if (data)            setActiveJob(prev => (prev?.id === data.id ? prev : data))
+    else if (allowClear) setActiveJob(prev => (prev ? null : prev))
+  }, [])
+
+  // Fetch active job as safety net (mount + online toggle). Never clears here.
+  useEffect(() => { fetchActiveJob() }, [user.id, online, fetchActiveJob])
+
+  // Self-heal when the app returns to the foreground: realtime missed any status
+  // change made while backgrounded, so reconcile the active job (and let it clear
+  // if the job finished). useRealtimeOrder separately refreshes the panel's order
+  // content on the same foreground signal (e.g. a decline reverts it to working).
+  const reconcileActiveJob = useCallback(() => { fetchActiveJob({ allowClear: true }) }, [fetchActiveJob])
+  useAppForeground(reconcileActiveJob)
+
+  // Belt-and-suspenders for missed realtime: while a job is active, poll the
+  // server so a terminal transition (agent approve → completed, consumer cancel,
+  // release) clears the panel within ~30s even when the realtime UPDATE never
+  // arrives (dead/backgrounded socket, RLS edge cases). Only runs while active.
   useEffect(() => {
-    let cancelled = false
-    supabase
-      .rpc('get_washer_active_job')
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) { console.error('[Dashboard] Failed to fetch active job:', error); return }
-        if (data) setActiveJob(data)
-      })
-    return () => { cancelled = true }
-  }, [user.id, online])
+    if (!activeJob?.id) return undefined
+    const interval = setInterval(reconcileActiveJob, 30_000)
+    return () => clearInterval(interval)
+  }, [activeJob?.id, reconcileActiveJob])
 
   // Detect terminal transitions (cancel, complete) via realtime.
   useEffect(() => {

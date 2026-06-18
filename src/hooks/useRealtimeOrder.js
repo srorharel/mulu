@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { useAppForeground } from './useAppForeground.js'
 
 export function useRealtimeOrder(orderId) {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     if (!orderId) return
-
     supabase
       .from('orders')
       .select('*')
@@ -19,6 +19,12 @@ export function useRealtimeOrder(orderId) {
         else setOrder(data)
         setLoading(false)
       })
+  }, [orderId])
+
+  useEffect(() => {
+    if (!orderId) return
+
+    refetch()
 
     const channel = supabase
       .channel(`order:${orderId}`)
@@ -30,7 +36,12 @@ export function useRealtimeOrder(orderId) {
       .subscribe()
 
     return () => supabase.removeChannel(channel)
-  }, [orderId])
+  }, [orderId, refetch])
+
+  // Self-heal on foreground: the realtime socket dies while backgrounded and
+  // missed events aren't replayed, so an agent/consumer status change made while
+  // the app was closed (approve, decline, cancel) would leave `order` stale.
+  useAppForeground(refetch)
 
   function mutateOrder(patch) {
     setOrder(o => o ? { ...o, ...patch } : o)
