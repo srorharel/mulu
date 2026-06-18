@@ -3,6 +3,14 @@ import { supabase } from '../lib/supabase.js'
 import { haversineKm } from '../lib/geo.js'
 
 const RADIUS_KM = 15
+// Poll cadence for the nearby list. Realtime is best-effort AND RLS-gated here: a
+// washer can only SELECT orders that are still `pending` (or assigned to them), so
+// the instant ANOTHER washer accepts an order it leaves the pending pool and this
+// washer loses read access — the pending→accepted UPDATE that would drop it from
+// the list is therefore never delivered over the realtime channel. Polling is the
+// reliable backstop that removes taken/cancelled/out-of-range orders from every
+// washer's window. commit()'s signature no-op makes an unchanged poll a no-render.
+const POLL_MS = 15_000
 
 // Minimal projection of the fields the job list actually renders / sorts on.
 // Used to skip no-op setState after a refetch: if the incoming list is identical
@@ -171,8 +179,10 @@ export function useNearbyJobs(position, enabled = true) {
   }, [enabled])
 
   // Subscribe once per online session (not per GPS tick). Listen to all orders
-  // changes and decide client-side, so we also catch pending → accepted/cancelled
-  // transitions (a server-side status=eq.pending filter would drop those UPDATEs).
+  // changes and decide client-side. This catches live ADDs and the washer's OWN
+  // order transitions, but NOT another washer accepting a pending order: RLS
+  // revokes this washer's read access the moment it leaves the pending pool, so
+  // that UPDATE is withheld from this channel. The poll below covers that case.
   useEffect(() => {
     if (!enabled) return
     const channel = supabase
@@ -185,6 +195,19 @@ export function useNearbyJobs(position, enabled = true) {
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [enabled, applyRealtime])
+
+  // Reliable backstop poll (see POLL_MS): re-fetch the nearby list on an interval
+  // so an order another washer just accepted — whose pending→accepted UPDATE RLS
+  // hides from our realtime channel — disappears from this window within POLL_MS.
+  // Silent (no skeleton) and a no-op render when nothing changed (commit signature).
+  useEffect(() => {
+    if (!enabled) return undefined
+    const interval = setInterval(() => {
+      const p = posRef.current
+      if (p) fetchJobs(p.lat, p.lng, { silent: true })
+    }, POLL_MS)
+    return () => clearInterval(interval)
+  }, [enabled, fetchJobs])
 
   // Stable identity (deps: the memoized fetchJobs) so consumers can list it in an
   // effect's deps without the effect re-firing every render. Returns fetchJobs'

@@ -258,4 +258,36 @@ describe('useNearbyJobs', () => {
     expect(distances).toEqual(sortedAsc)            // nearest-first preserved
     expect(result.current.jobs[0].id).toBe('order-near') // closest row leads
   })
+
+  // ── New: backstop poll prunes an order another washer accepted ──────────────
+  // When another washer accepts a pending order it leaves the pending pool, and
+  // RLS revokes THIS washer's read access — so the pending→accepted UPDATE never
+  // reaches the realtime channel. The interval re-fetch is what removes it.
+  it('removes a taken order via the backstop poll (realtime UPDATE is RLS-hidden)', async () => {
+    vi.useFakeTimers()
+    try {
+      rpcRows = [
+        pendingRow('order-1', { distance_km: 1.2, lat: 32.0853, lng: 34.7818 }),
+        pendingRow('order-2', { distance_km: 3.7, lat: 32.0900, lng: 34.7900 }),
+      ]
+      const { result } = renderHook(() => useNearbyJobs(WASHER, true))
+
+      // Flush the initial (non-timer) fetch.
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(result.current.jobs.map(j => j.id)).toEqual(['order-1', 'order-2'])
+      const callsBefore = rpcCallCount
+
+      // Another washer accepts order-1 → nearby_jobs stops returning it. No realtime
+      // event reaches us (RLS), so only the poll can prune it from the window.
+      rpcRows = [pendingRow('order-2', { distance_km: 3.7, lat: 32.0900, lng: 34.7900 })]
+
+      // Advance one poll interval (POLL_MS = 15s).
+      await act(async () => { await vi.advanceTimersByTimeAsync(15_000) })
+
+      expect(rpcCallCount).toBeGreaterThan(callsBefore)               // the poll ran
+      expect(result.current.jobs.map(j => j.id)).toEqual(['order-2']) // order-1 pruned
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
