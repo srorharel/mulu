@@ -193,7 +193,7 @@ export default function WasherDashboard() {
   const recenterRef = useRef(null)
 
   const { position, permissionState, requestPermission } = useGeolocation({ watch: online })
-  const { jobs, loading } = useNearbyJobs(position, online)
+  const { jobs, loading, refresh: refreshNearby } = useNearbyJobs(position, online)
 
   // Today's earnings for the top-chrome widget. Re-keyed on activeJob so finishing
   // a job (panel clears) immediately re-sums; the hook also refetches on realtime
@@ -289,6 +289,19 @@ export default function WasherDashboard() {
     const interval = setInterval(reconcileActiveJob, 30_000)
     return () => clearInterval(interval)
   }, [activeJob?.id, reconcileActiveJob])
+
+  // When an active job ENDS (washer release, completion, consumer/agent cancel),
+  // the washer re-enters the job pool. nearby_jobs returns nothing while a job is
+  // active, so the hook's local list was emptied; a single realtime event for the
+  // released order would only re-add THAT order, leaving the window showing just
+  // the job that was dropped. Refetch the full nearby list when activeJob clears so
+  // the whole pool reappears. Tracks the previous value to fire only on set→null.
+  const hadActiveJobRef = useRef(false)
+  useEffect(() => {
+    const hasActive = !!activeJob
+    if (hadActiveJobRef.current && !hasActive) refreshNearby()
+    hadActiveJobRef.current = hasActive
+  }, [activeJob?.id, refreshNearby]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect terminal transitions (cancel, complete) via realtime.
   useEffect(() => {

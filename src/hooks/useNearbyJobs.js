@@ -186,10 +186,13 @@ export function useNearbyJobs(position, enabled = true) {
     return () => supabase.removeChannel(channel)
   }, [enabled, applyRealtime])
 
-  return {
-    jobs,
-    loading,
-    error,
-    refresh: () => posRef.current && fetchJobs(posRef.current.lat, posRef.current.lng),
-  }
+  // Stable identity (deps: the memoized fetchJobs) so consumers can list it in an
+  // effect's deps without the effect re-firing every render. Returns fetchJobs'
+  // promise so callers can `await` a manual refresh.
+  const refresh = useCallback(
+    () => (posRef.current ? fetchJobs(posRef.current.lat, posRef.current.lng) : undefined),
+    [fetchJobs],
+  )
+
+  return { jobs, loading, error, refresh }
 }
