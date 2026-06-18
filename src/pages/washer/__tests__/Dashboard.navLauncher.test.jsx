@@ -6,18 +6,34 @@ import { I18nextProvider, initReactI18next } from 'react-i18next'
 import en from '../../../i18n/locales/en.json'
 
 // ── Mocks: keep the Dashboard render network-free; NavLauncher stays REAL ──────
-vi.mock('../../../lib/supabase.js', () => ({
-  supabase: {
-    rpc: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }),
-    from: () => ({
-      update: () => ({ eq: () => ({ select: () => Promise.resolve({ data: null, error: null }) }) }),
-      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) }),
-    }),
-    channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }),
-    removeChannel: () => {},
-  },
-  isSupabaseConfigured: true,
-}))
+vi.mock('../../../lib/supabase.js', () => {
+  // Chainable, awaitable query-builder stub: every filter returns the builder,
+  // terminal helpers (single/maybeSingle) resolve, and `await builder` resolves
+  // to an empty list (covers useTodayEarnings' .select().eq().eq().gte()).
+  const makeBuilder = () => {
+    const builder = {
+      update: () => builder,
+      select: () => builder,
+      eq:     () => builder,
+      in:     () => builder,
+      gte:    () => builder,
+      order:  () => builder,
+      single:      () => Promise.resolve({ data: null, error: null }),
+      maybeSingle: () => Promise.resolve({ data: null, error: null }),
+      then: (resolve) => resolve({ data: [], error: null }),
+    }
+    return builder
+  }
+  return {
+    supabase: {
+      rpc: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }),
+      from: () => makeBuilder(),
+      channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }),
+      removeChannel: () => {},
+    },
+    isSupabaseConfigured: true,
+  }
+})
 vi.mock('../../../lib/offlineSync/engine.js', () => ({ replayAll: () => Promise.resolve() }))
 vi.mock('../../../lib/offlineSync/connectivity.js', () => ({ subscribeOnline: () => () => {} }))
 vi.mock('../../../context/AuthContext.jsx', () => ({

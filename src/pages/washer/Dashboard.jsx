@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import { useNearbyJobs } from '../../hooks/useNearbyJobs.js'
 import { useAppForeground } from '../../hooks/useAppForeground.js'
+import { useTodayEarnings } from '../../hooks/useTodayEarnings.js'
 import { payoutForTier } from '../../lib/payout.js'
 import JobDrawer, { getSnaps } from '../../components/washer/JobDrawer.jsx'
 import RecenterButton from '../../components/washer/RecenterButton.jsx'
@@ -32,16 +33,11 @@ function OnlinePill({ online, toggling, profile, user, onToggle, onMenuOpen, t }
     ? profile.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : (user?.email?.[0] ?? '?').toUpperCase()
 
-  const PILL_STYLE = {
-    background: 'rgba(26,29,39,0.70)',
-    backdropFilter: 'blur(16px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
-  }
-
+  // Semantic glass tokens so the pill adapts to washer light/dark mode (the
+  // WasherMapShell toggles .dark above us). Avatar gradient + online dot are
+  // brand colors that read on both themes.
   return (
-    <div className="flex items-center rounded-full overflow-hidden shrink-0" style={PILL_STYLE}>
+    <div className="flex items-center rounded-full overflow-hidden shrink-0 bg-glass border border-glass-border backdrop-blur-xl shadow-glass dark:shadow-glass-dark">
       {/* Toggle area: avatar + status */}
       <button
         onClick={onToggle}
@@ -59,18 +55,18 @@ function OnlinePill({ online, toggling, profile, user, onToggle, onMenuOpen, t }
           {initials}
         </div>
         <div className="text-start">
-          <p className="text-[12px] leading-none" style={{ color: 'rgba(163,163,163,1)', fontWeight: 500 }}>
+          <p className="text-[12px] leading-none font-medium text-ink-muted">
             {t('washer.dashboard.youre')}
           </p>
           <div className="flex items-center gap-1.5 mt-[5px]">
             <span
               className="w-[7px] h-[7px] rounded-full shrink-0"
               style={{
-                background: online ? '#7DD9A2' : '#737373',
+                background: online ? '#26B55F' : '#9ca3af',
                 boxShadow: online ? '0 0 8px #7DD9A2' : 'none',
               }}
             />
-            <span className="text-[14px] font-bold text-white leading-none">
+            <span className="text-[14px] font-bold text-ink leading-none">
               {toggling ? '…' : online ? t('washer.toggle.online') : t('washer.toggle.offline')}
             </span>
           </div>
@@ -78,7 +74,7 @@ function OnlinePill({ online, toggling, profile, user, onToggle, onMenuOpen, t }
       </button>
 
       {/* Divider */}
-      <div className="w-px h-8 shrink-0" style={{ background: 'rgba(255,255,255,0.10)' }} />
+      <div className="w-px h-8 shrink-0 bg-glass-border" />
 
       {/* Menu trigger */}
       <button
@@ -86,7 +82,7 @@ function OnlinePill({ online, toggling, profile, user, onToggle, onMenuOpen, t }
         aria-label={t('washer.dashboard.openMenu')}
         className="px-3 py-2 flex items-center justify-center"
       >
-        <Menu className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.55)' }} />
+        <Menu className="h-4 w-4 text-ink-muted" />
       </button>
     </div>
   )
@@ -157,26 +153,19 @@ function TierBanner({ profile, t }) {
   )
 }
 
-// ADR-015: static placeholder — no DB query for today's earnings.
-function EarningsWidget({ t }) {
-  const WIDGET_STYLE = {
-    background: 'rgba(26,29,39,0.70)',
-    backdropFilter: 'blur(16px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
-  }
+// Today's earnings: sum of payout on the washer's orders approved (completed)
+// today. `amount` is null while loading (ADR-015 deferred this to a follow-up;
+// now live via useTodayEarnings). Semantic tokens adapt to washer light/dark.
+function EarningsWidget({ t, amount }) {
   return (
-    <div className="px-3.5 py-2.5 rounded-2xl text-end shrink-0" style={WIDGET_STYLE}>
-      <p
-        className="text-[10px] font-semibold tracking-[0.4px] leading-none"
-        style={{ color: 'rgba(163,163,163,1)' }}
-      >
+    <div className="px-3.5 py-2.5 rounded-2xl text-end shrink-0 bg-glass border border-glass-border backdrop-blur-xl shadow-glass dark:shadow-glass-dark">
+      <p className="text-[10px] font-semibold tracking-[0.4px] leading-none text-ink-muted">
         {t('washer.dashboard.today')}
       </p>
-      {/* dir="ltr" keeps ₪ left-of-dash in RTL bidi context */}
-      <p className="text-[16px] font-extrabold tracking-[-0.3px] mt-0.5" style={{ color: '#7DD9A2' }} dir="ltr">
-        ₪—
+      {/* dir="ltr" keeps ₪ left-of-number in RTL bidi context. primary-700 in
+          light mode (the mint accent fails contrast on the light glass). */}
+      <p className="text-[16px] font-extrabold tracking-[-0.3px] mt-0.5 text-primary-700 dark:text-accent" dir="ltr">
+        {amount == null ? '₪—' : `₪${Math.round(amount)}`}
       </p>
     </div>
   )
@@ -205,6 +194,11 @@ export default function WasherDashboard() {
 
   const { position, permissionState, requestPermission } = useGeolocation({ watch: online })
   const { jobs, loading } = useNearbyJobs(position, online)
+
+  // Today's earnings for the top-chrome widget. Re-keyed on activeJob so finishing
+  // a job (panel clears) immediately re-sums; the hook also refetches on realtime
+  // completion + on foreground.
+  const todayEarnings = useTodayEarnings(user?.id, activeJob?.id ?? null)
 
   // user.id is only read inside the location-write effect; refed so the effect
   // doesn't retrigger on profile object identity changes.
@@ -379,7 +373,7 @@ export default function WasherDashboard() {
         {/* Earnings square, with the nav launcher anchored directly below it (same
             outer edge in both LTR/RTL — top-left in he, top-right in en). */}
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <EarningsWidget t={t} />
+          <EarningsWidget t={t} amount={todayEarnings} />
           <NavLauncher activeJob={activeJob} />
         </div>
       </div>

@@ -224,8 +224,8 @@ Consumer Order Tracking shows a static `MapBG` SVG placeholder. Real-time washer
 **ADR-014 · History yearly stats server-side aggregate** — Priority: **low**  
 The year-stat card (count + spend) currently computes client-side from the already-loaded orders array — correct for typical users but silently undercounts if a consumer has more than Supabase's default 1,000-row page limit. A `get_consumer_year_stats(year int)` RPC returning `{count, total_spent}` would fix this permanently with one round-trip.
 
-**ADR-015 · Washer today's earnings widget** — Priority: **med**  
-The top-right widget on the Washer Dashboard shows `₪—`. Needs a `get_washer_today_earnings()` security-definer RPC returning the sum of `base_price` on completed orders where `approved_at::date = current_date`. Trigger or live subscription on new completions optional (a per-mount fetch is probably sufficient).
+**ADR-015 · Washer today's earnings widget** — ~~Priority: **med**~~ **Resolved.**  
+The top-right widget is now live via `src/hooks/useTodayEarnings.js` — a client-side sum (washers can read their own orders via RLS, so no RPC was needed) of `payout_amount ?? base_price` on `status = 'completed'` orders with `completed_at` today. Kept live by re-keying on the active job + a realtime UPDATE subscription + a foreground refetch via `src/hooks/useAppForeground.js` (realtime alone is unreliable on mobile — the socket dies while backgrounded and missed events aren't replayed). Same change converted the OnlinePill + EarningsWidget from hardcoded dark inline styles to semantic glass tokens so they adapt to washer light mode.
 
 **ADR-016 · Live ETA on Order Tracking** — Priority: **high**  
 Paired with ADR-013. Once the washer's `current_location` is subscribed on the consumer side, compute ETA by sending a single OSRM `/route` request from washer lat/lng to `order.lat/lng`. Cache result; refresh every position update. Display as `X min · Y km` in the existing ETA pill. Fallback: keep `~15 min` if location or routing is unavailable.  
