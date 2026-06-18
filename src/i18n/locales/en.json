@@ -531,7 +531,8 @@
       "acceptJob": "Accept Job",
       "accepting": "Accepting…",
       "notFound": "Job not found",
-      "accepted": "Job accepted. Let's go!"
+      "accepted": "Job accepted. Let's go!",
+      "alreadyTaken": "Another washer just grabbed this job"
     },
     "earnings": {
       "title": "Earnings",

@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Car, MapPin, Navigation, Clock, Lock, Loader2, ParkingSquare, Banknote } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../components/ui/Toast.jsx'
+import { useRealtimeOrder } from '../../hooks/useRealtimeOrder.js'
 import { payoutForTier } from '../../lib/payout.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import Editable from '../../components/editable/Editable.jsx'
@@ -44,20 +45,16 @@ export default function JobDetail() {
   const showToast  = useToast()
   const { t }      = useTranslation()
   const { profile } = useAuth()
-  const [order, setOrder]         = useState(null)
-  const [loading, setLoading]     = useState(true)
+  // Live order: realtime keeps `status` current while the washer is deciding, so
+  // if another washer accepts this job first the Accept button disappears and the
+  // "unavailable" notice shows — no stale "pending" screen to tap into. (Realtime
+  // is best-effort; the accept failure handler below is the hard guarantee.)
+  const { order, loading, error: fetchError } = useRealtimeOrder(id)
   const [accepting, setAccepting] = useState(false)
   const acceptingRef              = useRef(false)
-  const [fetchError, setFetchError] = useState('')
-
-  useEffect(() => {
-    supabase.from('orders').select('*').eq('id', id).single()
-      .then(({ data, error }) => {
-        if (error) setFetchError(error.message)
-        else setOrder(data)
-        setLoading(false)
-      })
-  }, [id])
+  // Set when an accept loses the race to another washer (the order is no longer
+  // claimable). Flips the page to its unavailable state regardless of realtime.
+  const [taken, setTaken]         = useState(false)
 
   async function acceptJob() {
     if (acceptingRef.current) return
@@ -68,7 +65,21 @@ export default function JobDetail() {
     })
     acceptingRef.current = false
     setAccepting(false)
-    if (error) { showToast(error.message, 'error'); return }
+    if (error) {
+      // "You already have an active/pending-approval job" is about THIS washer,
+      // not the order — surface it verbatim and keep them on the page.
+      if (/active or pending-approval job/i.test(error.message || '')) {
+        showToast(error.message, 'error')
+        return
+      }
+      // Any other failure accepting a pending job means it is no longer claimable
+      // — the order row is locked + status-checked server-side, so a concurrent
+      // accept by another washer is rejected here. Flip to the unavailable state
+      // (button gone, can't re-tap) and say plainly that someone else got it.
+      setTaken(true)
+      showToast(t('washer.jobDetail.alreadyTaken'), 'error')
+      return
+    }
     showToast(t('washer.jobDetail.accepted'), 'success')
     navigate('/washer', {
       state: {
@@ -100,7 +111,7 @@ export default function JobDetail() {
   // only when present (e.g. deep links / map entry won't have it).
   const distanceKm   = state?.job?.distance_km
   const posted       = postedAgo(order.created_at, t)
-  const isPending    = order.status === 'pending'
+  const isPending    = order.status === 'pending' && !taken
 
   return (
     <PageShell noNav>
