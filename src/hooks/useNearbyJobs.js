@@ -41,8 +41,21 @@ function rowLatLng(row) {
   return null
 }
 
+// Module-level stale-while-revalidate cache for the nearby-jobs list, preserved
+// across dashboard remounts (see the note in the hook). Off under Vitest so each
+// test starts clean and the cross-test state can't leak.
+const CACHE_ENABLED = !import.meta.env.VITEST
+let cachedJobs = []
+
 export function useNearbyJobs(position, enabled = true) {
-  const [jobs, setJobs]       = useState([])
+  // Stale-while-revalidate cache: the washer dashboard fully unmounts when the
+  // washer opens a job's details (/washer/job/:id lives under a different layout)
+  // and remounts on return. Without this, the list would reset to empty and flash
+  // "no jobs" while GPS + the RPC re-acquire — i.e. the order they just tapped
+  // looks like it disappeared. Seeding from the last-known list shows it instantly,
+  // then a silent refetch reconciles. Disabled under Vitest for clean test state.
+  const seeded = CACHE_ENABLED && cachedJobs.length > 0
+  const [jobs, setJobs]       = useState(seeded ? cachedJobs : [])
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(null)
 
@@ -53,8 +66,9 @@ export function useNearbyJobs(position, enabled = true) {
   // The skeleton/"looking for jobs" state shows ONLY for the genuine first load of
   // a session. Every later update (GPS movement, realtime, refresh()) reconciles
   // the list silently/in place — so it never re-flashes a refresh spinner, even
-  // while the list is momentarily empty.
-  const loadedOnceRef = useRef(false)
+  // while the list is momentarily empty. Seeding from cache (a remount) counts as
+  // already-loaded, so the refetch stays silent (no skeleton over the cached list).
+  const loadedOnceRef = useRef(seeded)
   // Position we last actually refetched at. Used to ignore sub-50 m GPS jitter so
   // the list doesn't churn + re-sort on every watch tick.
   const lastFetchRef  = useRef(null)
@@ -66,6 +80,7 @@ export function useNearbyJobs(position, enabled = true) {
   // array reference, so nothing downstream re-renders.
   const commit = useCallback((nextRows) => {
     const sorted = sortJobs(nextRows)
+    if (CACHE_ENABLED) cachedJobs = sorted
     setJobs(prev => (signature(prev) === signature(sorted) ? prev : sorted))
   }, [])
 
