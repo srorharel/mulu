@@ -1,23 +1,34 @@
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, animate } from 'framer-motion'
-import { Car, MapPin, Clock, GripHorizontal } from 'lucide-react'
+import { Car, MapPin, Navigation, Clock, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useReverseGeocode } from '../lib/geocode.js'
-import Badge from './ui/Badge.jsx'
 
 const SPRING         = { type: 'spring', stiffness: 400, damping: 35 }
 const SWIPE_VELOCITY = 500
 const SWIPE_RATIO    = 0.4
+
+// Relative "posted X ago" — reuses the shared washer.jobDetail.postedAgo strings.
+function postedAgo(iso, t) {
+  if (!iso) return null
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (min < 1)  return t('washer.jobDetail.postedAgo.justNow')
+  if (min < 60) return t('washer.jobDetail.postedAgo.minutes', { n: min })
+  const hr = Math.floor(min / 60)
+  if (hr < 24)  return t('washer.jobDetail.postedAgo.hours', { n: hr })
+  return t('washer.jobDetail.postedAgo.days', { n: Math.floor(hr / 24) })
+}
 
 export default function JobCard({ job, onClick, highlight = false }) {
   const navigate     = useNavigate()
   const containerRef = useRef(null)
   const x            = useMotionValue(0)
   const { address }  = useReverseGeocode(job.lat, job.lng)
-  const { t, i18n }  = useTranslation()
+  const { t }        = useTranslation()
 
-  const distKm   = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
+  const distKm    = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
+  const posted    = postedAgo(job.created_at, t)
   const ariaLabel = t('washer.jobCard.ariaLabel', {
     car:      t(`carLabels.${job.car_type}`),
     service:  t(`serviceLabels.${job.service_type || 'wash'}`),
@@ -25,26 +36,25 @@ export default function JobCard({ job, onClick, highlight = false }) {
     price:    job.base_price,
   })
 
+  function open() {
+    if (onClick) onClick()
+    else navigate(`/washer/job/${job.id}`)
+  }
+
   function handleKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      if (onClick) onClick()
-      else navigate(`/washer/job/${job.id}`)
+      open()
     }
   }
 
   function handleDragEnd(_, info) {
-    const width       = containerRef.current?.offsetWidth ?? 300
+    const width        = containerRef.current?.offsetWidth ?? 300
     const thresholdMet =
       Math.abs(info.offset.x)   > width * SWIPE_RATIO ||
       Math.abs(info.velocity.x) > SWIPE_VELOCITY
-
-    if (thresholdMet) {
-      if (onClick) onClick()
-      else navigate(`/washer/job/${job.id}`)
-    } else {
-      animate(x, 0, SPRING)
-    }
+    if (thresholdMet) open()
+    else animate(x, 0, SPRING)
   }
 
   return (
@@ -70,47 +80,44 @@ export default function JobCard({ job, onClick, highlight = false }) {
           : '0 0 0 0px rgba(125,217,162,0)',
       }}
       transition={{ duration: 0.7 }}
-      className="bg-glass border border-glass-border backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-3 cursor-grab active:cursor-grabbing select-none"
+      className="bg-surface-elevated border border-edge rounded-2xl p-3.5 flex flex-col gap-3 cursor-grab active:cursor-grabbing select-none"
     >
-      {/* Row 1: car badge + service pill + drag hint */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-muted shrink-0">
-            <Car className="h-4 w-4 text-accent" />
-          </span>
-          <Badge variant="pill" className="bg-surface-elevated border border-edge text-ink-muted">
-            {t(`serviceLabels.${job.service_type || 'wash'}`)}
-          </Badge>
+      {/* Vehicle + payout hero */}
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 dark:bg-accent-muted shrink-0">
+          <Car className="h-5 w-5 text-primary-700 dark:text-accent" strokeWidth={2} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-ink leading-tight truncate">{t(`carLabels.${job.car_type}`)}</p>
+          <p className="text-[12px] text-ink-muted">{t(`serviceLabels.${job.service_type || 'wash'}`)}</p>
         </div>
-        <GripHorizontal className="h-4 w-4 text-ink-muted/40 shrink-0" />
-      </div>
-
-      {/* Row 2: price hero + car type */}
-      <div>
-        <p className="text-2xl font-bold text-accent leading-none">
+        <p className="text-[23px] font-extrabold text-primary-700 dark:text-accent leading-none shrink-0" dir="ltr">
           ₪{job.base_price}
         </p>
-        <p className="text-xs text-ink-muted mt-0.5">{t(`carLabels.${job.car_type}`)}</p>
       </div>
 
-      {/* Row 3: geocoded address */}
+      {/* Geocoded address */}
       {address && (
-        <div className="flex items-start gap-1.5 text-xs text-ink-muted">
-          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <span className="leading-snug line-clamp-1">{address}</span>
+        <div className="flex items-center gap-1.5 text-[12px] text-ink-muted">
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          <span className="leading-snug truncate">{address}</span>
         </div>
       )}
 
-      {/* Row 4: distance + time */}
-      <div className="flex items-center gap-4 text-xs text-ink-muted">
-        <span className="flex items-center gap-1">
-          <MapPin className="h-3.5 w-3.5" />
+      {/* Distance pill + posted-ago + open affordance */}
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-50 dark:bg-accent-muted text-[12px] font-semibold text-primary-700 dark:text-accent">
+          <Navigation className="h-3.5 w-3.5" />
           {distKm} {t('common.km')}
         </span>
-        <span className="flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5" />
-          {new Date(job.created_at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
-        </span>
+        {posted && (
+          <span className="inline-flex items-center gap-1 text-[12px] text-ink-muted">
+            <Clock className="h-3.5 w-3.5" />
+            {posted}
+          </span>
+        )}
+        <div className="flex-1" />
+        <ChevronRight className="h-4 w-4 text-ink-subtle rtl:rotate-180 shrink-0" />
       </div>
     </motion.div>
   )
