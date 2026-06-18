@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } fr
 import {
   MoonStar, Sparkles, ChevronRight, Loader2, Clock,
   Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
-  Phone, Droplets, Zap, Star, ArrowLeft, Check, ParkingSquare, CloudOff, RotateCcw,
+  Phone, ArrowLeft, Check, ParkingSquare, CloudOff, RotateCcw,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
 import { useTranslation } from 'react-i18next'
@@ -190,23 +190,6 @@ function StatusBadge({ status, t }) {
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-primary-700 shrink-0">
       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
       <span className="text-[11px] font-bold text-white uppercase tracking-[0.3px]">{t(key)}</span>
-    </div>
-  )
-}
-
-// ── Single read-only site-resource pill ───────────────────────────────────────
-function SiteResourcePill({ icon: Icon, label, available, t }) {
-  return (
-    <div className={`flex-1 flex items-center gap-2 p-2.5 rounded-[14px] border ${
-      available ? 'bg-accent-muted border-accent/25' : 'bg-glass border-glass-border'
-    }`}>
-      <Icon className={`h-4 w-4 shrink-0 ${available ? 'text-accent' : 'text-ink-muted'}`} />
-      <div className="min-w-0">
-        <p className="text-[12px] font-bold text-ink leading-tight truncate">{label}</p>
-        <p className={`text-[10px] ${available ? 'text-accent' : 'text-ink-muted'}`}>
-          {available ? t('consumer.home.available') : t('consumer.home.notOnSite')}
-        </p>
-      </div>
     </div>
   )
 }
@@ -727,12 +710,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-bold text-ink truncate">{consumerName}</p>
-            {/* ADR-017: rating is a static placeholder — no rating column on profiles */}
-            <div className="flex items-center gap-1.5 text-[12px] text-ink-muted">
-              <Star className="h-3 w-3 shrink-0" fill="#f59e0b" stroke="none" />
-              <span className="text-ink font-semibold">4.8</span>
-              <span>· {t('washer.drawer.orders')}</span>
-            </div>
           </div>
           <div className="flex gap-1.5 shrink-0">
             {/* Call customer. With in-app calls ON: a masked WebRTC call (no real
@@ -799,12 +776,6 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
             </a>
           )}
         </div>
-      </div>
-
-      {/* ── Site resources (read-only) ── */}
-      <div className="flex gap-2">
-        <SiteResourcePill icon={Droplets} label={t('consumer.home.waterAccessible')} available={order.site_has_water} t={t} />
-        <SiteResourcePill icon={Zap}      label={t('consumer.home.powerAccessible')} available={order.site_has_power}  t={t} />
       </div>
 
       {/* ── Stage progress ── */}
