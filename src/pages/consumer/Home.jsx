@@ -4,6 +4,7 @@ import { ChevronRight, Loader2, MapPin, User, Check, ParkingSquare } from 'lucid
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
+import { isInServiceArea } from '../../lib/serviceArea.js'
 import { consumerBreakdown, priceForCategory, applyFirstWashDiscount, FIRST_WASH_DISCOUNT_PERCENT } from '../../lib/pricing.js'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useFirstWashDiscount } from '../../hooks/useFirstWashDiscount.js'
@@ -202,7 +203,10 @@ export default function ConsumerHome() {
   // Underground orders require access notes (no GPS arrival check — the washer
   // needs written directions). Enforced client-side per ADR-035 (no DB CHECK).
   const undergroundNotesMissing = isUnderground && !accessNotes.trim()
-  const canSubmit = !!effectivePin && licenseData.isValid && allPhotosUploaded && !undergroundNotesMissing
+  // Pilot: orders are only accepted inside Holon. Gate on the pin coordinates
+  // (always present) rather than the geocoded city text (often empty/imprecise).
+  const outOfServiceArea = !!effectivePin && !isInServiceArea(effectivePin.lat, effectivePin.lng)
+  const canSubmit = !!effectivePin && licenseData.isValid && allPhotosUploaded && !undergroundNotesMissing && !outOfServiceArea
 
   const initials = getInitials(profile, user)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
@@ -256,6 +260,7 @@ export default function ConsumerHome() {
   async function handleBook() {
     if (submittingRef.current) return
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
+    if (outOfServiceArea) { setError(t('consumer.home.outOfServiceArea')); return }
     if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
     if (!allPhotosUploaded) { setError(t('consumer.home.submit.needsPhotos')); return }
     if (isUnderground && !accessNotes.trim()) { setError(t('consumer.home.underground.notesRequired')); return }
@@ -425,6 +430,13 @@ export default function ConsumerHome() {
             </div>
           </MotionButton>
           </Editable>
+
+          {/* Pilot service-area notice — shown when the chosen pin is outside Holon */}
+          {outOfServiceArea && (
+            <div className="bg-warning-50 border border-warning-200 rounded-glass p-4">
+              <p className="text-sm text-warning-800">{t('consumer.home.outOfServiceArea')}</p>
+            </div>
+          )}
 
           {/* ── Vehicle card ── */}
           <Editable id="consumer.home.vehiclePicker">

@@ -266,6 +266,7 @@
       "bookNow": "Book wash",
       "booking": "Booking…",
       "locationRequired": "Allow location, or tap \"Choose location\" to drop your pin",
+      "outOfServiceArea": "Sorry, for now we only operate in Holon. We'll reach you soon.",
       "bookingSuccess": "Your wash is booked! Looking for a washer…",
       "locationPrompt": {
         "title": "Enable location",
