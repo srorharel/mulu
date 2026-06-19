@@ -17,7 +17,28 @@ export function DownloadModal() {
     if (!isOpen) return
     lastFocus.current = document.activeElement
     document.body.style.overflow = 'hidden'
-    const onKey = (e) => e.key === 'Escape' && close()
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        close()
+        return
+      }
+      // Trap Tab focus inside the dialog (WCAG 2.4.3 focus order)
+      if (e.key === 'Tab') {
+        const els = cardRef.current?.querySelectorAll(
+          'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
+        )
+        if (!els || els.length === 0) return
+        const first = els[0]
+        const last = els[els.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
     window.addEventListener('keydown', onKey)
     const t = setTimeout(() => cardRef.current?.querySelector('button, a')?.focus(), 30)
     return () => {

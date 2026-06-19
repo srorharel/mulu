@@ -13,6 +13,7 @@
     "deploy": "vite build && node scripts/sync-to-cloudflare.mjs && wrangler deploy"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "framer-motion": "^11.11.0",
     "lucide-react": "^0.456.0",
     "react": "^18.3.1",

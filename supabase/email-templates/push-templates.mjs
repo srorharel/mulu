@@ -15,6 +15,15 @@ const REF = 'fpwshpvixtgaygkuxajy'
 const DIR = 'supabase/email-templates'
 const URL = '{{ .ConfirmationURL }}'
 
+// Token-hash landing on the marketing site (muluwash.com/auth/confirm). Used for
+// the server-side-state flows (signup confirm / password recovery / email change)
+// so the link no longer depends on window.location.origin — which on the native
+// app is localhost and falls back to site_url (the marketing homepage). The page
+// calls supabase.auth.verifyOtp({ token_hash, type }). magic_link + invite are NOT
+// routed here (they must establish a session IN the app, not on this origin), and
+// reauthentication uses a {{ .Token }} code, so all three keep {{ .ConfirmationURL }}.
+const confirmUrl = (type) => `https://muluwash.com/auth/confirm?token_hash={{ .TokenHash }}&type=${type}`
+
 function shell({ heading, body, cta, code, foot }) {
   const ctaBlock = cta ? `
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
@@ -50,12 +59,12 @@ const templates = {
   confirmation: {
     file: 'confirm-signup.he.html', sk: 'mailer_subjects_confirmation', ck: 'mailer_templates_confirmation_content',
     subject: 'אישור ההרשמה שלך ל-MULU',
-    html: shell({ heading: 'כמעט שם 🚗', body: 'תודה שנרשמת ל-MULU. נשאר רק לאשר את כתובת המייל, ואפשר להזמין את השטיפה הראשונה.', cta: { label: 'אישור ההרשמה', url: URL }, foot: 'לא נרשמת ל-MULU? אפשר פשוט להתעלם מהמייל הזה.' }),
+    html: shell({ heading: 'כמעט שם 🚗', body: 'תודה שנרשמת ל-MULU. נשאר רק לאשר את כתובת המייל, ואפשר להזמין את השטיפה הראשונה.', cta: { label: 'אישור ההרשמה', url: confirmUrl('signup') }, foot: 'לא נרשמת ל-MULU? אפשר פשוט להתעלם מהמייל הזה.' }),
   },
   recovery: {
     file: 'recovery.he.html', sk: 'mailer_subjects_recovery', ck: 'mailer_templates_recovery_content',
     subject: 'איפוס הסיסמה שלך ב-MULU',
-    html: shell({ heading: 'איפוס סיסמה', body: 'קיבלנו בקשה לאיפוס הסיסמה לחשבון ה-MULU שלך. לחיצה על הכפתור תיקח אותך להגדרת סיסמה חדשה.', cta: { label: 'איפוס הסיסמה', url: URL }, foot: 'לא ביקשת לאפס סיסמה? אפשר להתעלם מהמייל, הסיסמה הנוכחית תישאר בתוקף.' }),
+    html: shell({ heading: 'איפוס סיסמה', body: 'קיבלנו בקשה לאיפוס הסיסמה לחשבון ה-MULU שלך. לחיצה על הכפתור תיקח אותך להגדרת סיסמה חדשה.', cta: { label: 'איפוס הסיסמה', url: confirmUrl('recovery') }, foot: 'לא ביקשת לאפס סיסמה? אפשר להתעלם מהמייל, הסיסמה הנוכחית תישאר בתוקף.' }),
   },
   magic_link: {
     file: 'magic-link.he.html', sk: 'mailer_subjects_magic_link', ck: 'mailer_templates_magic_link_content',
@@ -65,7 +74,7 @@ const templates = {
   email_change: {
     file: 'email-change.he.html', sk: 'mailer_subjects_email_change', ck: 'mailer_templates_email_change_content',
     subject: 'אישור שינוי כתובת המייל ב-MULU',
-    html: shell({ heading: 'אישור כתובת מייל חדשה', body: 'ביקשת לשנות את כתובת המייל בחשבון ה-MULU מ-{{ .Email }} ל-{{ .NewEmail }}. לחיצה על הכפתור תאשר את השינוי.', cta: { label: 'אישור הכתובת החדשה', url: URL }, foot: 'לא ביקשת לשנות כתובת מייל? כדאי לפנות אלינו.' }),
+    html: shell({ heading: 'אישור כתובת מייל חדשה', body: 'ביקשת לשנות את כתובת המייל בחשבון ה-MULU מ-{{ .Email }} ל-{{ .NewEmail }}. לחיצה על הכפתור תאשר את השינוי.', cta: { label: 'אישור הכתובת החדשה', url: confirmUrl('email_change') }, foot: 'לא ביקשת לשנות כתובת מייל? כדאי לפנות אלינו.' }),
   },
   reauthentication: {
     file: 'reauthentication.he.html', sk: 'mailer_subjects_reauthentication', ck: 'mailer_templates_reauthentication_content',

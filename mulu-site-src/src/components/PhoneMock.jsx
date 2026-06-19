@@ -84,7 +84,7 @@ export function PhoneMock() {
               </div>
               <p className="mt-2 text-sm font-bold text-ink">{phone.vehicle}</p>
               <p className="text-[11px] text-ink-mute">{phone.confirm}</p>
-              <button className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl bg-mist py-2 text-xs font-bold text-primary-deep">
+              <button tabIndex={-1} className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl bg-mist py-2 text-xs font-bold text-primary-deep">
                 <Check className="h-3.5 w-3.5" strokeWidth={3} />
                 {phone.yes}
               </button>
@@ -114,7 +114,7 @@ export function PhoneMock() {
             </div>
 
             {/* order CTA */}
-            <button className="mt-0.5 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-sm font-extrabold text-white shadow-glow">
+            <button tabIndex={-1} className="mt-0.5 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-3 text-sm font-extrabold text-white shadow-glow">
               {phone.orderBtn}
               <ChevronLeft className="h-4 w-4" strokeWidth={2.6} />
             </button>

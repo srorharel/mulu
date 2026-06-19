@@ -19,11 +19,15 @@ const schema = z.object({
   path: ['confirmPassword'],
 })
 
-// The password-reset email lands here with a recovery token in the URL. The
-// Supabase client (detectSessionInUrl) parses it and AuthContext picks up the
-// resulting session — so a present `user` means the recovery link was valid.
-// This route is intentionally NOT wrapped in AuthRedirect (the recovery session
-// would otherwise bounce the user away before they can set a new password).
+// LEGACY/FALLBACK route. The live recovery flow now lands on the marketing site's
+// token-hash page (muluwash.com/auth/confirm?type=recovery); see AuthContext
+// resetPassword + supabase/email-templates/push-templates.mjs. This route is kept
+// for any pre-token-hash recovery emails still in flight on the web app: such a
+// link arrives with a recovery token in the URL, the Supabase client
+// (detectSessionInUrl) parses it, and AuthContext picks up the resulting session,
+// so a present `user` means the link was valid. Intentionally NOT wrapped in
+// AuthRedirect (the recovery session would otherwise bounce the user away before
+// they can set a new password).
 export default function ResetPassword() {
   const { user, loading, updatePassword } = useAuth()
   const { t } = useTranslation()

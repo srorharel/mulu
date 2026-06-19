@@ -17,7 +17,8 @@ const schema = z.object({
 
 // Sends a password-reset email. We always show the same neutral confirmation,
 // regardless of whether the address has an account — this is the anti-enumeration
-// path the project chose for email. The actual reset happens on /reset-password.
+// path the project chose for email. The actual reset now happens on the marketing
+// site's token-hash page (muluwash.com/auth/confirm?type=recovery).
 export default function ForgotPassword() {
   const { resetPassword } = useAuth()
   const { t } = useTranslation()

@@ -115,17 +115,16 @@ export function AuthProvider({ children }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function signUp(email, password, metadata) {
+    // The confirmation LINK is owned by the Supabase email template, which uses the
+    // token-hash flow → https://muluwash.com/auth/confirm (see
+    // supabase/email-templates/push-templates.mjs + the marketing AuthConfirm page).
+    // So no emailRedirectTo is passed here: the old origin-based redirect was inert
+    // and broke on native, where window.location.origin is localhost and Supabase
+    // fell back to site_url (the marketing homepage).
     return supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: metadata,
-        // Derive from the live origin so the email-confirmation link returns to
-        // wherever the app is actually served (localhost / *.vercel.app preview /
-        // prod) — never a hardcoded host. Lands on '/', a real route (Landing).
-        // The origin must also be in Supabase → Auth → URL Configuration allowlist.
-        emailRedirectTo: `${window.location.origin}/`,
-      },
+      options: { data: metadata },
     })
   }
 
@@ -162,12 +161,13 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Sends a password-reset email. The link lands on /reset-password, where the
-  // recovery session is picked up by the onAuthStateChange handler above.
+  // Sends a password-reset email. The link is owned by the Supabase recovery
+  // template (token-hash flow → https://muluwash.com/auth/confirm?type=recovery),
+  // so no redirectTo is needed — the reset form lives on the marketing site now.
+  // The in-app /reset-password route is kept as a fallback for any pre-token-hash
+  // recovery emails still in flight on the web app.
   async function resetPassword(email) {
-    return supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
+    return supabase.auth.resetPasswordForEmail(email)
   }
 
   // Sets a new password for the currently-authenticated (incl. recovery) session.

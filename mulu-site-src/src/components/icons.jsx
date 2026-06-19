@@ -13,5 +13,7 @@ const MAP = {
 
 export function Icon({ name, ...props }) {
   const Cmp = MAP[name] || Sparkles
-  return <Cmp strokeWidth={2.2} {...props} />
+  // Icons are decorative (always paired with a visible text label), so hide them
+  // from assistive tech by default. Callers can override aria-* via props.
+  return <Cmp strokeWidth={2.2} aria-hidden="true" focusable="false" {...props} />
 }

@@ -35,3 +35,4 @@ support-app/android/app/google-services.json
 # Admin-app build artifacts (web-only — no android/)
 admin-app/dist/
 admin-app/node_modules/
+_wipe-backup-*.json

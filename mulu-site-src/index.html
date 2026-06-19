@@ -18,6 +18,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Calistoga&family=Heebo:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <!-- Apply saved accessibility settings before first paint (no flash). Only the
+         text/layout subset is applied here; the visual filter modes are applied by
+         React after mount (they target the #mulu-content wrapper, not <html>). -->
+    <script>
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem('mulu-a11y') || '{}')
+          var h = document.documentElement
+          if (s.fontScale && s.fontScale !== 1) h.style.fontSize = Math.round(s.fontScale * 100) + '%'
+          var map = {
+            readableFont: 'a11y-readable-font', spacing: 'a11y-spacing',
+            links: 'a11y-links', headings: 'a11y-headings',
+            noMotion: 'a11y-no-motion', bigCursor: 'a11y-big-cursor',
+          }
+          Object.keys(map).forEach(function (k) { if (s[k]) h.classList.add(map[k]) })
+        } catch (e) {}
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
