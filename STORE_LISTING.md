@@ -6,10 +6,10 @@ Ready-to-paste store-listing copy and form answers for **MULU**. Companion to `S
 - **Bundle id / package:** `com.sparklego.app`
 - **Category:** Google Play → *Auto & Vehicles*; Apple → *Lifestyle*
 - **Privacy Policy URL:** `https://muluwash.com/legal/privacy`
-- **Support URL / email:** `https://muluwash.com` · `support@wash.co.il` *(confirm which inbox is monitored)*
+- **Support URL / email:** `https://muluwash.com` · `support@muluwash.com`
 - **Marketing URL:** `https://muluwash.com`
 
-> ⚠️ Replace the support email if you standardize on `@muluwash.com`. Confirm the legal docs are published & public before submitting the Privacy Policy URL.
+> ⚠️ Ensure `support@muluwash.com` is a monitored inbox before launch. Confirm the legal docs are published & public before submitting the Privacy Policy URL.
 
 ---
 

@@ -11,7 +11,6 @@ import { useFirstWashDiscount } from '../../hooks/useFirstWashDiscount.js'
 import { useConsumerActiveOrders } from '../../hooks/useConsumerActiveOrders.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useTheme } from '../../hooks/useTheme.js'
-import { useToast } from '../../components/ui/Toast.jsx'
 import { formatPlate } from '../../lib/formatPlate.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -77,7 +76,6 @@ export default function ConsumerHome() {
   const { user, profile } = useAuth()
   const { isDark } = useTheme()
   const { position: gpsPosition, error: geoError, permissionState, requestPermission } = useGeolocation()
-  const showToast       = useToast()
   const { t }           = useTranslation()
 
   // Stable UUID for this booking session — used as storage folder for photos.
@@ -244,7 +242,7 @@ export default function ConsumerHome() {
     const id = saveDialogOrderId
     setSaveDialogData(null)
     setSaveDialogOrderId(null)
-    navigate(`/order/${id}`)
+    navigate(`/checkout/${id}`)
   }
 
   function handleDialogSaved(newVehicle) {
@@ -312,15 +310,17 @@ export default function ConsumerHome() {
 
     submittingRef.current = false
     setSubmitting(false)
-    if (dbError) { setError(dbError.message); return }
-    showToast(t('consumer.home.bookingSuccess'), 'success')
+    if (dbError) { console.error('[MULU] booking failed:', dbError); setError(t('consumer.home.bookingError')); return }
 
+    // Order row created (status='pending'); the customer now reviews + pays on
+    // the secure checkout page. No "booked" toast here — confirmation happens
+    // after payment.
     if (vehicleId === null && licenseData.plate) {
       // Free-text path: offer to save the vehicle before navigating away.
       setSaveDialogData({ ...licenseData })
       setSaveDialogOrderId(data.id)
     } else {
-      navigate(`/order/${data.id}`)
+      navigate(`/checkout/${data.id}`)
     }
   }
 

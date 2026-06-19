@@ -263,11 +263,12 @@
       "waterAccessible": "Water tap",
       "powerAccessible": "Power outlet",
       "siteResourcesHint": "This helps the washer know what to bring.",
-      "bookNow": "Book wash",
-      "booking": "Booking…",
+      "bookNow": "Continue to payment",
+      "booking": "One sec…",
       "locationRequired": "Allow location, or tap \"Choose location\" to drop your pin",
       "outOfServiceArea": "Sorry, for now we only operate in Holon. We'll reach you soon.",
       "bookingSuccess": "Your wash is booked! Looking for a washer…",
+      "bookingError": "Couldn't place your order. Check your connection and try again. If it keeps happening, contact support.",
       "locationPrompt": {
         "title": "Enable location",
         "body": "Allow location access to auto-detect your address.",
@@ -333,6 +334,28 @@
         "uploadFailed": "Upload failed. Try again.",
         "removing": "Remove photo"
       }
+    },
+    "checkout": {
+      "title": "Payment",
+      "summaryTitle": "What you ordered",
+      "serviceWash": "Exterior car wash",
+      "toPay": "Total to pay",
+      "includesVat": "Includes {{rate}}% VAT (₪{{amount}})",
+      "secureTitle": "Secure payment",
+      "secureBody": "Payment runs on a PCI-secured page over an encrypted connection. Card details go straight to the clearing company. We never see or store your card number.",
+      "terminalPending": "The secure payment page will load here",
+      "terminalPendingNote": "Clearing runs through a licensed, secured payment company",
+      "acceptedCards": "We accept Visa · Mastercard · Isracard · American Express",
+      "terms": {
+        "label": "By paying, I accept the <terms>Terms of Use</terms> and <privacy>Privacy Policy</privacy>",
+        "aria": "Accept the Terms of Use and Privacy Policy"
+      },
+      "payNow": "Pay securely · ₪{{amount}}",
+      "paying": "One moment, confirming payment…",
+      "success": "Payment complete! Finding you a washer…",
+      "error": "Payment didn't go through. Try again, or reach us at support.",
+      "notFound": "Order not found",
+      "scaffoldNote": "Demo mode: live card clearing isn't active yet"
     },
     "locationSheet": {
       "selectedLabel": "Selected location",

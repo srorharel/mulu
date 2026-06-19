@@ -34,6 +34,7 @@ function PageSuspense({ children }) {
 }
 
 import ConsumerHome   from './pages/consumer/Home.jsx'
+import Checkout       from './pages/consumer/Checkout.jsx'
 import OrderTracking  from './pages/consumer/OrderTracking.jsx'
 import OrderHistory   from './pages/consumer/OrderHistory.jsx'
 import Vehicles         from './pages/consumer/Vehicles.jsx'
@@ -138,6 +139,7 @@ export function AppRouter() {
         <Route element={<RoleGuard allowedRoles={['consumer']} />}>
           <Route element={<ConsumerLayout />}>
             <Route path="/home"              element={<ConsumerHome />} />
+            <Route path="/checkout/:id"      element={<Checkout />} />
             <Route path="/order/:id"         element={<OrderTracking />} />
             <Route path="/history"           element={<OrderHistory />} />
             <Route path="/profile/vehicles"  element={<Vehicles />} />

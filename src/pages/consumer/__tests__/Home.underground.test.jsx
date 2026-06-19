@@ -37,7 +37,9 @@ vi.mock('../../../context/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'u1' }, profile: { full_name: 'Test User' } }),
 }))
 vi.mock('../../../hooks/useGeolocation.js', () => ({
-  useGeolocation: () => ({ position: { lat: 32.08, lng: 34.78 }, error: null, permissionState: 'granted', requestPermission: vi.fn() }),
+  // Holon centre — must be inside the pilot service-area geofence (serviceArea.js),
+  // or Home.handleBook blocks the order and insertSpy is never called.
+  useGeolocation: () => ({ position: { lat: 32.0167, lng: 34.7795 }, error: null, permissionState: 'granted', requestPermission: vi.fn() }),
 }))
 vi.mock('../../../hooks/useConsumerActiveOrders.js', () => ({
   useConsumerActiveOrders: () => ({ orders: [], loading: false }),
@@ -100,7 +102,7 @@ describe('ConsumerHome — underground parking booking', () => {
   it('books with is_underground_parking:false when the toggle is off (notes not required)', async () => {
     renderHome()
     await readyForm()
-    fireEvent.click(screen.getByRole('button', { name: /book wash/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
     await waitFor(() => expect(insertSpy).toHaveBeenCalled())
     expect(insertSpy.mock.calls[0][0].is_underground_parking).toBe(false)
   })
@@ -112,10 +114,10 @@ describe('ConsumerHome — underground parking booking', () => {
 
     // The requirement message is shown and the CTA is disabled.
     expect(screen.getByText(/access notes are required for underground/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /book wash/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /continue to payment/i })).toBeDisabled()
 
     // Clicking the disabled CTA does not create an order.
-    fireEvent.click(screen.getByRole('button', { name: /book wash/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
     await Promise.resolve()
     expect(insertSpy).not.toHaveBeenCalled()
   })
@@ -127,7 +129,7 @@ describe('ConsumerHome — underground parking booking', () => {
     fireEvent.change(screen.getByPlaceholderText(/how to reach your car/i), {
       target: { value: 'Garage level -2, spot 47' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /book wash/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
     await waitFor(() => expect(insertSpy).toHaveBeenCalled())
     const payload = insertSpy.mock.calls[0][0]
     expect(payload.is_underground_parking).toBe(true)

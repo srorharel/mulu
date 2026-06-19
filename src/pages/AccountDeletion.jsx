@@ -36,7 +36,7 @@ export default function AccountDeletion() {
             <p className="text-sm text-ink">{t('account.delete.webRetained')}</p>
             <p className="text-sm text-ink-muted">
               {t('account.delete.webSupport')}{' '}
-              <a className="text-primary-600 underline" href="mailto:support@wash.co.il">support@wash.co.il</a>
+              <a className="text-primary-600 underline" href="mailto:support@muluwash.com">support@muluwash.com</a>
             </p>
           </div>
         )}

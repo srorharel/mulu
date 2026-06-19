@@ -7,7 +7,7 @@ module.exports = {
     'plugin:react/jsx-runtime',
     'plugin:react-hooks/recommended',
   ],
-  ignorePatterns: ['dist', 'support-app', 'admin-app', 'mockup', 'scripts', 'android', 'ios', 'mulu-site-cloudflare', 'mulu-site-src', 'mulu-posts', '.eslintrc.cjs'],
+  ignorePatterns: ['dist', 'support-app', 'admin-app', 'mockup', 'scripts', 'android', 'ios', 'mulu-site-cloudflare', 'mulu-site-src', '_mulu-site-prev-bundle', 'mulu-posts', '.eslintrc.cjs'],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   settings: { react: { version: '18.2' } },
   plugins: ['react-refresh'],

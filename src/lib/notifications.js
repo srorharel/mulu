@@ -4,6 +4,12 @@ import { supabase } from './supabase.js'
 
 const TOKEN_STORAGE_KEY = 'wash_push_token'
 
+// Verbose push diagnostics (token prefix, userId, upsert status) — DEV-only.
+// Suppressed in production/native store builds so they don't leak into device
+// logs. Errors/warnings below stay unconditional. import.meta.env.DEV is false
+// in `vite build` (the APK/AAB + Vercel prod bundle).
+const dlog = (...args) => { if (import.meta.env.DEV) console.log(...args) }
+
 // Initialise from localStorage so cold-launch logouts can still clean up the
 // token even if the FCM registration event hasn't fired in this session.
 let currentToken = localStorage.getItem(TOKEN_STORAGE_KEY) ?? null
@@ -72,17 +78,17 @@ async function createChannels() {
  * No-ops on web / PWA — native only.
  */
 export async function initNotifications({ navigate, showToast }) {
-  console.log('[MULU-NOTIF] initNotifications called, platform=' + Capacitor.getPlatform())
+  dlog('[MULU-NOTIF] initNotifications called, platform=' + Capacitor.getPlatform())
 
   if (!Capacitor.isNativePlatform()) {
     console.debug('Notifications: web platform, skipping native push registration')
     return
   }
 
-  console.log('[MULU-NOTIF] native platform confirmed')
+  dlog('[MULU-NOTIF] native platform confirmed')
 
   const permResult = await PushNotifications.requestPermissions()
-  console.log('[MULU-NOTIF] Permission result: ' + JSON.stringify(permResult))
+  dlog('[MULU-NOTIF] Permission result: ' + JSON.stringify(permResult))
 
   const { receive } = permResult
   if (receive !== 'granted') {
@@ -96,7 +102,7 @@ export async function initNotifications({ navigate, showToast }) {
 
   // ── Token registration ────────────────────────────────────────────────────
   PushNotifications.addListener('registration', async ({ value: token }) => {
-    console.log('[MULU-NOTIF] Token received: ' + token.substring(0, 20) + '...')
+    dlog('[MULU-NOTIF] Token received: ' + token.substring(0, 20) + '...')
     currentToken = token
     localStorage.setItem(TOKEN_STORAGE_KEY, token)
     const platform = Capacitor.getPlatform() // 'android' | 'ios'
@@ -108,7 +114,7 @@ export async function initNotifications({ navigate, showToast }) {
     }
 
     const userId = session.user.id
-    console.log('[MULU-NOTIF] Upserting token for user: ' + userId + ' platform: ' + platform)
+    dlog('[MULU-NOTIF] Upserting token for user: ' + userId + ' platform: ' + platform)
 
     const upsertResult = await supabase
       .from('device_tokens')
@@ -117,7 +123,7 @@ export async function initNotifications({ navigate, showToast }) {
         { onConflict: 'user_id,token' }
       )
 
-    console.log('[MULU-NOTIF] Upsert result: ' + JSON.stringify({ error: upsertResult.error ?? null, status: upsertResult.status }))
+    dlog('[MULU-NOTIF] Upsert result: ' + JSON.stringify({ error: upsertResult.error ?? null, status: upsertResult.status }))
     if (upsertResult.error) console.error('[MULU-NOTIF] Upsert error detail:', upsertResult.error)
   })
 
@@ -128,7 +134,7 @@ export async function initNotifications({ navigate, showToast }) {
   })
 
   await createChannels()
-  console.log('[MULU-NOTIF] Calling PushNotifications.register()')
+  dlog('[MULU-NOTIF] Calling PushNotifications.register()')
   await PushNotifications.register()
 
   // ── Foreground delivery (app is open) ────────────────────────────────────

@@ -19,7 +19,7 @@ describe('AccountDeletion (public /account/delete)', () => {
     render(<AccountDeletion />)
     expect(screen.getByText('account.delete.webInstructions')).toBeInTheDocument()
     expect(screen.getByText('account.delete.webRetained')).toBeInTheDocument()
-    expect(screen.getByRole('link')).toHaveAttribute('href', 'mailto:support@wash.co.il')
+    expect(screen.getByRole('link')).toHaveAttribute('href', 'mailto:support@muluwash.com')
   })
 
   it('offers the deletion action (not instructions) when logged in', () => {

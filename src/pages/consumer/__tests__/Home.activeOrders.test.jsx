@@ -38,7 +38,8 @@ vi.mock('../../../context/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'u1' }, profile: { full_name: 'Test User' } }),
 }))
 vi.mock('../../../hooks/useGeolocation.js', () => ({
-  useGeolocation: () => ({ position: { lat: 32.08, lng: 34.78 }, error: null, permissionState: 'granted', requestPermission: vi.fn() }),
+  // Holon centre — inside the pilot service-area geofence (serviceArea.js).
+  useGeolocation: () => ({ position: { lat: 32.0167, lng: 34.7795 }, error: null, permissionState: 'granted', requestPermission: vi.fn() }),
 }))
 vi.mock('../../../hooks/useTheme.js', () => ({ useTheme: () => ({ isDark: false }) }))
 vi.mock('../../../components/ui/Toast.jsx', () => ({ useToast: () => vi.fn(), ToastProvider: ({ children }) => children }))

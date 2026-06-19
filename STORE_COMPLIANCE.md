@@ -15,7 +15,7 @@ deletion, UGC moderation, and payments. Grounded in the current implementation.
 
 - **Public deletion URL (submit to Google Play "Data deletion" + App Store):** `https://muluwash.com/account/delete` (deploy the consumer web app at `muluwash.com` so this route is publicly reachable without login)
   - Logged-in: runs the in-app deletion flow directly.
-  - Logged-out: shows Hebrew instructions, what is deleted vs retained, and a support contact (`support@wash.co.il`).
+  - Logged-out: shows Hebrew instructions, what is deleted vs retained, and a support contact (`support@muluwash.com`).
 - **In-app:** Consumer `Settings → מחיקת חשבון` and Washer `Settings → מחיקת חשבון`. A type-to-confirm modal lists the consequences; on confirm it calls the `delete-account` Edge Function, unregisters the push token, and signs out.
 - **What is deleted:** profile, vehicles, chats (order + support messages the user sent and conversations they opened), ratings they authored, push tokens, notification preferences/log, legal acknowledgments, content reports/blocks, washer-verification documents, and all per-user storage objects (`washer-verification/{uid}/*`, `car-photos/{uid}/*`, `job-evidence` for the user's own orders).
 - **What is retained (and why):** order rows are **anonymized, not deleted** — PII columns (car make/model/year/color/plate, photo paths, access notes, submitted coordinates) are nulled and the user link is removed (`consumer_id`/`washer_id` set NULL), but financial/audit columns (`base_price`, `platform_fee`, `total_price`, `payout_amount`, `status`, timestamps) and the `order_events` audit trail are kept for **legal/tax retention (~7 years)**. These records carry no link back to the deleted person.
