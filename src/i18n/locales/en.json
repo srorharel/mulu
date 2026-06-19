@@ -355,7 +355,22 @@
       "success": "Payment complete! Finding you a washer…",
       "error": "Payment didn't go through. Try again, or reach us at support.",
       "notFound": "Order not found",
-      "scaffoldNote": "Demo mode: live card clearing isn't active yet"
+      "scaffoldNote": "Demo mode: live card clearing isn't active yet",
+      "methodTitle": "Payment method",
+      "newCard": "New card",
+      "saveCard": "Save this card for next time",
+      "defaultBadge": "Default"
+    },
+    "payment": {
+      "title": "Payment methods",
+      "empty": "No saved cards",
+      "emptyDesc": "A card you save at checkout will show up here for next time.",
+      "default": "Default",
+      "makeDefault": "Set as default",
+      "remove": "Remove",
+      "removeConfirm": "Remove this card?",
+      "removeConfirmBody": "You'll need to enter it again on your next payment.",
+      "removed": "Card removed"
     },
     "locationSheet": {
       "selectedLabel": "Selected location",

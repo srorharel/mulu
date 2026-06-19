@@ -22,6 +22,7 @@
 // admin-user-mgmt uses). SUPABASE_URL / SUPABASE_ANON_KEY are auto-injected.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { revokeToken } from '../_shared/clearing.ts'
 
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -145,6 +146,12 @@ Deno.serve(async (req) => {
   await svc.from('notification_log').delete().eq('user_id', userId)
   await svc.from('content_reports').delete().eq('reporter_id', userId)
   await svc.from('content_blocks').delete().eq('blocker_id', userId)
+
+  // 4b. Saved payment methods: best-effort revoke the token at the processor,
+  //     then delete the rows (they also CASCADE on the profile delete below).
+  const { data: cards } = await svc.from('payment_methods').select('provider_token').eq('user_id', userId)
+  for (const c of (cards ?? [])) { try { await revokeToken(c.provider_token) } catch { /* best-effort */ } }
+  await svc.from('payment_methods').delete().eq('user_id', userId)
 
   // 5. Delete the profile (SET NULL nulls orders/order_events references; CASCADE
   //    clears any remaining child rows).

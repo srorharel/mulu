@@ -109,7 +109,9 @@ This satisfies the App Store UGC requirement (a method to report objectionable c
 
 ## 7. Payments — not IAP
 
-MULU sells a **real-world physical service** (washing a car). Per Apple App Store Review Guideline 3.1.3(e) (goods/services consumed outside the app) and Google Play's physical-goods/services policy, this is **out of scope for in-app purchase**. Payment is handled by an **external card processor**; do not use Apple/Google IAP for wash purchases. (Confirm the specific processor + its SDK/redirect model and reflect it in §4 row "Payment info".)
+MULU sells a **real-world physical service** (washing a car). Per Apple App Store Review Guideline 3.1.3(e) (goods/services consumed outside the app) and Google Play's physical-goods/services policy, this is **out of scope for in-app purchase**. Payment is handled by an **external card processor**; do not use Apple/Google IAP for wash purchases. (Confirm the specific processor + its SDK/redirect model and reflect it in §4 row "Payment info".) The in-app **secure checkout page** (`/checkout/:id`) is built and ready for the processor: it embeds the clearing company's PCI-hosted iframe (`VITE_PAYMENT_IFRAME_URL`, env-gated via `VITE_ENABLE_PAYMENTS`) and gates payment behind a terms-approval checkbox (ADR-042). The business **contact phone** (050-640-6810) is now in the תקנון + privacy policy, alongside the physical address — the clearing onboarding requires both.
+
+**Card-on-file (ADR-043):** customers can save a card for repeat orders via **tokenization** — the clearing company keeps the card and returns a token; we store only the token + brand/last4/expiry (table `payment_methods`), never the PAN, and the token is not even readable by the browser. Charging is server-side by token. Cards are deletable in-app (Settings → Payment methods) and purged on account deletion. **Before enabling:** add a card-on-file disclosure to the privacy policy (token + last4 stored, deletable anytime; card held by the processor) and re-publish — keep §4/§5 "Payment info: card data held by processor" accurate.
 
 ---
 
@@ -117,7 +119,7 @@ MULU sells a **real-world physical service** (washing a car). Per Apple App Stor
 
 - [x] Production domain = `muluwash.com` in the deletion URL (§1). **TODO:** deploy the consumer app there + submit the URL in both consoles.
 - [x] `POST_NOTIFICATIONS` confirmed in the merged manifest (added by `@capacitor/push-notifications`).
-- [ ] Finalize the card processor and update the Payment-info rows (§4, §7). *(Owner is sourcing an external payment company.)*
+- [ ] Finalize the card processor and update the Payment-info rows (§4, §7). *(Owner is sourcing an external payment company. Checkout UI is ready — set `VITE_ENABLE_PAYMENTS` + `VITE_PAYMENT_IFRAME_URL` once the terminal exists.)*
 - [x] iOS target added (Capacitor 8, SPM); Info.plist strings in place (§3). **TODO:** enable Push Notifications capability + APNs key, wire FCM↔APNs (see `IOS_SETUP.md`), and fill the App Privacy form (§5).
 - [ ] Device-test the runtime permission prompts show the rationale copy (§2) — Android 15 edge-to-edge included.
 - [ ] Generate the upload keystore (`android/key.properties.example`) and build the signed AAB (`release-android.ps1` locally, or Codemagic `android-release`).

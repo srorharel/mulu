@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, Car, FileText, Shield, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Car, CreditCard, FileText, Shield, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { FEATURES } from '../../lib/featureFlags.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
@@ -76,6 +77,24 @@ export default function ConsumerSettings() {
               <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
             </button>
           </GlassCard>
+
+          {/* Payment methods — only when payments are enabled */}
+          {FEATURES.payments && (
+            <GlassCard className="p-0 overflow-hidden">
+              <button
+                onClick={() => navigate('/profile/payment-methods')}
+                className="w-full flex items-center gap-3 px-4 py-4 text-start"
+              >
+                <div className="w-9 h-9 rounded-[11px] bg-primary-100 flex items-center justify-center shrink-0">
+                  <CreditCard className="h-[18px] w-[18px] text-primary-700" />
+                </div>
+                <span className="flex-1 text-sm font-semibold text-ink">
+                  {t('consumer.payment.title')}
+                </span>
+                <ChevronRight className="h-4 w-4 text-ink-muted rtl:rotate-180 shrink-0" />
+              </button>
+            </GlassCard>
+          )}
 
           {/* Legal documents */}
           <GlassCard className="p-0 overflow-hidden">

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, ShieldCheck, Lock, Loader2, Car, MapPin } from 'lucide-react'
+import { ArrowLeft, ShieldCheck, Lock, Loader2, Car, MapPin, CreditCard, Plus, Check } from 'lucide-react'
 import { useTranslation, Trans } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { priceBreakdown, VAT_RATE } from '../../lib/pricing.js'
 import { FEATURES } from '../../lib/featureFlags.js'
+import { useSavedCards } from '../../hooks/useSavedCards.js'
+import { chargeSavedCard, cardLabel } from '../../lib/payments.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -12,14 +14,14 @@ import MotionButton from '../../components/ui/MotionButton.jsx'
 
 // Secure payment page (PCI). Reached from the booking flow after the order row
 // is created (status='pending'): /checkout/:id. It presents the order summary,
-// the terms-approval gate required before a transaction (Consumer Terms §6.5),
-// and the clearing company's PCI-compliant hosted payment surface.
+// the saved-card picker (card-on-file, ADR-043), the terms-approval gate
+// required before a transaction (Consumer Terms §6.5), and the clearing
+// company's PCI-compliant hosted payment surface for new cards.
 //
-// The clearing company embeds its hosted page (iframe) at VITE_PAYMENT_IFRAME_URL.
-// Card data is captured INSIDE that iframe, so the cardholder data never touches
-// our servers — PCI scope stays with the provider (see Privacy Policy §2(ד)).
-// Until the terminal is provisioned the page shows a "terminal pending"
-// placeholder and the Pay button runs in scaffold mode (no real charge).
+// The card number is captured ONLY inside the provider's iframe
+// (VITE_PAYMENT_IFRAME_URL) — it never touches our servers (Privacy §2(ד)).
+// Saved cards are charged server-side by the charge-saved-card Edge Function
+// using a stored token; the browser never sees the token.
 const PAYMENT_IFRAME_URL = import.meta.env.VITE_PAYMENT_IFRAME_URL || ''
 const VAT_PERCENT = Math.round(VAT_RATE * 100)
 
@@ -28,14 +30,18 @@ export default function Checkout() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const showToast = useToast()
+  const { cards } = useSavedCards()
 
   const [order, setOrder]     = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [paying, setPaying]   = useState(false)
+  const [method, setMethod]   = useState(null)   // null until decided · 'new' | <cardId>
+  const [saveNewCard, setSaveNewCard] = useState(false)
 
   const dir = i18n.language === 'he' ? 'rtl' : 'ltr'
+  const hasSavedCards = FEATURES.payments && cards.length > 0
 
   useEffect(() => {
     let active = true
@@ -48,7 +54,6 @@ export default function Checkout() {
       .then(({ data, error }) => {
         if (!active) return
         if (error || !data) { setNotFound(true); setLoading(false); return }
-        // Already paid / advanced past pending — no payment page for it.
         if (data.status !== 'pending') { navigate(`/order/${id}`, { replace: true }); return }
         setOrder(data)
         setLoading(false)
@@ -56,18 +61,33 @@ export default function Checkout() {
     return () => { active = false }
   }, [id, navigate])
 
+  // Pick the initial payment method once saved cards have loaded.
+  useEffect(() => {
+    if (method !== null) return
+    if (hasSavedCards) setMethod((cards.find((c) => c.is_default) ?? cards[0]).id)
+    else setMethod('new')
+  }, [cards, hasSavedCards, method])
+
+  const usingNewCard = method === 'new' || !hasSavedCards
+
   async function handlePay() {
     if (!accepted || paying) return
     setPaying(true)
-    // ─── CLEARING-API INTEGRATION POINT ──────────────────────────────────────
-    // When the terminal is live (FEATURES.payments + VITE_PAYMENT_IFRAME_URL),
-    // the card is captured inside the hosted iframe. Replace the scaffold below
-    // with the provider's confirm step (listen for its postMessage / redirect
-    // success), and only advance the order on an AUTHORISED payment — e.g. flip
-    // a `paid` flag the washer-visibility RLS gates on. Do not navigate on a
-    // declined or unconfirmed charge.
     try {
-      await new Promise((r) => setTimeout(r, 1200)) // scaffold: no real charge yet
+      if (method && method !== 'new') {
+        // Saved card — charged server-side by token (browser never sees it).
+        const res = await chargeSavedCard(id, method)
+        if (!res.ok) { setPaying(false); showToast(t('consumer.checkout.error'), 'error'); return }
+        showToast(t('consumer.checkout.success'), 'success')
+        navigate(`/order/${id}`, { replace: true })
+        return
+      }
+      // ─── NEW-CARD / CLEARING-API INTEGRATION POINT ───────────────────────────
+      // When the terminal is live, the card is captured inside the hosted iframe.
+      // On the provider's confirm (postMessage/redirect): if `saveNewCard`, persist
+      // the returned token via saveCardFromToken(), then finalize the order on an
+      // AUTHORISED payment only. Scaffold below simulates success (no charge).
+      await new Promise((r) => setTimeout(r, 1200))
       showToast(t('consumer.checkout.success'), 'success')
       navigate(`/order/${id}`, { replace: true })
     } catch {
@@ -153,36 +173,84 @@ export default function Checkout() {
               </div>
             </GlassCard>
 
-            {/* ── Secure payment ── */}
-            <GlassCard className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Lock className="h-[18px] w-[18px] text-primary-600" strokeWidth={2.4} />
-                <p className="text-[15px] font-bold text-ink">{t('consumer.checkout.secureTitle')}</p>
-              </div>
-              <p className="flex items-start gap-2 text-[12px] leading-relaxed text-ink-muted">
-                <ShieldCheck className="h-4 w-4 text-primary-500 shrink-0 mt-0.5" strokeWidth={2.2} />
-                <span>{t('consumer.checkout.secureBody')}</span>
-              </p>
+            {/* ── Saved-card picker (only when payments on + cards exist) ── */}
+            {hasSavedCards && (
+              <GlassCard className="p-2">
+                <p className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.4px] px-2 pt-1.5 pb-1">
+                  {t('consumer.checkout.methodTitle')}
+                </p>
+                {cards.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setMethod(c.id)}
+                    className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl text-start"
+                  >
+                    <CreditCard className="h-[18px] w-[18px] text-ink-muted shrink-0" />
+                    <span className="flex-1 text-[14px] font-semibold text-ink tabular-nums">{cardLabel(c)}</span>
+                    {c.is_default && (
+                      <span className="text-[10px] font-bold text-primary-700 bg-primary-100 rounded-full px-2 py-0.5">
+                        {t('consumer.checkout.defaultBadge')}
+                      </span>
+                    )}
+                    <RadioDot on={method === c.id} />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setMethod('new')}
+                  className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl text-start"
+                >
+                  <Plus className="h-[18px] w-[18px] text-ink-muted shrink-0" />
+                  <span className="flex-1 text-[14px] font-semibold text-ink">{t('consumer.checkout.newCard')}</span>
+                  <RadioDot on={usingNewCard} />
+                </button>
+              </GlassCard>
+            )}
 
-              {PAYMENT_IFRAME_URL ? (
-                <iframe
-                  src={PAYMENT_IFRAME_URL}
-                  title={t('consumer.checkout.secureTitle')}
-                  // Card fields render inside the provider's PCI-scoped page.
-                  allow="payment *"
-                  className="mt-3 w-full h-[440px] rounded-2xl border border-glass-border bg-white"
-                />
-              ) : (
-                <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-6 text-center">
-                  <p className="text-[13px] font-semibold text-ink">{t('consumer.checkout.terminalPending')}</p>
-                  <p className="text-[11px] text-ink-muted mt-1">{t('consumer.checkout.terminalPendingNote')}</p>
+            {/* ── Secure payment (new card → hosted iframe) ── */}
+            {usingNewCard && (
+              <GlassCard className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="h-[18px] w-[18px] text-primary-600" strokeWidth={2.4} />
+                  <p className="text-[15px] font-bold text-ink">{t('consumer.checkout.secureTitle')}</p>
                 </div>
-              )}
+                <p className="flex items-start gap-2 text-[12px] leading-relaxed text-ink-muted">
+                  <ShieldCheck className="h-4 w-4 text-primary-500 shrink-0 mt-0.5" strokeWidth={2.2} />
+                  <span>{t('consumer.checkout.secureBody')}</span>
+                </p>
 
-              <p className="mt-3 text-[11px] text-ink-muted text-center tracking-[0.2px]">
-                {t('consumer.checkout.acceptedCards')}
-              </p>
-            </GlassCard>
+                {PAYMENT_IFRAME_URL ? (
+                  <iframe
+                    src={PAYMENT_IFRAME_URL}
+                    title={t('consumer.checkout.secureTitle')}
+                    allow="payment *"
+                    className="mt-3 w-full h-[440px] rounded-2xl border border-glass-border bg-white"
+                  />
+                ) : (
+                  <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-6 text-center">
+                    <p className="text-[13px] font-semibold text-ink">{t('consumer.checkout.terminalPending')}</p>
+                    <p className="text-[11px] text-ink-muted mt-1">{t('consumer.checkout.terminalPendingNote')}</p>
+                  </div>
+                )}
+
+                {FEATURES.payments && (
+                  <label className="flex items-center gap-2.5 mt-3 px-0.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={saveNewCard}
+                      onChange={(e) => setSaveNewCard(e.target.checked)}
+                      className="h-[18px] w-[18px] shrink-0 rounded border-neutral-300 cursor-pointer accent-primary-600"
+                    />
+                    <span className="text-[12.5px] text-ink-muted">{t('consumer.checkout.saveCard')}</span>
+                  </label>
+                )}
+
+                <p className="mt-3 text-[11px] text-ink-muted text-center tracking-[0.2px]">
+                  {t('consumer.checkout.acceptedCards')}
+                </p>
+              </GlassCard>
+            )}
 
             {/* ── Terms approval (required before the transaction) ── */}
             <label className="flex items-start gap-2.5 px-1 pt-1 cursor-pointer">
@@ -231,5 +299,14 @@ export default function Checkout() {
         )}
       </div>
     </PageShell>
+  )
+}
+
+// Small radio indicator (filled when selected).
+function RadioDot({ on }) {
+  return (
+    <span className={`w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center shrink-0 ${on ? 'border-primary-500 bg-primary-500' : 'border-neutral-300'}`}>
+      {on && <Check className="h-3 w-3 text-white" strokeWidth={3.5} />}
+    </span>
   )
 }

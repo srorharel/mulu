@@ -28,9 +28,11 @@ Four roles exist in `profiles.role`:
 
 **Consumer routes** (inside `ConsumerLayout`):
 - `/home` — booking form + active order summary
+- `/checkout/:id` — secure payment / clearing checkout (sits between booking and tracking; ADR-042)
 - `/order/:id` — order tracking page
 - `/history` — order history
 - `/profile/vehicles` — saved vehicles management
+- `/profile/payment-methods` — saved cards (card-on-file; shown only when payments are enabled; ADR-043)
 - `/profile/settings` — consumer settings (notifications, appearance/dark mode, language, vehicles link)
 
 **Washer onboarding routes** (accessible while `washer_verification_status` is not `approved`):
@@ -62,7 +64,13 @@ From `/home` (`src/pages/consumer/Home.jsx`):
 3. **Location pin** — `LocationSheet` + `MapPicker` let consumer drop a pin; address reverse-geocoded via Nominatim.
 4. **Site resources** — toggles for `site_has_water` and `site_has_power`.
 5. **Access notes** — free-text field for gate codes, parking instructions, etc.
-6. Order is submitted; consumer navigates to `/order/:id` (tracking page).
+6. Order is submitted (status `pending`); consumer navigates to `/checkout/:id` (secure payment), then on payment to `/order/:id` (tracking).
+
+## Secure Checkout / Payment (`/checkout/:id`)
+
+`src/pages/consumer/Checkout.jsx`. Reached from booking (the order already exists as `pending`). Shows the order summary + total, a secure-payment card that embeds the clearing company's **PCI-compliant hosted iframe** (`VITE_PAYMENT_IFRAME_URL` — card data never touches our servers), and a **required terms-approval checkbox** (links to `/legal/{terms,privacy}`) that gates the Pay button (the transaction-time consent the card-clearing onboarding requires). Gated by `FEATURES.payments` (`VITE_ENABLE_PAYMENTS`, default OFF): while off, the iframe slot shows a "terminal pending" placeholder and Pay runs in scaffold mode (no charge → `/order/:id`). The real charge belongs at the `handlePay()` integration point; the order is created before payment, so gate washer visibility on a `paid` flag when wiring it. See ADR-042.
+
+**Saved cards (card-on-file, ADR-043).** The page also shows a saved-card picker; "use a new card" reveals the iframe plus a "save this card" consent. We store only a clearing-company **token** + brand/last4/expiry in `payment_methods` — never the PAN. The token column is service-role-only (column GRANTs exclude `provider_token`), so the browser lists a card but can't read its token; charging a saved card runs server-side in the `charge-saved-card` Edge Function (`src/lib/payments.js` → `chargeSavedCard`). Manage/remove cards in Settings → Payment methods (`useSavedCards` + `set_default_payment_method` RPC). All gated by `FEATURES.payments`.
 
 ## Israeli License Plate Lookup
 
