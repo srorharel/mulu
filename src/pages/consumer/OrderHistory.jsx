@@ -121,7 +121,7 @@ export default function OrderHistory() {
           {/* Filter button — visual placeholder per audit Q5 */}
           <button
             aria-label={t('consumer.history.filter')}
-            className="w-10 h-10 rounded-[14px] bg-white/60 backdrop-blur-xl border border-glass-border flex items-center justify-center text-ink shadow-sm"
+            className="w-10 h-10 rounded-[14px] bg-glass backdrop-blur-xl border border-glass-border flex items-center justify-center text-ink shadow-sm"
           >
             <Filter className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>
@@ -141,7 +141,7 @@ export default function OrderHistory() {
           {/* ── Empty state ── */}
           {!loading && orders.length === 0 && (
             <div className="flex flex-col items-center gap-2 pt-12 text-center">
-              <div className="rounded-glass bg-white/60 backdrop-blur-sm p-5 mb-1">
+              <div className="rounded-glass bg-glass backdrop-blur-sm p-5 mb-1">
                 <Car className="h-10 w-10 text-ink-muted" />
               </div>
               <p className="font-semibold text-ink">{t('consumer.history.empty')}</p>
@@ -173,8 +173,8 @@ export default function OrderHistory() {
                       <span className="text-[13px] opacity-85">{t('consumer.history.summaryWashes')}</span>
                     </div>
                   </div>
-                  <div className="w-[52px] h-[52px] rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
-                    <Sparkles className="h-[26px] w-[26px] text-white" strokeWidth={1.5} />
+                  <div className="w-[52px] h-[52px] rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
+                    <Sparkles className="h-[26px] w-[26px] text-primary-700" strokeWidth={1.5} />
                   </div>
                 </div>
               </motion.div>

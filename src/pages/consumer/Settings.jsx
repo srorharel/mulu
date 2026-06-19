@@ -32,7 +32,7 @@ export default function ConsumerSettings() {
           <button
             onClick={() => navigate(-1)}
             aria-label={t('common.back')}
-            className="w-10 h-10 rounded-[14px] bg-white/60 backdrop-blur-xl border border-glass-border flex items-center justify-center text-ink shadow-sm"
+            className="w-10 h-10 rounded-[14px] bg-glass backdrop-blur-xl border border-glass-border flex items-center justify-center text-ink shadow-sm"
           >
             <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
           </button>

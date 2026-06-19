@@ -100,7 +100,7 @@ export default function Vehicles() {
         <div className="px-5 pt-4 pb-3 flex items-center gap-3 shrink-0">
           <MotionButton
             onClick={() => navigate('/profile')}
-            className="rounded-[14px] w-[38px] h-[38px] flex items-center justify-center bg-white/60 border border-glass-border backdrop-blur-sm text-ink-muted hover:text-ink shrink-0"
+            className="rounded-[14px] w-[38px] h-[38px] flex items-center justify-center bg-glass border border-glass-border backdrop-blur-sm text-ink-muted hover:text-ink shrink-0"
           >
             <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
           </MotionButton>
