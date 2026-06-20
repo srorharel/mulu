@@ -38,7 +38,7 @@ export default function NotificationsSection() {
   const { t } = useTranslation()
 
   const [osState, setOsState]           = useState(null)
-  const [prefs, setPrefs]               = useState({ enabled: true, sound: 'chirp', promos_enabled: true })
+  const [prefs, setPrefs]               = useState({ enabled: true, sound: 'bell', promos_enabled: true })
   const [loadingPrefs, setLoadingPrefs] = useState(true)
 
   useEffect(() => {

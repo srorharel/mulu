@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
   const title = resolveTitle(copy.title, data)
   const body  = resolveBody(copy.body, data)
   const route = data.route ?? routeFor(event_type, data)
-  const sound = prefs.sound ?? 'chirp'
+  const sound = prefs.sound ?? 'bell'
 
   // ── 4. Get cached FCM access token ────────────────────────────────────────
   const fcmProjectId = Deno.env.get('FCM_PROJECT_ID')!
@@ -490,7 +490,7 @@ async function sendFcmMessage(opts: {
   if (platform === 'android') {
     message.android = isCall
       ? { priority: 'high', notification: { channel_id: 'incoming_calls', sound: 'bell' } }
-      : { notification: { channel_id: `wash_${sound || 'chirp'}`, sound } }
+      : { notification: { channel_id: `wash_${sound || 'bell'}`, sound } }
   } else if (platform === 'ios') {
     message.apns = { payload: { aps: { sound: `${sound}.mp3` } } }
   }

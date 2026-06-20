@@ -499,6 +499,11 @@
     },
     "settings": {
       "title": "Settings",
+      "subtitle": "Your preferences and account",
+      "groups": {
+        "preferences": "Preferences",
+        "account": "Account"
+      },
       "appearance": {
         "title": "Appearance",
         "darkMode": "Dark mode"
@@ -950,10 +955,10 @@
     "promosHint": "Independent of order updates. Disable to stop announcements only.",
     "soundLabel": "Sound",
     "sound": {
-      "chirp": "Default",
-      "chime": "Chime",
-      "bell": "Bell",
-      "gentle": "Gentle",
+      "chirp": "Tokens",
+      "chime": "Breeze",
+      "bell": "Buzzer",
+      "gentle": "Win",
       "preview": "Play"
     }
   },
@@ -969,7 +974,7 @@
       "sound": {
         "chirp": { "desc": "Soft two-tone ping" },
         "chime": { "desc": "Bright chime bell" },
-        "bell":  { "desc": "Classic single ring" },
+        "bell":  { "desc": "Classic single ring, default" },
         "gentle":{ "desc": "Quiet muted tone" }
       }
     }

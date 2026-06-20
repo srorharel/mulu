@@ -499,6 +499,11 @@
     },
     "settings": {
       "title": "הגדרות",
+      "subtitle": "ההעדפות והחשבון שלכם",
+      "groups": {
+        "preferences": "העדפות",
+        "account": "חשבון"
+      },
       "appearance": {
         "title": "מראה",
         "darkMode": "מצב כהה"
@@ -952,10 +957,10 @@
     "promosHint": "בלתי תלוי בעדכוני הזמנה. כיבוי משבית רק הודעות מבצעים.",
     "soundLabel": "צליל",
     "sound": {
-      "chirp": "ברירת מחדל",
-      "chime": "צלצול",
-      "bell": "פעמון",
-      "gentle": "עדין",
+      "chirp": "ז'יטונים",
+      "chime": "משב רוח",
+      "bell": "צפצפה",
+      "gentle": "זכיה",
       "preview": "השמעה"
     }
   },
@@ -969,9 +974,9 @@
     },
     "notifications": {
       "sound": {
-        "chirp": { "desc": "פינג עדין, ברירת מחדל" },
+        "chirp": { "desc": "פינג עדין" },
         "chime": { "desc": "צלצול בהיר" },
-        "bell":  { "desc": "צלצול קלאסי" },
+        "bell":  { "desc": "צלצול קלאסי, ברירת מחדל" },
         "gentle":{ "desc": "צליל שקט ועדין" }
       }
     }
