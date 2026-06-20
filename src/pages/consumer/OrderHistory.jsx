@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Car, Filter, Sparkles } from 'lucide-react'
+import { Car, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
@@ -11,9 +11,28 @@ import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import Editable from '../../components/editable/Editable.jsx'
 
-// pending_approval is intentionally excluded: wash is done from the consumer's
-// perspective, so the row uses the same muted chrome as completed.
+// pending_approval is intentionally excluded from "live": the wash is done from
+// the consumer's perspective, so the row uses the same muted chrome as completed.
 const LIVE_STATUSES = new Set(['pending', 'accepted', 'en_route', 'arrived', 'in_progress'])
+// "Done" from the consumer's perspective — wash finished, awaiting/closed.
+const DONE_STATUSES = new Set(['pending_approval', 'completed'])
+
+const FILTERS = ['all', 'active', 'completed']
+function matchesFilter(status, filter) {
+  if (filter === 'active')    return LIVE_STATUSES.has(status)
+  if (filter === 'completed') return DONE_STATUSES.has(status)
+  return true
+}
+
+// Tinted status pill — green for live, warning for in-review, danger for
+// cancelled, muted for completed. Colour is never the only signal: the label
+// always shows too (a11y: color-not-only).
+function statusChipClass(status) {
+  if (LIVE_STATUSES.has(status))     return 'bg-primary-100 text-primary-800'
+  if (status === 'pending_approval') return 'bg-warning-50 text-warning-700'
+  if (status === 'cancelled')        return 'bg-danger-50 text-danger-600'
+  return 'bg-black/[0.05] text-ink-muted'
+}
 
 function formatPlate(plate) {
   if (!plate) return null
@@ -79,6 +98,7 @@ export default function OrderHistory() {
   const showToast = useToast()
   const [orders, setOrders]   = useState([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter]   = useState('all')
 
   useEffect(() => {
     supabase
@@ -93,20 +113,23 @@ export default function OrderHistory() {
       })
   }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Derive year stats from already-loaded data — no extra query.
-  // Cancelled orders excluded from both count and spend; everything else
-  // (pending through completed) counts — the consumer ordered and paid.
+  // Derive year stats from already-loaded data — no extra query. Cancelled
+  // orders excluded; everything else counts (ADR-014). The summary tracks the
+  // full year and is intentionally independent of the active filter.
   const thisYear   = new Date().getFullYear()
-  const yearOrders = useMemo(() =>
+  const yearCount  = useMemo(() =>
     orders.filter(o =>
       new Date(o.created_at).getFullYear() === thisYear &&
       o.status !== 'cancelled'
-    ),
+    ).length,
     [orders, thisYear]
   )
-  const yearCount  = yearOrders.length
 
-  const groups    = useMemo(() => groupOrders(orders), [orders])
+  const visibleOrders = useMemo(
+    () => (filter === 'all' ? orders : orders.filter(o => matchesFilter(o.status, filter))),
+    [orders, filter]
+  )
+  const groups    = useMemo(() => groupOrders(visibleOrders), [visibleOrders])
   const todayStr  = t('consumer.history.today')
 
   return (
@@ -114,20 +137,16 @@ export default function OrderHistory() {
       <div className="bg-mesh min-h-full flex flex-col">
 
         {/* ── Header ── */}
-        <div className="px-5 pt-4 pb-2 flex items-center justify-between shrink-0">
-          <h1 className="text-[28px] font-extrabold text-ink tracking-[-0.7px]">
+        <div className="px-5 pt-4 pb-1 shrink-0">
+          <h1 className="text-[28px] font-extrabold text-ink tracking-[-0.7px] leading-tight">
             {t('consumer.history.title')}
           </h1>
-          {/* Filter button — visual placeholder per audit Q5 */}
-          <button
-            aria-label={t('consumer.history.filter')}
-            className="w-10 h-10 rounded-[14px] bg-glass backdrop-blur-xl border border-glass-border flex items-center justify-center text-ink shadow-sm"
-          >
-            <Filter className="h-[18px] w-[18px]" strokeWidth={2} />
-          </button>
+          <p className="text-sm text-ink-muted leading-tight mt-0.5">
+            {t('consumer.history.subtitle')}
+          </p>
         </div>
 
-        <div className="flex-1 px-4 pb-4 flex flex-col gap-3">
+        <div className="flex-1 px-4 pb-4 pt-3 flex flex-col gap-3">
 
           {/* ── Loading skeletons ── */}
           {loading && (
@@ -138,11 +157,11 @@ export default function OrderHistory() {
             </div>
           )}
 
-          {/* ── Empty state ── */}
+          {/* ── Empty state (no orders at all) ── */}
           {!loading && orders.length === 0 && (
             <div className="flex flex-col items-center gap-2 pt-12 text-center">
-              <div className="rounded-glass bg-glass backdrop-blur-sm p-5 mb-1">
-                <Car className="h-10 w-10 text-ink-muted" />
+              <div className="w-16 h-16 rounded-2xl bg-glass border border-glass-border flex items-center justify-center mb-1">
+                <Car className="h-8 w-8 text-ink-muted" />
               </div>
               <p className="font-semibold text-ink">{t('consumer.history.empty')}</p>
               <p className="text-sm text-ink-muted max-w-xs">{t('consumer.history.emptyDesc')}</p>
@@ -150,7 +169,7 @@ export default function OrderHistory() {
             </div>
           )}
 
-          {/* ── Summary card + grouped list ── */}
+          {/* ── Summary + filter + grouped list ── */}
           {!loading && orders.length > 0 && (
             <motion.div
               variants={containerVariants}
@@ -158,94 +177,141 @@ export default function OrderHistory() {
               animate="visible"
               className="flex flex-col gap-3"
             >
-              {/* Summary card — ADR-014: stats derived from loaded data, no extra query */}
+              {/* Summary hero — ADR-014: stats derived from loaded data, no extra query */}
               <motion.div variants={itemVariants}>
                 <div
-                  className="rounded-glass p-4 flex items-start justify-between"
+                  className="relative overflow-hidden rounded-glass p-4 shadow-glass"
                   style={{ background: 'linear-gradient(135deg, #1C8747, #26B55F)' }}
                 >
-                  <div className="text-white">
-                    <p className="text-[11px] font-semibold opacity-85 uppercase tracking-[0.4px]">
-                      {t('consumer.history.summaryLabel')}
-                    </p>
-                    <div className="flex items-baseline gap-2 mt-0.5">
-                      <span className="text-[30px] font-extrabold tracking-[-0.8px] leading-none">{yearCount}</span>
-                      <span className="text-[13px] opacity-85">{t('consumer.history.summaryWashes')}</span>
+                  <div className="absolute -top-9 -end-9 w-32 h-32 rounded-full bg-white/10" aria-hidden="true" />
+                  <div className="relative flex items-start justify-between">
+                    <div className="text-white">
+                      <p className="text-[11px] font-semibold opacity-85 uppercase tracking-[0.4px]">
+                        {t('consumer.history.summaryLabel')}
+                      </p>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-[34px] font-extrabold tracking-[-0.8px] leading-none tabular-nums">{yearCount}</span>
+                        <span className="text-[13px] opacity-90 font-medium">{t('consumer.history.summaryWashes')}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="w-[52px] h-[52px] rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
-                    <Sparkles className="h-[26px] w-[26px] text-primary-700" strokeWidth={1.5} />
+                    <div className="w-[52px] h-[52px] rounded-2xl bg-white/95 shadow-sm flex items-center justify-center shrink-0">
+                      <Sparkles className="h-[26px] w-[26px] text-primary-700" strokeWidth={1.5} />
+                    </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Grouped rows */}
-              {groups.map(group => (
-                <motion.div key={group.key} variants={itemVariants} className="flex flex-col gap-2">
-                  <p className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.5px] px-1">
-                    {t(group.labelKey)}
-                  </p>
-                  <GlassCard className="p-0 overflow-hidden">
-                    {group.orders.map((order, idx) => {
-                      const isLive   = LIVE_STATUSES.has(order.status)
-                      const plate    = formatPlate(order.car_plate)
-                      const carDesc  = [order.car_color, order.car_make, order.car_model]
-                        .filter(Boolean).join(' · ')
-                        || t(`carLabels.${order.car_type}`)
-                      const dateStr  = formatDate(order.created_at, i18n.language, todayStr)
-                      const timeStr  = formatTime(order.created_at, i18n.language)
-                      const isLast   = idx === group.orders.length - 1
+              {/* Segmented filter — works on the already-loaded list (no query) */}
+              <motion.div variants={itemVariants}>
+                <div
+                  role="tablist"
+                  aria-label={t('consumer.history.filter')}
+                  className="flex p-1 gap-1 rounded-2xl bg-glass border border-glass-border"
+                >
+                  {FILTERS.map(f => {
+                    const active = filter === f
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setFilter(f)}
+                        className={`flex-1 h-10 rounded-xl text-[13px] font-bold transition-colors
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                          active ? 'bg-primary-700 text-white shadow-sm' : 'text-ink-muted active:bg-black/[0.04]'
+                        }`}
+                      >
+                        {t(`consumer.history.filters.${f}`)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </motion.div>
 
-                      return (
-                        <Editable key={order.id} id="consumer.history.row">
-                        <motion.div
-                          whileTap={{ scale: 0.99 }}
-                          transition={SPRING}
-                        >
-                          <Link to={`/order/${order.id}`} className="block">
-                            <div className={`flex items-center gap-3 px-3.5 py-[13px] ${!isLast ? 'border-b border-edge' : ''}`}>
-                              {/* Car icon with live dot */}
-                              <div className={`w-[42px] h-[42px] rounded-[13px] flex items-center justify-center relative shrink-0 ${
-                                isLive ? 'bg-primary-100 text-primary-800' : 'bg-black/[0.04] text-ink-muted'
-                              }`}>
-                                <Car className="h-5 w-5" />
-                                {isLive && (
-                                  <span className="absolute -top-0.5 -end-0.5 w-3 h-3 rounded-full bg-primary-600 border-2 border-white" />
-                                )}
-                              </div>
-
-                              {/* Date + plate + car */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-[14px] font-bold text-ink">{dateStr}</span>
-                                  <span className="text-[12px] text-ink-muted" aria-hidden="true">·</span>
-                                  <span className="text-[12px] text-ink-muted tabular-nums">{timeStr}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-ink-muted min-w-0">
-                                  {plate && (
-                                    <span className="font-mono font-semibold text-ink shrink-0">{plate}</span>
-                                  )}
-                                  {plate && carDesc && <span className="shrink-0">·</span>}
-                                  <span className="truncate">{carDesc}</span>
-                                </div>
-                              </div>
-
-                              {/* Price + status */}
-                              <div className="text-end shrink-0">
-                                <p className="text-[14px] font-extrabold text-ink">₪{order.total_price}</p>
-                                <p className={`text-[10px] font-semibold mt-0.5 ${isLive ? 'text-primary-700' : 'text-ink-muted'}`}>
-                                  {t(`status.labels.${order.status}`, order.status)}
-                                </p>
-                              </div>
-                            </div>
-                          </Link>
-                        </motion.div>
-                        </Editable>
-                      )
-                    })}
-                  </GlassCard>
+              {/* Grouped rows — or an in-filter empty hint */}
+              {groups.length === 0 ? (
+                <motion.div variants={itemVariants} className="flex flex-col items-center gap-3 pt-10 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-glass border border-glass-border flex items-center justify-center">
+                    <Car className="h-7 w-7 text-ink-muted" />
+                  </div>
+                  <p className="text-sm text-ink-muted">{t('consumer.history.noneInFilter')}</p>
+                  <button
+                    type="button"
+                    onClick={() => setFilter('all')}
+                    className="text-[13px] font-bold text-primary-700 px-4 min-h-[44px] active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-xl"
+                  >
+                    {t('consumer.history.showAll')}
+                  </button>
                 </motion.div>
-              ))}
+              ) : (
+                groups.map(group => (
+                  <motion.div key={group.key} variants={itemVariants} className="flex flex-col gap-2">
+                    <p className="text-[11px] font-bold text-ink-muted uppercase tracking-[0.5px] px-1">
+                      {t(group.labelKey)}
+                    </p>
+                    <GlassCard className="p-0 overflow-hidden">
+                      {group.orders.map((order, idx) => {
+                        const isLive   = LIVE_STATUSES.has(order.status)
+                        const plate    = formatPlate(order.car_plate)
+                        const carDesc  = [order.car_color, order.car_make, order.car_model]
+                          .filter(Boolean).join(' · ')
+                          || t(`carLabels.${order.car_type}`)
+                        const dateStr  = formatDate(order.created_at, i18n.language, todayStr)
+                        const timeStr  = formatTime(order.created_at, i18n.language)
+                        const isLast   = idx === group.orders.length - 1
+
+                        return (
+                          <Editable key={order.id} id="consumer.history.row">
+                          <motion.div
+                            whileTap={{ scale: 0.99 }}
+                            transition={SPRING}
+                          >
+                            <Link to={`/order/${order.id}`} className="block">
+                              <div className={`flex items-center gap-3 px-3.5 py-[13px] ${!isLast ? 'border-b border-edge' : ''}`}>
+                                {/* Car icon with live dot */}
+                                <div className={`w-[42px] h-[42px] rounded-[13px] flex items-center justify-center relative shrink-0 ${
+                                  isLive ? 'bg-primary-100 text-primary-800' : 'bg-black/[0.04] text-ink-muted'
+                                }`}>
+                                  <Car className="h-5 w-5" />
+                                  {isLive && (
+                                    <span className="absolute -top-0.5 -end-0.5 w-3 h-3 rounded-full bg-primary-600 border-2 border-white" />
+                                  )}
+                                </div>
+
+                                {/* Date + plate + car */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-baseline gap-1.5">
+                                    <span className="text-[14px] font-bold text-ink">{dateStr}</span>
+                                    <span className="text-[12px] text-ink-muted" aria-hidden="true">·</span>
+                                    <span className="text-[12px] text-ink-muted tabular-nums">{timeStr}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-ink-muted min-w-0">
+                                    {plate && (
+                                      <span className="font-mono font-semibold text-ink shrink-0">{plate}</span>
+                                    )}
+                                    {plate && carDesc && <span className="shrink-0">·</span>}
+                                    <span className="truncate">{carDesc}</span>
+                                  </div>
+                                </div>
+
+                                {/* Price + status chip */}
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  <p className="text-[14px] font-extrabold text-ink tabular-nums">₪{order.total_price}</p>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${statusChipClass(order.status)}`}>
+                                    {t(`status.labels.${order.status}`, order.status)}
+                                  </span>
+                                </div>
+                              </div>
+                            </Link>
+                          </motion.div>
+                          </Editable>
+                        )
+                      })}
+                    </GlassCard>
+                  </motion.div>
+                ))
+              )}
             </motion.div>
           )}
         </div>

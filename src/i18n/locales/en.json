@@ -534,7 +534,15 @@
       "groupOlder": "Older",
       "empty": "No washes yet",
       "emptyDesc": "Book your first wash. It takes under a minute.",
-      "bookNow": "Book a wash"
+      "bookNow": "Book a wash",
+      "subtitle": "Your bookings, newest first",
+      "filters": {
+        "all": "All",
+        "active": "Active",
+        "completed": "Done"
+      },
+      "noneInFilter": "Nothing to show here",
+      "showAll": "Show all"
     }
   },
   "washer": {
