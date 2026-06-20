@@ -308,7 +308,7 @@ export default function OrderTracking() {
           <button
             onClick={() => navigate(-1)}
             aria-label={t('consumer.tracking.back')}
-            className="w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-[14px] flex items-center justify-center shadow-sm text-ink"
+            className="w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-[14px] flex items-center justify-center shadow-sm text-primary-800"
           >
             <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
           </button>
