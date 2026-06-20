@@ -59,7 +59,16 @@ const templates = {
   confirmation: {
     file: 'confirm-signup.he.html', sk: 'mailer_subjects_confirmation', ck: 'mailer_templates_confirmation_content',
     subject: 'אישור ההרשמה שלך ל-MULU',
-    html: shell({ heading: 'כמעט שם 🚗', body: 'תודה שנרשמת ל-MULU. נשאר רק לאשר את כתובת המייל, ואפשר להזמין את השטיפה הראשונה.', cta: { label: 'אישור ההרשמה', url: confirmUrl('signup') }, foot: 'לא נרשמת ל-MULU? אפשר פשוט להתעלם מהמייל הזה.' }),
+    // Same auth-confirmation email for both roles, but heading + body branch on
+    // the signup metadata role ({{ .Data.role }} = raw_user_meta_data.role, set in
+    // SignUp.jsx). Washers sign up to GIVE washes, so the consumer "order your
+    // first wash" line is wrong for them. Unknown/missing role falls to consumer.
+    html: shell({
+      heading: '{{ if eq .Data.role "washer" }}מתחילים להרוויח 💸{{ else }}כמעט שם 🚗{{ end }}',
+      body: '{{ if eq .Data.role "washer" }}תודה שבחרת לשטוף עם MULU. צריך רק לאשר את כתובת המייל, ונמשיך לשלב הבא של ההרשמה באפליקציה.{{ else }}תודה שנרשמת ל-MULU. נשאר רק לאשר את כתובת המייל, ואפשר להזמין את השטיפה הראשונה.{{ end }}',
+      cta: { label: 'אישור ההרשמה', url: confirmUrl('signup') },
+      foot: 'לא נרשמת ל-MULU? אפשר פשוט להתעלם מהמייל הזה.',
+    }),
   },
   recovery: {
     file: 'recovery.he.html', sk: 'mailer_subjects_recovery', ck: 'mailer_templates_recovery_content',

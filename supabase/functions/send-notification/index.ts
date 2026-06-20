@@ -64,16 +64,16 @@ const COPY: Record<EventType, Record<string, CopyEntry>> = {
     he: { title: 'השוטף הגיע',           body: 'השוטף הגיע לרכב שלך.' },
   },
   wash_completed: {
-    en: { title: 'Wash submitted',      body: 'Your wash is done — tap to rate.' },
-    he: { title: 'הרחיצה הושלמה',       body: 'הרחיצה בוצעה — הקש לדרג.' },
+    en: { title: "Your car's all clean ✨", body: 'Shining and ready. Tap to rate your wash.' },
+    he: { title: 'השטיפה הושלמה ✨',         body: 'הרכב שלך נקי ומבריק. הקישו כדי לדרג את השטיפה.' },
   },
   wash_pending_review: {
     en: { title: 'Awaiting approval',   body: 'Submitted. Support is reviewing your wash.' },
     he: { title: 'ממתין לאישור',        body: 'השליחה התקבלה. צוות התמיכה יבדוק את הוואש.' },
   },
   wash_complete_consumer: {
-    en: { title: 'Wash complete',       body: 'Your wash is ready — tap to rate.' },
-    he: { title: 'הוואש הושלם',         body: 'הוואש שלך מוכן — הקש לדירוג.' },
+    en: { title: "Your car's all clean ✨", body: 'Shining and ready. Tap to rate your wash.' },
+    he: { title: 'השטיפה הושלמה ✨',         body: 'הרכב שלך נקי ומבריק. הקישו כדי לדרג את השטיפה.' },
   },
   wash_declined: {
     en: { title: 'Wash needs fixes',    body: (d) => `Support requested changes. Reason: ${d.reason || 'See details'}` },
