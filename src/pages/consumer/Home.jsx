@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Loader2, MapPin, User, Check, ParkingSquare } from 'lucide-react'
+import { ChevronRight, Loader2, MapPin, User, Check, ParkingSquare, Car, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { useReverseGeocode } from '../../lib/geocode.js'
@@ -10,7 +10,6 @@ import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useFirstWashDiscount } from '../../hooks/useFirstWashDiscount.js'
 import { useConsumerActiveOrders } from '../../hooks/useConsumerActiveOrders.js'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { useTheme } from '../../hooks/useTheme.js'
 import { formatPlate } from '../../lib/formatPlate.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -43,7 +42,21 @@ function greetingKey() {
   return 'evening'
 }
 
-// Small site-resource toggle card (water tap / power outlet).
+// Tinted icon chip for a booking step. When the step is satisfied it gains a
+// small green check badge — a glance shows what's done and what's left.
+function StepIcon({ icon: Icon, complete }) {
+  return (
+    <div className="relative w-11 h-11 rounded-[14px] bg-primary-50 text-primary-700 flex items-center justify-center shrink-0">
+      <Icon className="h-[22px] w-[22px]" />
+      {complete && (
+        <span className="absolute -top-1 -end-1 w-[18px] h-[18px] rounded-full bg-primary-600 border-2 border-white flex items-center justify-center">
+          <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+        </span>
+      )}
+    </div>
+  )
+}
+
 // Confirmed vehicle summary — shown when a vehicle is selected (saved or free-text confirmed).
 function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
   return (
@@ -74,7 +87,6 @@ const EMPTY_LICENSE = { make: null, model: null, year: null, plate: null, color:
 export default function ConsumerHome() {
   const navigate        = useNavigate()
   const { user, profile } = useAuth()
-  const { isDark } = useTheme()
   const { position: gpsPosition, error: geoError, permissionState, requestPermission } = useGeolocation()
   const { t }           = useTranslation()
 
@@ -342,15 +354,18 @@ export default function ConsumerHome() {
         </div>
 
         {/* ── Greeting + title ── */}
-        <div className="px-5 pt-1 pb-5 shrink-0">
+        <div className="px-5 pt-1 pb-4 shrink-0">
           <p className="text-[13px] font-medium text-ink-muted tracking-[0.2px]">{greeting}</p>
           <h1 className="text-[26px] font-extrabold text-ink tracking-[-0.7px] mt-0.5 leading-tight">
             {t('consumer.home.subtitle')}
           </h1>
         </div>
 
-        {/* ── Scrollable cards ── */}
-        <div className="flex-1 px-4 flex flex-col gap-3 pb-4">
+        {/* ── Scrollable cards (bottom padding clears the fixed pay bar + nav) ── */}
+        <div
+          className="flex-1 px-4 flex flex-col gap-3"
+          style={{ paddingBottom: 'calc(var(--nav-height, 56px) + 92px)' }}
+        >
 
           {/* Active orders — tappable list (a consumer may have several at once) */}
           {activeOrders.length > 0 && (
@@ -403,31 +418,26 @@ export default function ConsumerHome() {
           <MotionButton
             type="button"
             onClick={() => setSheetOpen(true)}
-            className="flex items-stretch w-full text-start rounded-glass overflow-hidden bg-glass border border-glass-border backdrop-blur-xl shadow-glass"
-            style={{ minHeight: 78 }}
+            className="flex items-center gap-3 w-full text-start rounded-glass bg-glass border border-glass-border backdrop-blur-xl shadow-glass p-3.5"
           >
-            <div className="w-[78px] shrink-0 bg-primary-50 dark:bg-accent-muted flex items-center justify-center border-e border-glass-border">
-              <MapPin className="h-[22px] w-[22px] text-primary-700" />
-            </div>
-            <div className="flex-1 px-4 py-3.5 flex flex-col justify-center min-w-0">
-              <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+            <StepIcon icon={MapPin} complete={!!displayAddress} />
+            <div className="flex-1 px-1 flex flex-col justify-center min-w-0">
+              <p className="text-[10px] font-bold text-primary-700 uppercase tracking-[0.4px]">
                 {t('consumer.home.pickupLocation')}
               </p>
               {displayAddress ? (
                 <>
-                  <p className="text-[15px] font-bold text-ink mt-0.5 truncate">{displayAddress}</p>
+                  <p className="text-[14px] font-bold text-ink mt-0.5 truncate">{displayAddress}</p>
                   {geoError
-                    ? <p className="text-[12px] text-warning-600 mt-0.5">{t('consumer.home.locationError')}</p>
-                    : <p className="text-[12px] text-ink-muted mt-0.5">{t('consumer.home.tapToAdjust')}</p>
+                    ? <p className="text-[11px] text-warning-600 mt-0.5">{t('consumer.home.locationError')}</p>
+                    : <p className="text-[11px] text-ink-muted mt-0.5">{t('consumer.home.tapToAdjust')}</p>
                   }
                 </>
               ) : (
-                <p className="text-[15px] font-bold text-ink-muted mt-0.5">{t('consumer.home.tapToSetLocation')}</p>
+                <p className="text-[14px] font-bold text-ink-muted mt-0.5">{t('consumer.home.tapToSetLocation')}</p>
               )}
             </div>
-            <div className="px-3 flex items-center text-ink-subtle shrink-0">
-              <ChevronRight className="h-5 w-5" />
-            </div>
+            <ChevronRight className="h-5 w-5 text-ink-subtle shrink-0 rtl:rotate-180" />
           </MotionButton>
           </Editable>
 
@@ -441,8 +451,9 @@ export default function ConsumerHome() {
           {/* ── Vehicle card ── */}
           <Editable id="consumer.home.vehiclePicker">
           <GlassCard className="p-4">
-            <div className="flex justify-between items-center mb-2.5">
-              <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+            <div className="flex items-center gap-3 mb-3">
+              <StepIcon icon={Car} complete={licenseData.isValid} />
+              <p className="text-[10px] font-bold text-primary-700 uppercase tracking-[0.4px] flex-1">
                 {t('consumer.home.vehicle')}
               </p>
             </div>
@@ -477,16 +488,17 @@ export default function ConsumerHome() {
           {/* ── Photos card ── */}
           <Editable id="consumer.home.carPhotoSection">
           <GlassCard className="p-4">
-            <div className="flex justify-between items-start mb-2.5">
-              <div>
-                <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
+            <div className="flex items-center gap-3 mb-3">
+              <StepIcon icon={Camera} complete={allPhotosUploaded} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-primary-700 uppercase tracking-[0.4px]">
                   {t('consumer.home.carPhotos.title')}
                 </p>
                 <p className="text-[11px] text-ink-muted mt-0.5">
                   {t('consumer.home.carPhotos.subtitle')}
                 </p>
               </div>
-              <p className="text-[11px] font-semibold text-primary-700 shrink-0 mt-0.5">{uploadedCount}/4</p>
+              <p className="text-[12px] font-bold text-primary-700 shrink-0">{uploadedCount}/4</p>
             </div>
             <CarPhotoUpload
               orderId={orderId}
@@ -550,43 +562,39 @@ export default function ConsumerHome() {
           {error && (
             <p className="text-danger-500 text-sm bg-danger-50 border border-danger-200 rounded-glass p-3">{error}</p>
           )}
+        </div>
+      </div>
 
-          {/* ── Price + CTA ── */}
-          <GlassCard
-            className="p-3.5"
-            style={isDark ? undefined : { background: 'linear-gradient(135deg, rgba(255,255,255,0.85), rgba(243,252,247,0.85))', borderColor: '#B9E5CB' }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold text-primary-700 uppercase tracking-[0.4px]">
-                  {t('consumer.home.price.totalVat')}
-                </p>
-                <div className="flex items-baseline gap-1.5 mt-0.5 whitespace-nowrap">
-                  <span className="text-[26px] font-extrabold text-ink tracking-[-0.6px] leading-none">₪{consumerTotal}</span>
-                  {firstWashEligible && (
-                    <span className="text-[14px] font-semibold text-ink-muted line-through">₪{fullTotal}</span>
-                  )}
-                </div>
-                {firstWashEligible && (
-                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-700 dark:text-accent text-[11px] font-bold">
-                    {t('consumer.home.price.firstWashBadge', { percent: FIRST_WASH_DISCOUNT_PERCENT })}
-                  </span>
-                )}
-              </div>
-              <Editable id="consumer.home.bookCta">
-                <MotionButton
-                  onClick={handleBook}
-                  disabled={submitting || !canSubmit}
-                  className="h-[52px] px-5 shrink-0 whitespace-nowrap rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-1.5 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)] dark:shadow-[0_4px_14px_rgba(38,181,95,0.15)]"
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
-                  {!submitting && <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.5} />}
-                </MotionButton>
-              </Editable>
+      {/* ── Sticky pay bar — pinned above the bottom nav, always reachable ── */}
+      <div
+        className="fixed inset-x-0 z-30 bg-glass backdrop-blur-xl border-t border-glass-border shadow-[0_-6px_22px_rgba(15,40,30,0.10)]"
+        style={{ bottom: 'var(--nav-height, 56px)' }}
+      >
+        <div className="px-4 py-2.5 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+              <span className="text-[26px] font-extrabold text-ink tracking-[-0.6px] leading-none">₪{consumerTotal}</span>
+              {firstWashEligible && (
+                <span className="text-[14px] font-semibold text-ink-muted line-through">₪{fullTotal}</span>
+              )}
             </div>
-          </GlassCard>
-
+            {firstWashEligible && (
+              <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 text-[11px] font-bold">
+                {t('consumer.home.price.firstWashBadge', { percent: FIRST_WASH_DISCOUNT_PERCENT })}
+              </span>
+            )}
+          </div>
+          <Editable id="consumer.home.bookCta">
+            <MotionButton
+              onClick={handleBook}
+              disabled={submitting || !canSubmit}
+              className="h-[52px] px-5 shrink-0 whitespace-nowrap rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[15px] flex items-center gap-1.5 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)]"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {submitting ? t('consumer.home.booking') : t('consumer.home.bookNow')}
+              {!submitting && <ChevronRight className="h-[18px] w-[18px] rtl:rotate-180" strokeWidth={2.5} />}
+            </MotionButton>
+          </Editable>
         </div>
       </div>
 
