@@ -51,7 +51,8 @@
       "terms": "Terms of Service",
       "privacy": "Privacy Policy",
       "washerTerms": "Washer Terms",
-      "section": "Legal"
+      "section": "Legal documents",
+      "pickHint": "Pick a document to read"
     }
   },
   "account": {
@@ -219,10 +220,13 @@
   },
   "profile": {
     "title": "Your profile",
+    "subtitle": "Manage your details and account",
     "email": "Email",
     "fullName": "Full name",
     "phone": "Phone",
     "phonePlaceholder": "050-0000000",
+    "detailsTitle": "Personal details",
+    "detailsHelper": "How your washer recognises you and gets in touch",
     "equipmentNotes": "Equipment notes",
     "equipmentNotesPlaceholder": "e.g. pressure washer, foam cannon, microfibre cloths",
     "saving": "Saving…",
@@ -230,7 +234,16 @@
     "signOut": "Sign out",
     "updated": "Profile updated",
     "vehicles": "My vehicles",
-    "settings": "Settings"
+    "settings": "Settings",
+    "groups": {
+      "account": "Your account"
+    },
+    "roles": {
+      "consumer": "Customer",
+      "washer": "Washer",
+      "super_admin": "Admin",
+      "agent": "Agent"
+    }
   },
   "consumer": {
     "home": {

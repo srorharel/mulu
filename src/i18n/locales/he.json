@@ -51,7 +51,8 @@
       "terms": "תנאי שימוש",
       "privacy": "מדיניות פרטיות",
       "washerTerms": "תנאי שימוש לשוטפים",
-      "section": "מסמכים משפטיים"
+      "section": "מסמכים משפטיים",
+      "pickHint": "בחרו מסמך לצפייה"
     }
   },
   "account": {
@@ -219,10 +220,13 @@
   },
   "profile": {
     "title": "הפרופיל שלך",
+    "subtitle": "נהלו את הפרטים והחשבון שלכם",
     "email": "אימייל",
     "fullName": "שם מלא",
     "phone": "טלפון",
     "phonePlaceholder": "050-0000000",
+    "detailsTitle": "פרטים אישיים",
+    "detailsHelper": "כך השוטף מזהה אתכם ויוצר איתכם קשר",
     "equipmentNotes": "ציוד",
     "equipmentNotesPlaceholder": "לדוג׳ מכונת לחץ, קנון קצף, מגבות מיקרופייבר",
     "saving": "שומר...",
@@ -230,7 +234,16 @@
     "signOut": "התנתקות",
     "updated": "הפרופיל עודכן",
     "vehicles": "הרכבים שלי",
-    "settings": "הגדרות"
+    "settings": "הגדרות",
+    "groups": {
+      "account": "החשבון שלכם"
+    },
+    "roles": {
+      "consumer": "לקוח",
+      "washer": "שוטף",
+      "super_admin": "מנהל מערכת",
+      "agent": "נציג"
+    }
   },
   "consumer": {
     "home": {

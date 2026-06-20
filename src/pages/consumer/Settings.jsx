@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, Car, CreditCard, FileText, Shield, Trash2, Languages } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Car, CreditCard, Trash2, Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { FEATURES } from '../../lib/featureFlags.js'
 import PageShell from '../../components/ui/PageShell.jsx'
@@ -189,24 +189,6 @@ export default function ConsumerSettings() {
                   onClick={() => navigate('/profile/payment-methods')}
                 />
               )}
-            </GlassCard>
-          </motion.div>
-
-          {/* ── Legal group ──────────────────────────────────────────────── */}
-          <motion.div variants={item} className="flex flex-col gap-2">
-            <GroupLabel>{t('legal.links.section')}</GroupLabel>
-            <GlassCard className="p-1.5">
-              <LinkRow
-                icon={<FileText className="h-[18px] w-[18px]" />}
-                label={t('legal.links.terms')}
-                onClick={() => navigate('/legal/terms')}
-              />
-              <LinkRow
-                divider
-                icon={<Shield className="h-[18px] w-[18px]" />}
-                label={t('legal.links.privacy')}
-                onClick={() => navigate('/legal/privacy')}
-              />
             </GlassCard>
           </motion.div>
 
