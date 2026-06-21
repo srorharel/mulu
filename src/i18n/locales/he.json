@@ -355,14 +355,22 @@
         "fromPrice": "החל מ-₪{{price}}",
         "firstWashBadge": "{{percent}}% הנחה על השטיפה הראשונה",
         "rebookTitle": "שטיפה נוספת לרכב",
-        "howTitle": "איך זה עובד",
-        "how": {
-          "step1Title": "בוחרים מיקום",
-          "step1Body": "איפה שהרכב חונה",
-          "step2Title": "שוטף מגיע",
-          "step2Body": "מקצוען מהאזור יוצא אליכם",
-          "step3Title": "לפני ואחרי",
-          "step3Body": "מצלמים ומאשרים שנקי"
+        "reWash": {
+          "freshToday": "הרכב שלך נקי ומבריק",
+          "cleanDays_one": "הרכב שלך נקי כבר יום",
+          "cleanDays_two": "הרכב שלך נקי כבר יומיים",
+          "cleanDays_many": "הרכב שלך נקי כבר {{count}} ימים",
+          "cleanDays_other": "הרכב שלך נקי כבר {{count}} ימים",
+          "cleanBody": "נשמור עליו ככה",
+          "dueDays_one": "עבר יום מהשטיפה האחרונה",
+          "dueDays_two": "עברו יומיים מהשטיפה האחרונה",
+          "dueDays_many": "עברו {{count}} ימים מהשטיפה האחרונה",
+          "dueDays_other": "עברו {{count}} ימים מהשטיפה האחרונה",
+          "dueWeeks_one": "עבר שבוע מהשטיפה האחרונה",
+          "dueWeeks_two": "עברו שבועיים מהשטיפה האחרונה",
+          "dueWeeks_many": "עברו {{count}} שבועות מהשטיפה האחרונה",
+          "dueWeeks_other": "עברו {{count}} שבועות מהשטיפה האחרונה",
+          "dueBody": "אולי הגיע הזמן לשטיפה?"
         },
         "whyTitle": "למה MULU",
         "why": {

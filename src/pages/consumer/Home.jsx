@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ChevronRight, User, MapPin, Car, Camera, Sparkles, Gift,
-  ShieldCheck, Lock, RefreshCw,
+  ChevronRight, User, MapPin, Sparkles, Gift,
+  ShieldCheck, Lock, RefreshCw, Droplets,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
@@ -64,6 +64,20 @@ export default function ConsumerHome() {
       .then(({ data }) => setTopVehicle(data?.[0] ?? null))
   }, [user?.id])
 
+  // Last completed wash — drives the re-wash nudge (null = none yet → new user).
+  const [lastWashAt, setLastWashAt] = useState(null)
+  useEffect(() => {
+    if (!user?.id) return
+    supabase
+      .from('orders')
+      .select('completed_at')
+      .eq('consumer_id', user.id)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => setLastWashAt(data?.[0]?.completed_at ?? null))
+  }, [user?.id])
+
   const initials  = getInitials(profile, user)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
   const greeting  = t(`consumer.home.greeting.${greetingKey()}`, { name: firstName })
@@ -71,11 +85,25 @@ export default function ConsumerHome() {
   // Cheapest category (private) is the headline "from" price.
   const fromPrice = consumerBreakdown('private').total
 
-  const steps = [
-    { icon: MapPin, title: t('consumer.home.hub.how.step1Title'), body: t('consumer.home.hub.how.step1Body') },
-    { icon: Car,    title: t('consumer.home.hub.how.step2Title'), body: t('consumer.home.hub.how.step2Body') },
-    { icon: Camera, title: t('consumer.home.hub.how.step3Title'), body: t('consumer.home.hub.how.step3Body') },
-  ]
+  // Re-wash nudge: a behavioural re-engagement trigger keyed on days since the
+  // last completed wash. Shown only to a returning customer (has a completed
+  // wash) and only when no order is currently in progress (a wash is the point).
+  const daysSinceWash = lastWashAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastWashAt).getTime()) / 86_400_000))
+    : null
+  let reWash = null
+  if (lastWashAt && activeOrders.length === 0) {
+    const d = daysSinceWash
+    if (d <= 0) {
+      reWash = { tone: 'fresh', title: t('consumer.home.hub.reWash.freshToday'), body: t('consumer.home.hub.reWash.cleanBody') }
+    } else if (d <= 6) {
+      reWash = { tone: 'fresh', title: t('consumer.home.hub.reWash.cleanDays', { count: d }), body: t('consumer.home.hub.reWash.cleanBody') }
+    } else if (d < 14) {
+      reWash = { tone: 'due', title: t('consumer.home.hub.reWash.dueDays', { count: d }), body: t('consumer.home.hub.reWash.dueBody') }
+    } else {
+      reWash = { tone: 'due', title: t('consumer.home.hub.reWash.dueWeeks', { count: Math.round(d / 7) }), body: t('consumer.home.hub.reWash.dueBody') }
+    }
+  }
 
   const reasons = [
     { icon: MapPin,      title: t('consumer.home.hub.why.toCarTitle'),    body: t('consumer.home.hub.why.toCarBody') },
@@ -200,21 +228,32 @@ export default function ConsumerHome() {
             </MotionButton>
           )}
 
-          {/* How it works */}
-          <GlassCard className="p-4">
-            <p className="text-[10px] font-bold text-primary-700 uppercase tracking-[0.4px] mb-3">
-              {t('consumer.home.hub.howTitle')}
-            </p>
-            <div className="flex items-start justify-between gap-2">
-              {steps.map((s, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center text-center gap-1.5">
-                  <IconChip icon={s.icon} />
-                  <p className="text-[12px] font-bold text-ink leading-tight mt-0.5">{s.title}</p>
-                  <p className="text-[10.5px] text-ink-muted leading-snug">{s.body}</p>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
+          {/* Re-wash nudge — time since the last completed wash (returning users) */}
+          {reWash && (
+            <Editable id="consumer.home.hub.reWash">
+            <MotionButton
+              type="button"
+              onClick={() => navigate('/book')}
+              aria-label={reWash.title}
+              className={`flex items-center gap-3 w-full text-start rounded-glass border backdrop-blur-xl shadow-glass px-4 py-3.5 ${
+                reWash.tone === 'due' ? 'bg-primary-50 border-primary-100' : 'bg-glass border-glass-border'
+              }`}
+            >
+              <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 ${
+                reWash.tone === 'due' ? 'bg-primary-100 text-primary-700' : 'bg-primary-50 text-primary-700'
+              }`}>
+                {reWash.tone === 'due'
+                  ? <Droplets className="h-[22px] w-[22px]" />
+                  : <Sparkles className="h-[22px] w-[22px]" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-ink leading-tight">{reWash.title}</p>
+                <p className="text-[11px] text-ink-muted mt-0.5">{reWash.body}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-ink-subtle shrink-0 rtl:rotate-180" />
+            </MotionButton>
+            </Editable>
+          )}
 
           {/* Why MULU */}
           <GlassCard className="p-4">

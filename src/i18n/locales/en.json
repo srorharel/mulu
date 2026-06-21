@@ -355,14 +355,16 @@
         "fromPrice": "From ₪{{price}}",
         "firstWashBadge": "{{percent}}% off your first wash",
         "rebookTitle": "Wash your car again",
-        "howTitle": "How it works",
-        "how": {
-          "step1Title": "Pick a spot",
-          "step1Body": "Wherever it's parked",
-          "step2Title": "Washer arrives",
-          "step2Body": "A local pro comes to you",
-          "step3Title": "Before & after",
-          "step3Body": "Photos confirm it's clean"
+        "reWash": {
+          "freshToday": "Your car is fresh and clean",
+          "cleanDays_one": "Your car has been clean for {{count}} day",
+          "cleanDays_other": "Your car has been clean for {{count}} days",
+          "cleanBody": "Keep it that way?",
+          "dueDays_one": "It's been {{count}} day since your last wash",
+          "dueDays_other": "It's been {{count}} days since your last wash",
+          "dueWeeks_one": "It's been {{count}} week since your last wash",
+          "dueWeeks_other": "It's been {{count}} weeks since your last wash",
+          "dueBody": "Maybe it's time for a wash?"
         },
         "whyTitle": "Why MULU",
         "why": {

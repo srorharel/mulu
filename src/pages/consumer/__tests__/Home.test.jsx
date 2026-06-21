@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import en from '../../../i18n/locales/en.json'
 
-const { navigateMock, ordersRef } = vi.hoisted(() => ({
+const { navigateMock, ordersRef, lastWashRef } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   ordersRef: { current: [] },
+  lastWashRef: { current: [] },
 }))
 
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -15,15 +16,22 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => navigateMock }
 })
 
+// Table-aware builder: the 'orders' query (last completed wash) reads lastWashRef;
+// 'vehicles' (re-book row) reads an empty list.
 vi.mock('../../../lib/supabase.js', () => {
-  const vehiclesBuilder = {
-    select: () => vehiclesBuilder,
-    order:  () => vehiclesBuilder,
-    limit:  () => vehiclesBuilder,
-    then:   (cb) => Promise.resolve({ data: [], error: null }).then(cb),
+  const builder = (dataRef) => {
+    const b = {
+      select: () => b,
+      eq:     () => b,
+      order:  () => b,
+      limit:  () => b,
+      then:   (cb) => Promise.resolve({ data: dataRef.current, error: null }).then(cb),
+    }
+    return b
   }
+  const empty = { current: [] }
   return {
-    supabase: { from: () => vehiclesBuilder },
+    supabase: { from: (table) => builder(table === 'orders' ? lastWashRef : empty) },
     isSupabaseConfigured: true,
   }
 })
@@ -58,6 +66,7 @@ function renderHome() {
 beforeEach(() => {
   navigateMock.mockClear()
   ordersRef.current = []
+  lastWashRef.current = []
 })
 
 describe('ConsumerHome — launchpad', () => {
@@ -81,5 +90,23 @@ describe('ConsumerHome — launchpad', () => {
     expect(screen.getByText('Active orders')).toBeInTheDocument()
     fireEvent.click(await screen.findByText('Rothschild 1'))
     expect(navigateMock).toHaveBeenCalledWith('/order/o1')
+  })
+
+  it('shows a re-wash nudge from the last completed wash and books on tap', async () => {
+    lastWashRef.current = [{ completed_at: new Date(Date.now() - 10 * 86_400_000).toISOString() }]
+    renderHome()
+    const nudge = await screen.findByText(/it's been 10 days since your last wash/i)
+    fireEvent.click(nudge)
+    expect(navigateMock).toHaveBeenCalledWith('/book')
+  })
+
+  it('hides the re-wash nudge while an order is active', async () => {
+    lastWashRef.current = [{ completed_at: new Date(Date.now() - 10 * 86_400_000).toISOString() }]
+    ordersRef.current = [
+      { id: 'o1', status: 'en_route', address_label: 'Rothschild 1', total_price: 50, created_at: '2026-01-02' },
+    ]
+    renderHome()
+    await screen.findByText('Rothschild 1')
+    expect(screen.queryByText(/since your last wash/i)).toBeNull()
   })
 })
