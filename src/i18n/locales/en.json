@@ -254,7 +254,7 @@
         "afternoon": "Good afternoon, {{name}}",
         "evening": "Good evening, {{name}}"
       },
-      "pickupLocation": "Pickup location",
+      "pickupLocation": "Vehicle location",
       "activeOrders": "Active orders",
       "vehicle": "Vehicle",
       "available": "Available",
@@ -262,7 +262,7 @@
       "yourLocation": "Your location",
       "tapToSetLocation": "Tap to set location",
       "locationError": "Couldn't get your location. Tap above to set it manually",
-      "tapToAdjust": "Tap to adjust pin",
+      "tapToAdjust": "Tap to change location",
       "allowLocation": "Or allow location access for auto-detect",
       "carType": "Car type",
       "optional": "(optional)",

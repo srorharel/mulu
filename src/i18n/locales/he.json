@@ -254,7 +254,7 @@
         "afternoon": "צהריים טובים, {{name}}",
         "evening": "ערב טוב, {{name}}"
       },
-      "pickupLocation": "מיקום איסוף",
+      "pickupLocation": "מיקום הרכב",
       "activeOrders": "הזמנות פעילות",
       "vehicle": "רכב",
       "available": "זמין",
@@ -262,7 +262,7 @@
       "yourLocation": "המיקום שלך",
       "tapToSetLocation": "הקישו להגדרת מיקום",
       "locationError": "לא הצלחנו לאתר את המיקום. הקישו למעלה כדי להגדיר ידנית",
-      "tapToAdjust": "הקישו לכוונון הסיכה",
+      "tapToAdjust": "הקישו לשינוי מיקום",
       "allowLocation": "או אפשרו גישה למיקום לזיהוי אוטומטי",
       "carType": "סוג רכב",
       "optional": "(אופציונלי)",
