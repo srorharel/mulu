@@ -1,38 +1,85 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useAppForeground } from './useAppForeground.js'
 
 // Active = anything not terminal (completed/cancelled). A consumer may legitimately
 // have several at once — booking a second car while one is in progress is supported
 // (no DB constraint blocks it), so this always loads a LIST.
 const ACTIVE_STATUSES = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval']
 
-// useConsumerActiveOrders() -> { orders, loading }
-// Loads the signed-in consumer's active orders (newest first) for the /home list.
-// Fetches on mount; /home remounts whenever the consumer returns to it, so the list
-// is refreshed after booking or after viewing a tracking screen.
+const COLUMNS = 'id, status, address_label, total_price, created_at'
+
+// Realtime payload rows carry the full order; keep only what the /home card reads.
+function normalize(row) {
+  return {
+    id:            row.id,
+    status:        row.status,
+    address_label: row.address_label,
+    total_price:   row.total_price,
+    created_at:    row.created_at,
+  }
+}
+
+// useConsumerActiveOrders() -> { orders, loading, refresh }
+// Loads the signed-in consumer's active orders (newest first) for the /home card,
+// then keeps them LIVE: the consumer always retains read access to their own orders
+// (RLS), so every status transition (pending → accepted → en_route → … ) streams in
+// and the home tracking card advances on-screen. A terminal transition
+// (completed/cancelled) drops the row, so the card disappears the moment the wash
+// ends. Realtime is best-effort (sockets die while backgrounded with no replay), so
+// a foreground refetch self-heals anything missed while the app was closed.
 export function useConsumerActiveOrders() {
   const { user } = useAuth()
   const [orders, setOrders]   = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     if (!user?.id) { setOrders([]); setLoading(false); return }
-    let cancelled = false
-    setLoading(true)
     supabase
       .from('orders')
-      .select('id, status, address_label, total_price, created_at')
+      .select(COLUMNS)
       .eq('consumer_id', user.id)
       .in('status', ACTIVE_STATUSES)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        if (cancelled) return
         if (!error) setOrders(data ?? [])
         setLoading(false)
       })
-    return () => { cancelled = true }
   }, [user?.id])
 
-  return { orders, loading }
+  // Initial load + reload when the signed-in user changes.
+  useEffect(() => { setLoading(true); refresh() }, [refresh])
+
+  // Live updates for the consumer's own orders.
+  useEffect(() => {
+    if (!user?.id) return
+
+    const apply = (payload) => {
+      const row = payload.new
+      if (!row?.id) return
+      setOrders(prev => {
+        const without = prev.filter(o => o.id !== row.id)
+        // Terminal (or otherwise non-active) → remove the card.
+        if (!ACTIVE_STATUSES.includes(row.status)) return without
+        // Active → upsert and keep newest-first.
+        const next = [normalize(row), ...without]
+        next.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+        return next
+      })
+    }
+
+    const channel = supabase
+      .channel(`consumer-active-orders:${user.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `consumer_id=eq.${user.id}` }, apply)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `consumer_id=eq.${user.id}` }, apply)
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [user?.id])
+
+  // Self-heal on foreground: refetch what realtime missed while backgrounded.
+  useAppForeground(refresh)
+
+  return { orders, loading, refresh }
 }
