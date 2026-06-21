@@ -46,6 +46,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Name the built APK 'Mulu.apk' instead of the default 'app-debug.apk' /
+    // 'app-release.apk'. Only affects APK outputs (assembleDebug/Release);
+    // the Play AAB from bundleRelease keeps its own name.
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            output.outputFileName = "Mulu.apk"
+        }
+    }
 }
 
 repositories {

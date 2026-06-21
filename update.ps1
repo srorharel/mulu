@@ -152,7 +152,7 @@ try {
 }
 if ($LASTEXITCODE -ne 0) { Write-Fail "Main app Gradle assembleDebug failed." }
 
-$apkSrc  = "$PSScriptRoot\android\app\build\outputs\apk\debug\app-debug.apk"
+$apkSrc  = "$PSScriptRoot\android\app\build\outputs\apk\debug\Mulu.apk"
 $apkDest = "$PSScriptRoot\Mulu.apk"
 if (-not (Test-Path $apkSrc)) {
     Write-Fail "APK not found at expected path ($apkSrc) after build."
@@ -188,7 +188,7 @@ try {
     Pop-Location
 }
 
-$supportApkSrc  = "$PSScriptRoot\support-app\android\app\build\outputs\apk\debug\app-debug.apk"
+$supportApkSrc  = "$PSScriptRoot\support-app\android\app\build\outputs\apk\debug\MuluSupport.apk"
 $supportApkDest = "$PSScriptRoot\MuluSupport.apk"
 if (-not (Test-Path $supportApkSrc)) {
     Write-Fail "Support APK not found at $supportApkSrc"
