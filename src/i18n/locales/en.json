@@ -352,7 +352,6 @@
         "heroTitle": "A washer comes to your car",
         "heroSubtitle": "You don't leave the house",
         "heroCta": "Book a wash",
-        "fromPrice": "From ₪{{price}}",
         "firstWashBadge": "{{percent}}% off your first wash",
         "rebookTitle": "Wash your car again",
         "reWash": {

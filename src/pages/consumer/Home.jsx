@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
-import { consumerBreakdown, FIRST_WASH_DISCOUNT_PERCENT } from '../../lib/pricing.js'
+import { FIRST_WASH_DISCOUNT_PERCENT } from '../../lib/pricing.js'
 import { useConsumerActiveOrders } from '../../hooks/useConsumerActiveOrders.js'
 import { useFirstWashDiscount } from '../../hooks/useFirstWashDiscount.js'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -81,9 +81,6 @@ export default function ConsumerHome() {
   const initials  = getInitials(profile, user)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
   const greeting  = t(`consumer.home.greeting.${greetingKey()}`, { name: firstName })
-
-  // Cheapest category (private) is the headline "from" price.
-  const fromPrice = consumerBreakdown('private').total
 
   // Re-wash nudge: a behavioural re-engagement trigger keyed on days since the
   // last completed wash. Shown only to a returning customer (has a completed
@@ -175,27 +172,22 @@ export default function ConsumerHome() {
             type="button"
             onClick={() => navigate('/book')}
             aria-label={t('consumer.home.hub.heroCta')}
-            className="w-full text-start rounded-[20px] border-none bg-gradient-to-br from-primary-500 to-primary-700 p-5 shadow-[0_10px_30px_rgba(38,181,95,0.35)]"
+            className="w-full text-start rounded-[20px] border-none bg-gradient-to-br from-primary-500 to-primary-700 p-6 shadow-[0_10px_30px_rgba(38,181,95,0.35)]"
           >
-            <div className="flex items-center gap-1.5 text-white/85 text-[11px] font-semibold">
-              <Sparkles className="h-[14px] w-[14px]" />
+            <div className="flex items-center gap-1.5 text-white/80 text-[12px] font-semibold">
+              <Sparkles className="h-[15px] w-[15px]" />
               <span>{t('consumer.home.hub.heroEyebrow')}</span>
             </div>
-            <p className="text-white text-[22px] font-extrabold tracking-[-0.5px] leading-tight mt-2">
+            <p className="text-white text-[24px] font-extrabold tracking-[-0.5px] leading-[1.15] mt-2.5">
               {t('consumer.home.hub.heroTitle')}
             </p>
-            <p className="text-white/85 text-[13px] mt-1">
+            <p className="text-white/85 text-[14px] mt-1.5">
               {t('consumer.home.hub.heroSubtitle')}
             </p>
-            <div className="flex items-center justify-between mt-4">
-              <span className="inline-flex items-center gap-1.5 bg-white text-primary-700 font-bold text-[14px] rounded-2xl px-4 py-2.5 shadow-sm">
-                {t('consumer.home.hub.heroCta')}
-                <ChevronRight className="h-[17px] w-[17px] rtl:rotate-180" strokeWidth={2.5} />
-              </span>
-              <span className="text-white/90 text-[13px] font-semibold">
-                {t('consumer.home.hub.fromPrice', { price: fromPrice })}
-              </span>
-            </div>
+            <span className="mt-5 w-full inline-flex items-center justify-center gap-1.5 bg-white text-primary-700 font-bold text-[15px] rounded-2xl py-3 shadow-sm">
+              {t('consumer.home.hub.heroCta')}
+              <ChevronRight className="h-[17px] w-[17px] rtl:rotate-180" strokeWidth={2.5} />
+            </span>
           </MotionButton>
           </Editable>
 
