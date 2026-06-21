@@ -150,7 +150,7 @@ export default function Settings() {
   const [prefs, setPrefs] = useState({
     ringtone: 'default',
     display:  'dark',
-    nav:      'waze',
+    nav_app:  'waze',
   })
   const [showDelete, setShowDelete] = useState(false)
 
@@ -159,7 +159,7 @@ export default function Settings() {
     setPrefs({
       ringtone: profile.ringtone_preference ?? 'default',
       display:  profile.display_preference  ?? 'dark',
-      nav:      profile.nav_app_preference   ?? 'waze',
+      nav_app:  profile.nav_app_preference   ?? 'waze',
     })
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -252,7 +252,7 @@ export default function Settings() {
               <PillRow
                 groupId="nav"
                 options={NAV_OPTIONS}
-                value={prefs.nav}
+                value={prefs.nav_app}
                 onChange={v => save('nav_app', v)}
               />
             </PrefBlock>
