@@ -133,7 +133,7 @@ if ($LASTEXITCODE -ne 0) { Write-Fail "git push failed." }
 Write-OK "Pushed to GitHub  (HEAD: $commitHash)"
 
 # -- Step 4: Main app Android APK --
-Write-Step 4 $totalSteps "Main app APK (wash-latest.apk)"
+Write-Step 4 $totalSteps "Main app APK (Mulu.apk)"
 
 Write-Host "`n  > npm run build" -ForegroundColor Cyan
 npm run build
@@ -153,7 +153,7 @@ try {
 if ($LASTEXITCODE -ne 0) { Write-Fail "Main app Gradle assembleDebug failed." }
 
 $apkSrc  = "$PSScriptRoot\android\app\build\outputs\apk\debug\app-debug.apk"
-$apkDest = "$PSScriptRoot\wash-latest.apk"
+$apkDest = "$PSScriptRoot\Mulu.apk"
 if (-not (Test-Path $apkSrc)) {
     Write-Fail "APK not found at expected path ($apkSrc) after build."
 }
@@ -161,10 +161,10 @@ if (-not (Test-Path $apkSrc)) {
 Copy-Item $apkSrc $apkDest -Force
 $apkSizeMB = [math]::Round((Get-Item $apkDest).Length / 1MB, 1)
 
-Write-OK "Main APK ready: wash-latest.apk  ($($apkSizeMB) MB)"
+Write-OK "Main APK ready: Mulu.apk  ($($apkSizeMB) MB)"
 
 # -- Step 5: Support app Android APK --
-Write-Step 5 $totalSteps "Support app APK (wash-support-latest.apk)"
+Write-Step 5 $totalSteps "Support app APK (MuluSupport.apk)"
 
 Push-Location "$PSScriptRoot\support-app"
 try {
@@ -189,7 +189,7 @@ try {
 }
 
 $supportApkSrc  = "$PSScriptRoot\support-app\android\app\build\outputs\apk\debug\app-debug.apk"
-$supportApkDest = "$PSScriptRoot\wash-support-latest.apk"
+$supportApkDest = "$PSScriptRoot\MuluSupport.apk"
 if (-not (Test-Path $supportApkSrc)) {
     Write-Fail "Support APK not found at $supportApkSrc"
 }
@@ -197,7 +197,7 @@ if (-not (Test-Path $supportApkSrc)) {
 Copy-Item $supportApkSrc $supportApkDest -Force
 $supportApkSizeMB = [math]::Round((Get-Item $supportApkDest).Length / 1MB, 1)
 
-Write-OK "Support APK ready: wash-support-latest.apk  ($($supportApkSizeMB) MB)"
+Write-OK "Support APK ready: MuluSupport.apk  ($($supportApkSizeMB) MB)"
 
 # -- Step 6: Summary --
 Write-Step 6 $totalSteps "Done"
@@ -210,8 +210,8 @@ if ($committed) {
 }
 
 Write-Host "  OK Vercel deploys triggered via git push (main app + admin app + support app)" -ForegroundColor Green
-Write-Host "  OK Main APK: wash-latest.apk  ($($apkSizeMB) MB)" -ForegroundColor Green
-Write-Host "  OK Support APK: wash-support-latest.apk  ($($supportApkSizeMB) MB)" -ForegroundColor Green
+Write-Host "  OK Main APK: Mulu.apk  ($($apkSizeMB) MB)" -ForegroundColor Green
+Write-Host "  OK Support APK: MuluSupport.apk  ($($supportApkSizeMB) MB)" -ForegroundColor Green
 Write-Host ""
 Write-Host "  -> Send both APKs to phones to install the update" -ForegroundColor Yellow
 Write-Host ""
