@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ChevronRight, User, MapPin, Sparkles, Gift,
-  ShieldCheck, Lock, RefreshCw, Droplets,
+  ShieldCheck, Lock, RefreshCw, Droplets, Search, Navigation, Clock,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
@@ -34,7 +34,19 @@ function greetingKey() {
   return 'evening'
 }
 
-// Tinted icon chip used by the how-it-works steps and the why-MULU rows.
+// Live tracking card: status → progress fraction + stage icon. Keys match the
+// order state machine's active set; pct drives the progress bar.
+const ACTIVE_META = {
+  pending:          { pct: 12, icon: Search },
+  accepted:         { pct: 32, icon: Navigation },
+  en_route:         { pct: 52, icon: Navigation },
+  arrived:          { pct: 70, icon: MapPin },
+  in_progress:      { pct: 88, icon: Droplets },
+  pending_approval: { pct: 96, icon: Clock },
+}
+const ACTIVE_FALLBACK = { pct: 10, icon: Sparkles }
+
+// Tinted icon chip used by the why-MULU rows.
 function IconChip({ icon: Icon }) {
   return (
     <div className="w-11 h-11 rounded-[14px] bg-primary-50 text-primary-700 flex items-center justify-center shrink-0">
@@ -138,31 +150,58 @@ export default function ConsumerHome() {
         {/* ── Scrollable content ── */}
         <div className="flex-1 px-4 flex flex-col gap-3 pb-2">
 
-          {/* Active orders — time-sensitive, pinned to the top */}
+          {/* Active orders — the live wash. Time-sensitive → the most prominent
+              card on the screen: elevated white surface, green glow, a pulsing
+              "live" dot, stage icon, bold heading, and a status progress bar. */}
           {activeOrders.length > 0 && (
-            <div className="flex flex-col gap-2" data-testid="active-orders">
+            <div className="flex flex-col gap-2.5" data-testid="active-orders">
               <p className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.4px] px-1">
                 {t('consumer.home.activeOrders')}
               </p>
-              {activeOrders.map(o => (
-                <MotionButton
-                  key={o.id}
-                  type="button"
-                  onClick={() => navigate(`/order/${o.id}`)}
-                  className="flex items-center gap-3 w-full text-start rounded-glass bg-glass border border-glass-border backdrop-blur-xl shadow-glass px-4 py-3"
-                >
-                  <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-bold text-ink truncate">
-                      {t(`consumer.tracking.heading.${o.status}`, { defaultValue: o.status })}
-                    </p>
-                    {o.address_label && (
-                      <p className="text-[12px] text-ink-muted truncate">{o.address_label}</p>
-                    )}
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-ink-muted shrink-0 rtl:rotate-180" />
-                </MotionButton>
-              ))}
+              {activeOrders.map(o => {
+                const meta = ACTIVE_META[o.status] ?? ACTIVE_FALLBACK
+                const StatusIcon = meta.icon
+                const heading = t(`consumer.tracking.heading.${o.status}`, { defaultValue: o.status })
+                return (
+                  <MotionButton
+                    key={o.id}
+                    type="button"
+                    onClick={() => navigate(`/order/${o.id}`)}
+                    aria-label={heading}
+                    className="w-full text-start rounded-[18px] bg-surface-elevated border border-primary-300 shadow-[0_10px_28px_rgba(38,181,95,0.22)] p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-primary-700 opacity-60 animate-ping" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary-700" />
+                        </span>
+                        <span className="text-[11px] font-bold text-primary-700 uppercase tracking-[0.5px]">
+                          {t('consumer.tracking.live')}
+                        </span>
+                      </div>
+                      <ChevronRight className="h-[18px] w-[18px] text-primary-700 rtl:rotate-180" strokeWidth={2.5} />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-[15px] bg-primary-50 text-primary-700 flex items-center justify-center shrink-0">
+                        <StatusIcon className="h-[24px] w-[24px]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[16px] font-extrabold text-ink leading-tight truncate">{heading}</p>
+                        {o.address_label && (
+                          <p className="text-[12px] text-ink-muted truncate mt-0.5">{o.address_label}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3.5 h-1.5 rounded-full bg-primary-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary-700 transition-all duration-500"
+                        style={{ width: `${meta.pct}%` }}
+                      />
+                    </div>
+                  </MotionButton>
+                )
+              })}
             </div>
           )}
 
