@@ -263,6 +263,8 @@
       "tapToSetLocation": "Tap to set location",
       "locationError": "Couldn't get your location. Tap above to set it manually",
       "tapToAdjust": "Tap to change location",
+      "addHouseNumber": "Add your house number to continue",
+      "addressNumberRequired": "So your washer can find you, tap the location and add your house number",
       "allowLocation": "Or allow location access for auto-detect",
       "carType": "Car type",
       "optional": "(optional)",
@@ -419,6 +421,7 @@
       "fromMap": "From map: {{address}}",
       "searching": "Searching...",
       "notFound": "Couldn't find this address",
+      "numberRequired": "A house number is required so your washer reaches your car",
       "fields": {
         "street": "Street",
         "number": "House number",

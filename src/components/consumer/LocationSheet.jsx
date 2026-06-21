@@ -268,7 +268,7 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
                 </div>
                 <div className="flex flex-col gap-1 flex-[3]">
                   <label className="text-xs font-medium text-neutral-500 dark:text-ink-subtle">
-                    {t('consumer.locationSheet.fields.number')}
+                    {t('consumer.locationSheet.fields.number')} <span className="text-danger-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -310,11 +310,16 @@ export default function LocationSheet({ open, initialPosition, onConfirm, onClos
               )}
             </div>
 
-            {/* Confirm */}
+            {/* Confirm — a house number is required so the washer can find the car */}
             <div className="px-4 py-4 shrink-0 border-t border-neutral-100 dark:border-edge safe-bottom">
+              {draft && !number.trim() && (
+                <p className="text-xs text-neutral-500 dark:text-ink-subtle mb-2 text-center">
+                  {t('consumer.locationSheet.numberRequired')}
+                </p>
+              )}
               <button
                 onClick={handleConfirm}
-                disabled={!draft}
+                disabled={!draft || !number.trim()}
                 className="btn-primary w-full"
               >
                 <Check className="h-4 w-4" />

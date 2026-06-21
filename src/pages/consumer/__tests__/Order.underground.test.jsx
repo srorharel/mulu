@@ -66,7 +66,18 @@ vi.mock('../../../components/consumer/CarPhotoUpload.jsx', () => ({
     </button>
   ),
 }))
-vi.mock('../../../components/consumer/LocationSheet.jsx', () => ({ default: () => null }))
+// Confirming a location now requires a house number; the stub returns one inside
+// the Holon service-area so handleBook accepts the order.
+vi.mock('../../../components/consumer/LocationSheet.jsx', () => ({
+  default: ({ onConfirm }) => (
+    <button
+      type="button"
+      onClick={() => onConfirm({ lat: 32.0167, lng: 34.7795, address_label: 'Rothschild 1, Holon', address_street: 'Rothschild', address_number: '1', address_city: 'Holon' })}
+    >
+      stub-set-location
+    </button>
+  ),
+}))
 vi.mock('../../../components/consumer/VehiclePickerSheet.jsx', () => ({ default: () => null }))
 vi.mock('../../../components/consumer/SaveVehicleDialog.jsx', () => ({ default: () => null }))
 vi.mock('../../../components/editable/Editable.jsx', () => ({ default: ({ children }) => children }))
@@ -91,9 +102,31 @@ async function readyForm() {
   await waitFor(() => screen.getByText('stub-set-vehicle'))
   fireEvent.click(screen.getByText('stub-set-vehicle'))
   fireEvent.click(screen.getByText('stub-set-photos'))
+  fireEvent.click(screen.getByText('stub-set-location'))
 }
 
 beforeEach(() => { insertSpy.mockClear() })
+
+describe('ConsumerOrder — address / house number requirement', () => {
+  it('blocks booking until the location is confirmed with a house number', async () => {
+    renderOrder()
+    await waitFor(() => screen.getByText('stub-set-vehicle'))
+    fireEvent.click(screen.getByText('stub-set-vehicle'))
+    fireEvent.click(screen.getByText('stub-set-photos'))
+
+    // GPS is available but no address was confirmed → CTA disabled, no order.
+    expect(screen.getByRole('button', { name: /continue to payment/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    await Promise.resolve()
+    expect(insertSpy).not.toHaveBeenCalled()
+
+    // Confirm a location carrying a house number → CTA enabled, order books with it.
+    fireEvent.click(screen.getByText('stub-set-location'))
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    await waitFor(() => expect(insertSpy).toHaveBeenCalled())
+    expect(insertSpy.mock.calls[0][0].address_number).toBe('1')
+  })
+})
 
 describe('ConsumerOrder — underground parking booking', () => {
   it('books with is_underground_parking:false when the toggle is off (notes not required)', async () => {

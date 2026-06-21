@@ -212,7 +212,11 @@ export default function ConsumerOrder() {
   // Pilot: orders are only accepted inside Holon. Gate on the pin coordinates
   // (always present) rather than the geocoded city text (often empty/imprecise).
   const outOfServiceArea = !!effectivePin && !isInServiceArea(effectivePin.lat, effectivePin.lng)
-  const canSubmit = !!effectivePin && licenseData.isValid && allPhotosUploaded && !undergroundNotesMissing && !outOfServiceArea
+  // The consumer must open the location sheet and confirm a precise address —
+  // crucially a house number. Raw GPS can't tell the washer which house/entrance,
+  // so a GPS pin alone (no confirmed `pin`) is not enough to book.
+  const hasConfirmedAddress = !!pin?.address_number?.trim()
+  const canSubmit = !!effectivePin && hasConfirmedAddress && licenseData.isValid && allPhotosUploaded && !undergroundNotesMissing && !outOfServiceArea
 
   const initials = getInitials(profile, user)
   const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || ''
@@ -266,6 +270,7 @@ export default function ConsumerOrder() {
   async function handleBook() {
     if (submittingRef.current) return
     if (!effectivePin) { setError(t('consumer.home.locationRequired')); return }
+    if (!hasConfirmedAddress) { setError(t('consumer.home.addressNumberRequired')); return }
     if (outOfServiceArea) { setError(t('consumer.home.outOfServiceArea')); return }
     if (!licenseData.isValid) { setError(t('consumer.home.plate.notFound')); return }
     if (!allPhotosUploaded) { setError(t('consumer.home.submit.needsPhotos')); return }
@@ -388,7 +393,7 @@ export default function ConsumerOrder() {
             onClick={() => setSheetOpen(true)}
             className="flex items-center gap-3 w-full text-start rounded-glass bg-glass border border-glass-border backdrop-blur-xl shadow-glass p-3.5"
           >
-            <StepIcon icon={MapPin} complete={!!displayAddress} />
+            <StepIcon icon={MapPin} complete={hasConfirmedAddress} />
             <div className="flex-1 px-1 flex flex-col justify-center min-w-0">
               <p className="text-[10px] font-bold text-primary-700 uppercase tracking-[0.4px]">
                 {t('consumer.home.pickupLocation')}
@@ -396,9 +401,11 @@ export default function ConsumerOrder() {
               {displayAddress ? (
                 <>
                   <p className="text-[14px] font-bold text-ink mt-0.5 truncate">{displayAddress}</p>
-                  {geoError
-                    ? <p className="text-[11px] text-warning-600 mt-0.5">{t('consumer.home.locationError')}</p>
-                    : <p className="text-[11px] text-ink-muted mt-0.5">{t('consumer.home.tapToAdjust')}</p>
+                  {!hasConfirmedAddress
+                    ? <p className="text-[11px] font-semibold text-warning-600 mt-0.5">{t('consumer.home.addHouseNumber')}</p>
+                    : geoError
+                      ? <p className="text-[11px] text-warning-600 mt-0.5">{t('consumer.home.locationError')}</p>
+                      : <p className="text-[11px] text-ink-muted mt-0.5">{t('consumer.home.tapToAdjust')}</p>
                   }
                 </>
               ) : (
