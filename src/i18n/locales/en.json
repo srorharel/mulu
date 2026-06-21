@@ -346,6 +346,34 @@
         "tooLarge": "Photo must be under 5MB",
         "uploadFailed": "Upload failed. Try again.",
         "removing": "Remove photo"
+      },
+      "hub": {
+        "heroEyebrow": "Full exterior wash",
+        "heroTitle": "A washer comes to your car",
+        "heroSubtitle": "You don't leave the house",
+        "heroCta": "Book a wash",
+        "fromPrice": "From ₪{{price}}",
+        "firstWashBadge": "{{percent}}% off your first wash",
+        "rebookTitle": "Wash your car again",
+        "howTitle": "How it works",
+        "how": {
+          "step1Title": "Pick a spot",
+          "step1Body": "Wherever it's parked",
+          "step2Title": "Washer arrives",
+          "step2Body": "A local pro comes to you",
+          "step3Title": "Before & after",
+          "step3Body": "Photos confirm it's clean"
+        },
+        "whyTitle": "Why MULU",
+        "why": {
+          "toCarTitle": "To your car",
+          "toCarBody": "Without leaving home",
+          "verifiedTitle": "Every wash checked",
+          "verifiedBody": "We confirm it came out clean",
+          "secureTitle": "Secure payment",
+          "secureBody": "No cash, no hassle"
+        },
+        "serviceArea": "Now serving Holon"
       }
     },
     "checkout": {

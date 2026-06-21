@@ -481,7 +481,7 @@ export default function OrderTracking() {
             {/* Secondary, non-destructive: book another wash while this order runs. */}
             {!TERMINAL_STATUSES.has(order.status) && (
               <button
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/book')}
                 className="w-full rounded-glass py-3 text-[14px] font-bold text-primary-700 dark:text-accent bg-primary-50 dark:bg-accent-muted border border-primary-200/60 dark:border-accent/30 active:scale-[0.99] transition"
               >
                 {t('consumer.tracking.anotherCar')}

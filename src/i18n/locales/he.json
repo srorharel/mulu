@@ -346,6 +346,34 @@
         "tooLarge": "התמונה חייבת להיות עד 5MB",
         "uploadFailed": "ההעלאה נכשלה. נסו שוב.",
         "removing": "הסרת תמונה"
+      },
+      "hub": {
+        "heroEyebrow": "שטיפה חיצונית מלאה",
+        "heroTitle": "שוטף מגיע עד הרכב",
+        "heroSubtitle": "אתם לא זזים מהבית",
+        "heroCta": "מזמינים שטיפה",
+        "fromPrice": "החל מ-₪{{price}}",
+        "firstWashBadge": "{{percent}}% הנחה על השטיפה הראשונה",
+        "rebookTitle": "שטיפה נוספת לרכב",
+        "howTitle": "איך זה עובד",
+        "how": {
+          "step1Title": "בוחרים מיקום",
+          "step1Body": "איפה שהרכב חונה",
+          "step2Title": "שוטף מגיע",
+          "step2Body": "מקצוען מהאזור יוצא אליכם",
+          "step3Title": "לפני ואחרי",
+          "step3Body": "מצלמים ומאשרים שנקי"
+        },
+        "whyTitle": "למה MULU",
+        "why": {
+          "toCarTitle": "עד הרכב",
+          "toCarBody": "בלי לצאת מהבית",
+          "verifiedTitle": "כל שטיפה נבדקת",
+          "verifiedBody": "אנחנו מאשרים שהרכב יצא נקי",
+          "secureTitle": "תשלום מאובטח",
+          "secureBody": "בלי מזומן, בלי כאב ראש"
+        },
+        "serviceArea": "פועלים עכשיו בחולון"
       }
     },
     "checkout": {

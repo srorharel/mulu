@@ -86,10 +86,10 @@ describe('OrderTracking — "Another car to wash"', () => {
     expect(screen.getByRole('button', { name: /another car to wash/i })).toBeInTheDocument()
   })
 
-  it('is shown during en_route and navigates to /home when clicked', () => {
+  it('is shown during en_route and navigates to /book when clicked', () => {
     renderTracking({ ...baseOrder, status: 'en_route' })
     fireEvent.click(screen.getByRole('button', { name: /another car to wash/i }))
-    expect(navigateMock).toHaveBeenCalledWith('/home')
+    expect(navigateMock).toHaveBeenCalledWith('/book')
   })
 
   it('is hidden on a terminal status (completed)', () => {

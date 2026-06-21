@@ -165,7 +165,7 @@ export default function OrderHistory() {
               </div>
               <p className="font-semibold text-ink">{t('consumer.history.empty')}</p>
               <p className="text-sm text-ink-muted max-w-xs">{t('consumer.history.emptyDesc')}</p>
-              <Link to="/home" className="btn-primary mt-3">{t('consumer.history.bookNow')}</Link>
+              <Link to="/book" className="btn-primary mt-3">{t('consumer.history.bookNow')}</Link>
             </div>
           )}
 
