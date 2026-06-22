@@ -226,11 +226,17 @@ export default function Checkout() {
                 </p>
 
                 {PAYMENT_IFRAME_URL ? (
+                  // Yaad/Hyp hosted page is cross-origin + emits no auto-height signal
+                  // (no postMessage / iframe-resizer), so the parent can't measure it.
+                  // Its form is a stable ~1076px single column → give a min-height FLOOR
+                  // with headroom (never an inner scroll trap), and cap the width since
+                  // the consumer app isn't width-capped on desktop (else the single-
+                  // column form would stretch full-bleed).
                   <iframe
                     src={PAYMENT_IFRAME_URL}
                     title={t('consumer.checkout.secureTitle')}
                     allow="payment *"
-                    className="mt-3 w-full h-[440px] rounded-2xl border border-glass-border bg-white"
+                    className="mt-3 mx-auto block w-full max-w-[440px] min-h-[1180px] rounded-2xl border border-glass-border bg-white"
                   />
                 ) : (
                   <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-6 text-center">
