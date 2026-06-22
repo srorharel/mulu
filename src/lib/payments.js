@@ -38,6 +38,15 @@ export async function saveCardFromToken(payload) {
   return error ? { ok: false, error } : (data ?? { ok: false })
 }
 
+// Scaffold-mode payment confirm — marks the caller's own pending order paid so it
+// enters the washer pool, mirroring a real charge. The RPC refuses once payments
+// go live (app_config.payments_live = true), at which point the verified clearing
+// charge becomes the only thing that sets paid_at. Returns { ok, error? }.
+export async function confirmScaffoldPayment(orderId) {
+  const { error } = await supabase.rpc('confirm_scaffold_payment', { p_order_id: orderId })
+  return error ? { ok: false, error } : { ok: true }
+}
+
 // "•••• 4242 · Visa"
 export function cardLabel(card) {
   const brand = card.brand ? card.brand.charAt(0).toUpperCase() + card.brand.slice(1) : ''

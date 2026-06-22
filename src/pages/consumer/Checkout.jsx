@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase.js'
 import { priceBreakdown, VAT_RATE } from '../../lib/pricing.js'
 import { FEATURES } from '../../lib/featureFlags.js'
 import { useSavedCards } from '../../hooks/useSavedCards.js'
-import { chargeSavedCard, cardLabel } from '../../lib/payments.js'
+import { chargeSavedCard, confirmScaffoldPayment, cardLabel } from '../../lib/payments.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -84,10 +84,15 @@ export default function Checkout() {
       }
       // ─── NEW-CARD / CLEARING-API INTEGRATION POINT ───────────────────────────
       // When the terminal is live, the card is captured inside the hosted iframe.
-      // On the provider's confirm (postMessage/redirect): if `saveNewCard`, persist
-      // the returned token via saveCardFromToken(), then finalize the order on an
-      // AUTHORISED payment only. Scaffold below simulates success (no charge).
-      await new Promise((r) => setTimeout(r, 1200))
+      // On the provider's verified confirm (postMessage/redirect): if `saveNewCard`,
+      // persist the returned token via saveCardFromToken(), then finalize on an
+      // AUTHORISED charge whose Edge Function set orders.paid_at server-side.
+      //
+      // Until that is wired, confirm_scaffold_payment marks the order paid (so it
+      // enters the washer pool exactly like a real charge); it REFUSES once
+      // app_config.payments_live = true, so it can never bypass a real charge.
+      const res = await confirmScaffoldPayment(id)
+      if (!res.ok) { setPaying(false); showToast(t('consumer.checkout.error'), 'error'); return }
       showToast(t('consumer.checkout.success'), 'success')
       navigate(`/order/${id}`, { replace: true })
     } catch {
