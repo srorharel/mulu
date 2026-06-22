@@ -10,6 +10,15 @@ const ACTIVE_STATUSES = ['pending', 'accepted', 'en_route', 'arrived', 'in_progr
 
 const COLUMNS = 'id, status, address_label, total_price, created_at'
 
+// An order is only a "live wash" for the consumer once it is PAID. A pending order
+// that is still unpaid is an abandoned-at-checkout booking (the order row is created
+// before payment) — it must NOT surface as an active wash on /home until the payment
+// passes, the same gate the washer pool uses (paid_at). paid_at rides in the realtime
+// payload (the full row), so we can check it without adding it to COLUMNS.
+function isLiveForConsumer(row) {
+  return ACTIVE_STATUSES.includes(row.status) && row.paid_at != null
+}
+
 // Realtime payload rows carry the full order; keep only what the /home card reads.
 function normalize(row) {
   return {
@@ -41,6 +50,7 @@ export function useConsumerActiveOrders() {
       .select(COLUMNS)
       .eq('consumer_id', user.id)
       .in('status', ACTIVE_STATUSES)
+      .not('paid_at', 'is', null)        // hide unpaid (abandoned-checkout) orders
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (!error) setOrders(data ?? [])
@@ -60,9 +70,9 @@ export function useConsumerActiveOrders() {
       if (!row?.id) return
       setOrders(prev => {
         const without = prev.filter(o => o.id !== row.id)
-        // Terminal (or otherwise non-active) → remove the card.
-        if (!ACTIVE_STATUSES.includes(row.status)) return without
-        // Active → upsert and keep newest-first.
+        // Unpaid (abandoned checkout), terminal, or otherwise non-active → no card.
+        if (!isLiveForConsumer(row)) return without
+        // Paid + active → upsert and keep newest-first.
         const next = [normalize(row), ...without]
         next.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
         return next
