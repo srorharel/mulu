@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, ShieldCheck, Lock, Loader2, Car, MapPin, CreditCard, Plus, Check } from 'lucide-react'
 import { useTranslation, Trans } from 'react-i18next'
@@ -25,6 +25,16 @@ import MotionButton from '../../components/ui/MotionButton.jsx'
 const PAYMENT_IFRAME_URL = import.meta.env.VITE_PAYMENT_IFRAME_URL || ''
 const VAT_PERCENT = Math.round(VAT_RATE * 100)
 
+// The Yaad/Hyp hosted page is a FIXED ~367px-wide form that ignores meta-viewport
+// inside an iframe, so it can't shrink to a narrow phone column — it would clip
+// ~20px off each side ("text cut off, needs to zoom out"). We render it at a 400px
+// logical width (the form fully fits at x≈12..379, and 400 also clears Hyp's 400px
+// minimum for the in-frame 3DS/CAPTCHA step) and SCALE the whole frame down to the
+// available column width, so every field stays visible at any size.
+// Dimensions below are LOGICAL (pre-scale); the wrapper height is scaled to match.
+const FORM_LOGICAL_W = 400
+const FORM_LOGICAL_H = 1180
+
 export default function Checkout() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -39,6 +49,23 @@ export default function Checkout() {
   const [paying, setPaying]   = useState(false)
   const [method, setMethod]   = useState(null)   // null until decided · 'new' | <cardId>
   const [saveNewCard, setSaveNewCard] = useState(false)
+
+  // Scale the fixed-width Yaad form down to fit whatever column width it gets.
+  // A callback ref + ResizeObserver so it (re)measures whenever the frame mounts
+  // or the viewport changes (rotation / resize). scale = column / logical width.
+  const [frameScale, setFrameScale] = useState(1)
+  const frameRoRef = useRef(null)
+  const setFrameWrap = useCallback((node) => {
+    if (frameRoRef.current) { frameRoRef.current.disconnect(); frameRoRef.current = null }
+    if (!node) return
+    const measure = () => {
+      const w = node.clientWidth
+      setFrameScale(w >= FORM_LOGICAL_W ? 1 : w / FORM_LOGICAL_W)
+    }
+    measure()
+    frameRoRef.current = new ResizeObserver(measure)
+    frameRoRef.current.observe(node)
+  }, [])
 
   const dir = i18n.language === 'he' ? 'rtl' : 'ltr'
   const hasSavedCards = FEATURES.payments && cards.length > 0
@@ -226,18 +253,32 @@ export default function Checkout() {
                 </p>
 
                 {PAYMENT_IFRAME_URL ? (
-                  // Yaad/Hyp hosted page is cross-origin + emits no auto-height signal
-                  // (no postMessage / iframe-resizer), so the parent can't measure it.
-                  // Its form is a stable ~1076px single column → give a min-height FLOOR
-                  // with headroom (never an inner scroll trap), and cap the width since
-                  // the consumer app isn't width-capped on desktop (else the single-
-                  // column form would stretch full-bleed).
-                  <iframe
-                    src={PAYMENT_IFRAME_URL}
-                    title={t('consumer.checkout.secureTitle')}
-                    allow="payment *"
-                    className="mt-3 mx-auto block w-full max-w-[440px] min-h-[1180px] rounded-2xl border border-glass-border bg-white"
-                  />
+                  // Scale-to-fit wrapper (see FORM_LOGICAL_* above). dir=ltr so the
+                  // 390px iframe box anchors at the physical top-left and the scale
+                  // transform aligns it flush in the column (the form's own RTL is
+                  // internal to the Yaad document, unaffected). overflow-hidden trims
+                  // the empty logical area below the scaled form; height tracks scale
+                  // so there is no inner scroll and no vertical gap.
+                  <div
+                    ref={setFrameWrap}
+                    dir="ltr"
+                    className="mt-3 mx-auto w-full max-w-[400px] overflow-hidden rounded-2xl border border-glass-border bg-white"
+                    style={{ height: Math.round(FORM_LOGICAL_H * frameScale) }}
+                  >
+                    <iframe
+                      src={PAYMENT_IFRAME_URL}
+                      title={t('consumer.checkout.secureTitle')}
+                      allow="payment *"
+                      style={{
+                        display: 'block',
+                        width: FORM_LOGICAL_W,
+                        height: FORM_LOGICAL_H,
+                        border: 0,
+                        transformOrigin: 'top left',
+                        transform: `scale(${frameScale})`,
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-6 text-center">
                     <p className="text-[13px] font-semibold text-ink">{t('consumer.checkout.terminalPending')}</p>
