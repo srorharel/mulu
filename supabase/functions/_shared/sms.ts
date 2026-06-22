@@ -2,9 +2,12 @@
 // code. The provider is chosen by the SMS_PROVIDER Edge secret so you can swap
 // aggregators without touching the OTP logic.
 //
-//   SMS_PROVIDER = 'log'     → DEFAULT. No real SMS; logs the message to the
+//   SMS_PROVIDER = 'log'      → DEFAULT. No real SMS; logs the message to the
 //                              function logs. Safe to deploy while the feature
 //                              is still hidden / before you have a provider.
+//                = 'whatsapp' → WhatsApp Cloud API (Meta). Delivers the code via
+//                               an approved Authentication-category template — see
+//                               sendWhatsApp() for the required WHATSAPP_* secrets.
 //                = '019'      → 019 SMS (019sms.co.il)
 //                = 'inforu'   → InforU (inforu.co.il)
 //                = 'generic'  → simple JSON POST to SMS_API_URL (fill the shape)
@@ -14,6 +17,7 @@
 //   SMS_API_USER   — provider username/account (019, generic)
 //   SMS_API_KEY    — provider API token / password
 //   SMS_API_URL    — endpoint for the 'generic' provider
+//   WHATSAPP_*     — Meta Cloud API config (see sendWhatsApp below)
 //
 // IMPORTANT: Israeli aggregator APIs change and differ in field names. The 019
 // and InforU bodies below are best-effort against their documented v2 APIs —
@@ -35,12 +39,21 @@ export function toIsraeliE164(raw: string): string {
   return `+${digits}`
 }
 
-export async function sendSms(to: string, body: string): Promise<SmsResult> {
+// `code` is the raw 6-digit code. SMS providers send the full `body` text;
+// the WhatsApp provider ignores `body` and injects `code` into its approved
+// Authentication template (WhatsApp forbids free text for these messages).
+export async function sendSms(
+  to: string,
+  body: string,
+  opts: { code?: string } = {},
+): Promise<SmsResult> {
   const provider = (Deno.env.get('SMS_PROVIDER') ?? 'log').toLowerCase()
   const sender = Deno.env.get('SMS_SENDER') ?? 'MULU'
 
   try {
     switch (provider) {
+      case 'whatsapp':
+        return await sendWhatsApp(to, opts.code ?? body)
       case '019':
         return await send019(to, body, sender)
       case 'inforu':
@@ -55,6 +68,61 @@ export async function sendSms(to: string, body: string): Promise<SmsResult> {
   } catch (e) {
     return { ok: false, detail: String(e).slice(0, 300) }
   }
+}
+
+// ── WhatsApp Cloud API (Meta) ─────────────────────────────────────────────────
+// Sends the OTP through an approved **Authentication-category** template. WhatsApp
+// does NOT allow free text for business-initiated messages, so we pass only the
+// 6-digit `code` as the template's body parameter (and its copy-code button
+// parameter). The surrounding wording is Meta's standardized authentication copy
+// for the template's language — we never send our own sentence here.
+//
+// Secrets (set with `supabase secrets set`):
+//   WHATSAPP_PHONE_NUMBER_ID — the "Phone number ID" from the WhatsApp API Setup page
+//   WHATSAPP_TOKEN           — permanent access token (a System User token)
+//   WHATSAPP_TEMPLATE_NAME   — the name you gave the approved Authentication template
+//   WHATSAPP_TEMPLATE_LANG   — template language code (default 'he')
+//   WHATSAPP_TEMPLATE_BUTTON — 'false' to omit the copy-code button param (default on;
+//                              Authentication templates normally require the button)
+//   WHATSAPP_GRAPH_VERSION   — Graph API version (default 'v21.0')
+async function sendWhatsApp(to: string, code: string): Promise<SmsResult> {
+  const phoneId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID') ?? ''
+  const token = Deno.env.get('WHATSAPP_TOKEN') ?? ''
+  const template = Deno.env.get('WHATSAPP_TEMPLATE_NAME') ?? ''
+  const lang = Deno.env.get('WHATSAPP_TEMPLATE_LANG') ?? 'he'
+  const version = Deno.env.get('WHATSAPP_GRAPH_VERSION') ?? 'v21.0'
+  const withButton = (Deno.env.get('WHATSAPP_TEMPLATE_BUTTON') ?? 'true') !== 'false'
+  if (!phoneId || !token || !template) {
+    return { ok: false, detail: 'whatsapp secrets missing (PHONE_NUMBER_ID/TOKEN/TEMPLATE_NAME)' }
+  }
+
+  // WhatsApp wants the recipient as digits only in international form (e.g. 972501234567).
+  const waTo = to.replace(/\D/g, '')
+
+  const components: unknown[] = [
+    { type: 'body', parameters: [{ type: 'text', text: code }] },
+  ]
+  if (withButton) {
+    components.push({
+      type: 'button',
+      sub_type: 'url',
+      index: '0',
+      parameters: [{ type: 'text', text: code }],
+    })
+  }
+
+  const res = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: waTo,
+      type: 'template',
+      template: { name: template, language: { code: lang }, components },
+    }),
+  })
+  const text = await res.text()
+  return { ok: res.ok, detail: `whatsapp_${res.status}: ${text.slice(0, 200)}` }
 }
 
 // ── 019 SMS ───────────────────────────────────────────────────────────────────

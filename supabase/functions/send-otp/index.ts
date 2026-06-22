@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
   const sms = await sendSms(
     toIsraeliE164(profile.phone),
     `MULU: קוד האימות שלך הוא ${code}`,
+    { code },
   )
   if (!sms.ok) {
     console.error('send-otp: SMS provider rejected:', sms.detail)
