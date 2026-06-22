@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import i18n, { LOCALE_STORAGE_KEY } from '../i18n/index.js'
 import { unregisterToken } from '../lib/notifications.js'
 import { redeemImpersonationFromUrl, getImpersonationBanner } from '../lib/impersonate.js'
+import { cacheProfile, readCachedProfile, clearOfflineCache } from '../lib/offlineCache.js'
 
 const AuthContext = createContext(null)
 
@@ -31,29 +32,48 @@ export function AuthProvider({ children }) {
   }
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    // Wrapped so a network rejection (offline cold-start, e.g. the washer
+    // reopened the app underground) falls through to the retry + cache fallback
+    // instead of throwing out of here and leaving the app on the spinner.
+    let data = null
+    try {
+      const res = await supabase.from('profiles').select('*').eq('id', userId).single()
+      data = res.data
+    } catch { /* offline / network — handled below */ }
 
     if (!data) {
       // handle_new_user trigger is async — retry once after brief delay
       await new Promise(r => setTimeout(r, 500))
-      const { data: retry } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      let retry = null
+      try {
+        const res = await supabase.from('profiles').select('*').eq('id', userId).single()
+        retry = res.data
+      } catch { /* still offline */ }
+
       if (retry) {
         if (retry.suspended_at) {
           await handleSuspended(retry)
           return null
         }
         syncLocale(retry)
+        setProfile(retry)
+        cacheProfile(retry)
+        return retry
       }
-      setProfile(retry ?? null)
-      return retry ?? null
+
+      // Both attempts failed. Offline cold-start fallback: hydrate the last-known
+      // profile so RoleGuard lets the washer back into their dashboard + active
+      // job with no reception. A brand-new user (handle_new_user lag) has no
+      // cache → stays null, unchanged. Server RPCs still enforce suspension etc.
+      // on reconnect (fetchProfile re-runs), so a stale cache can't grant powers.
+      const cached = readCachedProfile(userId)
+      if (cached) {
+        syncLocale(cached)
+        setProfile(cached)
+        return cached
+      }
+      setProfile(null)
+      return null
     }
 
     if (data.suspended_at) {
@@ -63,6 +83,7 @@ export function AuthProvider({ children }) {
 
     syncLocale(data)
     setProfile(data)
+    cacheProfile(data)
     return data
   }
 
@@ -177,6 +198,7 @@ export function AuthProvider({ children }) {
 
   async function signOut() {
     await unregisterToken()   // must run before signOut clears the session
+    clearOfflineCache(user?.id)  // drop cached profile/active-job for this user
     await supabase.auth.signOut()
   }
 

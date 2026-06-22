@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase.js'
 import { replayAll } from '../../lib/offlineSync/engine.js'
 import { subscribeOnline } from '../../lib/offlineSync/connectivity.js'
+import { cacheActiveJob, readCachedActiveJob, removeCachedOrder } from '../../lib/offlineCache.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useGeolocation } from '../../hooks/useGeolocation.js'
 import { useTheme } from '../../hooks/useTheme.js'
@@ -265,9 +266,31 @@ export default function WasherDashboard() {
   // navigation state can't be wiped by a momentary RPC race.
   const fetchActiveJob = useCallback(async ({ allowClear = false } = {}) => {
     const { data, error } = await supabase.rpc('get_washer_active_job').maybeSingle()
-    if (error) { console.error('[Dashboard] Failed to fetch active job:', error); return }
-    if (data)            setActiveJob(prev => (prev?.id === data.id ? prev : data))
-    else if (allowClear) setActiveJob(prev => (prev ? null : prev))
+    if (error) {
+      console.error('[Dashboard] Failed to fetch active job:', error)
+      // Offline fallback: restore the last-known active job so a washer who cold-
+      // started the app underground can still reach + finish their wash. Never
+      // CLEARS here — only a successful server "no active job" clears the panel.
+      const cached = readCachedActiveJob(userIdRef.current)
+      if (cached) setActiveJob(prev => prev ?? cached)
+      return
+    }
+    if (data) {
+      setActiveJob(prev => (prev?.id === data.id ? prev : data))
+      cacheActiveJob(userIdRef.current, data)
+    } else if (allowClear) {
+      setActiveJob(prev => (prev ? null : prev))
+      cacheActiveJob(userIdRef.current, null)  // server confirmed no job → clear cache
+    }
+  }, [])
+
+  // Clear the active job AND its offline cache (release/complete/cancel) so a
+  // later offline cold-start can't restore a job the washer no longer owns.
+  // Defined here (above the realtime effect that lists it as a dep) to avoid a
+  // TDZ on the dep-array read during render.
+  const clearActiveJob = useCallback(() => {
+    setActiveJob(prev => { if (prev?.id) removeCachedOrder(prev.id); return null })
+    cacheActiveJob(userIdRef.current, null)
   }, [])
 
   // Fetch active job as safety net (mount + online toggle). Never clears here.
@@ -314,12 +337,12 @@ export default function WasherDashboard() {
       }, (payload) => {
         const newStatus = payload.new.status
         if (newStatus === 'completed' || newStatus === 'cancelled') {
-          setActiveJob(null)
+          clearActiveJob()
         }
       })
       .subscribe()
     return () => supabase.removeChannel(channel)
-  }, [activeJob?.id])
+  }, [activeJob?.id, clearActiveJob])
 
   async function toggleOnline() {
     const next = !online
@@ -340,7 +363,7 @@ export default function WasherDashboard() {
     setToggling(false)
   }
 
-  function handleJobDone()        { setActiveJob(null) }
+  function handleJobDone()        { clearActiveJob() }
   function handleJobPinTap(jobId) { setSelectedJobId(jobId); setTimeout(() => setSelectedJobId(null), 1000) }
 
   // Guard: can't go offline while a job is active.

@@ -1,7 +1,7 @@
 # release-android.ps1 - Build a SIGNED release Android App Bundle (.aab) for Google Play.
 #
 # This is separate from update.ps1 (which builds debug APKs for sideloading).
-# It does NOT touch git or Vercel - it only produces wash-release.aab to upload
+# It does NOT touch git or Vercel - it only produces Mulu-release.aab to upload
 # to the Play Console.
 #
 # Prereq: android/key.properties must exist (copy from key.properties.example and
@@ -77,16 +77,16 @@ try {
 if ($LASTEXITCODE -ne 0) { Write-Fail "Gradle bundleRelease failed." }
 
 $aabSrc  = "$PSScriptRoot\android\app\build\outputs\bundle\release\app-release.aab"
-$aabDest = "$PSScriptRoot\wash-release.aab"
+$aabDest = "$PSScriptRoot\Mulu-release.aab"
 if (-not (Test-Path $aabSrc)) { Write-Fail "AAB not found at $aabSrc after build." }
 
 Copy-Item $aabSrc $aabDest -Force
 $aabSizeMB = [math]::Round((Get-Item $aabDest).Length / 1MB, 1)
 
 Write-Step "Done"
-Write-OK "Signed release bundle ready: wash-release.aab  ($($aabSizeMB) MB)"
+Write-OK "Signed release bundle ready: Mulu-release.aab  ($($aabSizeMB) MB)"
 Write-Host ""
-Write-Host "  -> Upload wash-release.aab to Google Play Console (Production / Closed testing track)." -ForegroundColor Yellow
+Write-Host "  -> Upload Mulu-release.aab to Google Play Console (Production / Closed testing track)." -ForegroundColor Yellow
 Write-Host "  -> First upload: enroll in Play App Signing when prompted." -ForegroundColor Yellow
 Write-Host "  -> Remember to bump versionCode in android/app/build.gradle before each new upload." -ForegroundColor Yellow
 Write-Host ""

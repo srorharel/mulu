@@ -595,7 +595,15 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
     const trans = TRANSITION_KEYS[order.status]
     if (!trans) return
 
-    if (underground) { advanceUnderground(trans); return }
+    // Underground: the arrival/in_progress/completion hops happen below ground
+    // with no reception, so they're captured offline + replayed. The
+    // accepted → en_route hop happens ABOVE ground (the washer is still driving
+    // to the site), so it goes through the normal server path — and it MUST
+    // reach the server, since the offline replay only applies the arrival photos
+    // once the order is already at en_route (engine.js). Routing en_route through
+    // advanceUnderground (which has no en_route branch) is the bug that left
+    // "Start Trip" doing nothing for underground orders.
+    if (underground && trans.next !== 'en_route') { advanceUnderground(trans); return }
 
     advancingRef.current = true
     setAdvancing(true)
@@ -968,7 +976,9 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
   const listRef   = useRef(null)
   const cardRefs  = useRef({})
 
-  const { order, mutateOrder }                    = useRealtimeOrder(activeJob?.id)
+  // cache:true mirrors the active order to localStorage so the panel survives an
+  // offline cold-start underground (the washer reopening the app down there).
+  const { order, mutateOrder }                    = useRealtimeOrder(activeJob?.id, { cache: true })
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
   const [cancelling, setCancelling]               = useState(false)
   const cancellingRef                             = useRef(false)
