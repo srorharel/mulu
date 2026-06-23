@@ -8,6 +8,9 @@ dist
 *.log
 *.local
 
+# WhatsApp Cloud API local secrets (token + IDs) — never commit
+scripts/.wa-secrets.json
+
 # Firebase — never commit; contains API keys and project identifiers
 android/app/google-services.json
 ios/App/App/GoogleService-Info.plist

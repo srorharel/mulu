@@ -10,3 +10,8 @@ compatibility_date = "2025-01-01"
 [assets]
 directory = "dist"
 not_found_handling = "single-page-application"
+# Serve .html files at their literal path (e.g. the Meta domain-verification file
+# /41901…​.html). The default ("auto-trailing-slash") 308-redirects /foo.html → /foo,
+# which broke Meta verification ("redirected to another location"). The homepage and
+# SPA routes still resolve via the single-page-application not-found fallback above.
+html_handling = "none"

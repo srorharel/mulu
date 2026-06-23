@@ -398,6 +398,7 @@
       "paying": "One moment, confirming payment…",
       "success": "Payment complete! Finding you a washer…",
       "error": "Payment didn't go through. Try again, or reach us at support.",
+      "finalizing": "Confirming your payment…",
       "notFound": "Order not found",
       "scaffoldNote": "Demo mode: live card clearing isn't active yet",
       "methodTitle": "Payment method",

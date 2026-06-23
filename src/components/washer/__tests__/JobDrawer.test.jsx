@@ -39,6 +39,11 @@ vi.mock('../../ui/Toast.jsx', () => ({
 // Design-editor wrapper → render the child straight through.
 vi.mock('../../editable/Editable.jsx', () => ({ default: ({ children }) => children }))
 
+// JobCard (rendered in the nearby list) reads the washer tier for its payout.
+vi.mock('../../../context/AuthContext.jsx', () => ({
+  useAuth: () => ({ profile: { current_tier: null } }),
+}))
+
 import JobDrawer, { getSnaps } from '../JobDrawer.jsx'
 import RecenterButton from '../RecenterButton.jsx'
 

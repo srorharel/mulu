@@ -51,6 +51,9 @@ export async function chargeByToken(args: {
   const { token, amount, orderId } = args
   try {
     switch (provider()) {
+      case 'yaad':
+      case 'hyp':
+        return await chargeYaadToken(args)
       case 'tranzila':
       case 'cardcom':
       case 'payplus':
@@ -65,6 +68,39 @@ export async function chargeByToken(args: {
   } catch (e) {
     return { ok: false, detail: String(e).slice(0, 300) }
   }
+}
+
+// YaadPay / Hyp charge-by-token (J4). The new-card flow tokenizes via J5 in the
+// hosted page (verify-payment); this re-charges that saved Token server-to-server.
+// Secrets: YAAD_MASOF / YAAD_API_KEY / YAAD_PASSP (shared with create/verify-payment).
+// Flow: APISign(What=SIGN) the soft-charge params incl. the Token, then run the
+// signed request; success = CCode=0 (800 = approved/postponed).
+// INTEGRATION POINT — the J4 field set must be confirmed with one live saved-token
+// charge on your terminal before flipping CLEARING_PROVIDER=yaad in production.
+async function chargeYaadToken(args: { token: string; amount: number; orderId: string }): Promise<ChargeResult> {
+  const signBase = Deno.env.get('YAAD_SIGN_URL') ?? 'https://icom.yaad.net/p/'
+  const masof = Deno.env.get('YAAD_MASOF') ?? ''
+  const key = Deno.env.get('YAAD_API_KEY') ?? ''
+  const passp = Deno.env.get('YAAD_PASSP') ?? ''
+  if (!masof || !key || !passp) return { ok: false, detail: 'YAAD_* secrets not set' }
+
+  // The saved row stores "<Token>|<Tokef>" so the expiry rides with the token
+  // (YaadPay requires Tokef on a token charge); fall back to token-only.
+  const [tok, tokef] = args.token.split('|')
+  const base = {
+    action: 'APISign', What: 'SIGN', KEY: key, PassP: passp, Masof: masof,
+    Amount: String(args.amount), Order: args.orderId, Coin: '1', Tash: '1',
+    UTF8: 'True', UTF8out: 'True', Token: tok, Tokef: tokef ?? '', J4: 'True',
+  }
+  const signRes = await fetch(`${signBase}?${new URLSearchParams(base).toString()}`)
+  const signed = (await signRes.text()).trim()
+  if (!signed.includes('signature=')) return { ok: false, detail: `sign: ${signed.slice(0, 160)}` }
+
+  const runRes = await fetch(`${signBase}?${signed}`)
+  const out = (await runRes.text()).trim()
+  const ccode = new URLSearchParams(out).get('CCode') ?? ''
+  const ok = ccode === '0' || ccode === '800'
+  return { ok, transactionId: new URLSearchParams(out).get('Id') ?? undefined, detail: `yaad_CCode=${ccode}` }
 }
 
 // INTEGRATION POINT — one generic shape; adapt the body/auth/field names to the

@@ -1,19 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { resolveTheme } from '../lib/resolveTheme.js'
 
 const CACHE_KEY = 'wash_theme_cache'
-
-// Role-based defaults: washers prefer dark, customers prefer light.
-// This is the authoritative source — do not duplicate this rule
-// in onboarding, settings UI hints, or anywhere else.
-function resolveTheme(profile) {
-  if (profile?.display_preference === 'dark')  return 'dark'
-  if (profile?.display_preference === 'light') return 'light'
-  if (profile?.role === 'washer')   return 'dark'
-  if (profile?.role === 'consumer') return 'light'
-  return null
-}
 
 export function useTheme() {
   const { user, profile, refreshProfile } = useAuth()

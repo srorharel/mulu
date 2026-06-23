@@ -4,6 +4,8 @@ import { motion, useMotionValue, animate } from 'framer-motion'
 import { Car, MapPin, Navigation, Clock, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useReverseGeocode, looksLikeCoords } from '../lib/geocode.js'
+import { useAuth } from '../context/AuthContext.jsx'
+import { payoutForTier } from '../lib/payout.js'
 
 const SPRING         = { type: 'spring', stiffness: 400, damping: 35 }
 const SWIPE_VELOCITY = 500
@@ -25,6 +27,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
   const containerRef = useRef(null)
   const x            = useMotionValue(0)
   const { t }        = useTranslation()
+  const { profile }  = useAuth()
 
   // Prefer the address the customer actually confirmed at booking
   // (order.address_label, e.g. "אבן גבירול, תל אביב"). Reverse-geocoding the pin
@@ -40,11 +43,16 @@ export default function JobCard({ job, onClick, highlight = false }) {
 
   const distKm    = job.distance_km != null ? job.distance_km.toFixed(1) : '—'
   const posted    = postedAgo(job.created_at, t)
+  // What the washer earns is their rating-based tier amount (payout_for_tier),
+  // NOT the order's base_price (the consumer-side worker rate). Every job pays
+  // this washer the same tier rate; the server locks it into orders.payout_amount
+  // at acceptance. Mirrors JobDetail so the list and the detail screen agree.
+  const payout    = payoutForTier(profile?.current_tier)
   const ariaLabel = t('washer.jobCard.ariaLabel', {
     car:      t(`carLabels.${job.car_type}`),
     service:  t(`serviceLabels.${job.service_type || 'wash'}`),
     distance: distKm,
-    price:    job.base_price,
+    price:    payout,
   })
 
   function open() {
@@ -103,7 +111,7 @@ export default function JobCard({ job, onClick, highlight = false }) {
           <p className="text-[12px] text-ink-muted">{t(`serviceLabels.${job.service_type || 'wash'}`)}</p>
         </div>
         <p className="text-[23px] font-extrabold text-primary-700 dark:text-accent leading-none shrink-0" dir="ltr">
-          ₪{job.base_price}
+          ₪{payout}
         </p>
       </div>
 

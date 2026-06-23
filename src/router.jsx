@@ -36,6 +36,7 @@ function PageSuspense({ children }) {
 import ConsumerHome   from './pages/consumer/Home.jsx'
 import ConsumerOrder  from './pages/consumer/Order.jsx'
 import Checkout       from './pages/consumer/Checkout.jsx'
+import CheckoutReturn from './pages/consumer/CheckoutReturn.jsx'
 import PaymentMethods from './pages/consumer/PaymentMethods.jsx'
 import OrderTracking  from './pages/consumer/OrderTracking.jsx'
 import OrderHistory   from './pages/consumer/OrderHistory.jsx'
@@ -130,6 +131,11 @@ export function AppRouter() {
             to anon (migration 0119). The washer contract stays gated below. */}
         <Route path="/legal/terms"   element={<LegalViewer docType="consumer_terms" />} />
         <Route path="/legal/privacy" element={<LegalViewer docType="privacy_policy" />} />
+
+        {/* YaadPay return target — the hosted page redirects here after a charge.
+            Relays the result to Checkout (iframe) or finalizes top-level. Needs no
+            RoleGuard: it only relays params or finalizes via the existing session. */}
+        <Route path="/checkout/return" element={<CheckoutReturn />} />
 
         {/* Washer verification routes — accessible while role=washer regardless of verification status */}
         <Route element={<RoleGuard allowedRoles={['washer']} />}>

@@ -893,7 +893,10 @@ function ActiveJobPanel({ activeJob, order, mutateOrder, onJobDone, position }) 
               {t('washer.drawer.earnings.label')}
             </p>
             <div className="flex-1" />
-            <p className="text-[16px] font-extrabold text-accent tracking-[-0.3px]">₪{order.base_price}</p>
+            {/* Locked-in tier payout (payout_amount, set at acceptance) — the same
+                rating-based number the nearby list + JobDetail showed. base_price is
+                a legacy fallback for orders predating tier payouts. */}
+            <p className="text-[16px] font-extrabold text-accent tracking-[-0.3px]">₪{order.payout_amount ?? order.base_price}</p>
           </div>
 
           {/* Primary action */}

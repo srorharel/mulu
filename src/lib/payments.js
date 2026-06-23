@@ -38,6 +38,25 @@ export async function saveCardFromToken(payload) {
   return error ? { ok: false, error } : (data ?? { ok: false })
 }
 
+// Ask the server for a PER-ORDER signed YaadPay hosted-page URL (the iframe src).
+// `save` adds J5 so the card is tokenized for card-on-file. Returns { ok, url? }.
+export async function createPaymentLink(orderId, save = false) {
+  const { data, error } = await supabase.functions.invoke('create-payment-link', {
+    body: { order_id: orderId, save },
+  })
+  return error ? { ok: false, error } : (data ?? { ok: false })
+}
+
+// Finalize a NEW-CARD payment: the server re-verifies the YaadPay result params
+// (never trusting the client) and sets orders.paid_at. `params` = the result the
+// hosted page returned to /checkout/return. Returns { ok, already_paid? }.
+export async function verifyPayment(orderId, params) {
+  const { data, error } = await supabase.functions.invoke('verify-payment', {
+    body: { order_id: orderId, params },
+  })
+  return error ? { ok: false, error } : (data ?? { ok: false })
+}
+
 // Scaffold-mode payment confirm — marks the caller's own pending order paid so it
 // enters the washer pool, mirroring a real charge. The RPC refuses once payments
 // go live (app_config.payments_live = true), at which point the verified clearing

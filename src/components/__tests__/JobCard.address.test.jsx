@@ -20,6 +20,12 @@ vi.mock('../../lib/geocode.js', () => ({
   looksLikeCoords: s => /^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(String(s).trim()),
 }))
 
+// JobCard shows the washer's rating-based payout, so it reads the profile tier.
+// Unrated washer (current_tier null) → payoutForTier(null) = 50 (UNRATED_PAYOUT).
+vi.mock('../../context/AuthContext.jsx', () => ({
+  useAuth: () => ({ profile: { current_tier: null } }),
+}))
+
 import JobCard from '../JobCard.jsx'
 
 const i18n = i18next.createInstance()
@@ -69,5 +75,14 @@ describe('JobCard address', () => {
     renderCard({ address_label: '32.0800, 34.7800' })
     expect(screen.getByText('אבן גבירול, חולון')).toBeInTheDocument()
     expect(screen.queryByText('32.0800, 34.7800')).not.toBeInTheDocument()
+  })
+
+  // Reported bug (Jun 2026): the nearby list showed the order's base_price (e.g. 60)
+  // while the job-detail screen showed the washer's rating-based payout (50) for the
+  // same job. The card must show the rating-based payout, matching JobDetail.
+  it('shows the rating-based washer payout, not the order base_price', () => {
+    renderCard({ base_price: 60 }) // mocked unrated washer → payout 50
+    expect(screen.getByText('₪50')).toBeInTheDocument()
+    expect(screen.queryByText('₪60')).not.toBeInTheDocument()
   })
 })

@@ -222,7 +222,7 @@ The support-app deploys **two ways**: Vercel (web) and Capacitor (Android APK). 
 
 ## Dark Mode
 
-`darkMode: 'class'` in Tailwind config — the `.dark` class must be applied explicitly to an ancestor `div`. **Both consumer and washer** can toggle dark mode (ADR-023); washer defaults to dark, consumer defaults to light when `display_preference` is unset.
+`darkMode: 'class'` in Tailwind config — the `.dark` class must be applied explicitly to an ancestor `div`. **Both consumer and washer** can toggle dark mode (ADR-023). **Default is light for every role** (ADR-044, Jun 2026); dark is opt-in only when `display_preference = 'dark'`. There is no longer a role-based dark default.
 
 `useTheme()` returns `{ isDark, theme, setTheme }` and reads/writes `profiles.display_preference`. It does **not** touch the DOM — the shell component is responsible for applying `.dark`. Canonical shell pattern:
 ```jsx

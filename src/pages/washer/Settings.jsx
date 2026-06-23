@@ -149,7 +149,7 @@ export default function Settings() {
 
   const [prefs, setPrefs] = useState({
     ringtone: 'default',
-    display:  'dark',
+    display:  'light',
     nav_app:  'waze',
   })
   const [showDelete, setShowDelete] = useState(false)
@@ -158,7 +158,7 @@ export default function Settings() {
     if (!profile) return
     setPrefs({
       ringtone: profile.ringtone_preference ?? 'default',
-      display:  profile.display_preference  ?? 'dark',
+      display:  profile.display_preference  ?? 'light',
       nav_app:  profile.nav_app_preference   ?? 'waze',
     })
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase.js'
 import { priceBreakdown, VAT_RATE } from '../../lib/pricing.js'
 import { FEATURES } from '../../lib/featureFlags.js'
 import { useSavedCards } from '../../hooks/useSavedCards.js'
-import { chargeSavedCard, confirmScaffoldPayment, cardLabel } from '../../lib/payments.js'
+import { chargeSavedCard, confirmScaffoldPayment, createPaymentLink, verifyPayment, cardLabel } from '../../lib/payments.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
@@ -96,6 +96,86 @@ export default function Checkout() {
   }, [cards, hasSavedCards, method])
 
   const usingNewCard = method === 'new' || !hasSavedCards
+  // New card + payments on → the customer pays INSIDE Hyp's iframe (its own button).
+  // We hide our external Pay button (no double button) and gate the iframe on terms.
+  const payViaIframe = FEATURES.payments && usingNewCard
+
+  // The iframe shows the static env URL by DEFAULT (works even with payments off —
+  // the "test terminal" mode), and gets UPGRADED to a per-order signed URL (amount +
+  // order id baked in; J5 when saving) once payments are on. NB the default must
+  // reference PAYMENT_IFRAME_URL unconditionally: when VITE_ENABLE_PAYMENTS is unset,
+  // FEATURES.payments is a compile-time false, so a reference only inside the guarded
+  // effect below is dead-code-eliminated and the URL gets tree-shaken out → blank iframe.
+  // When payments are ON the iframe loads ONLY the per-order signed URL (amount +
+  // order id, terminal 0086225121). We do NOT fall back to the static demo URL on
+  // failure — that masked errors as "yesterday's page". On failure we surface the
+  // reason. When payments are OFF, the static env URL is the demo-terminal fallback.
+  const [frameUrl, setFrameUrl] = useState(FEATURES.payments ? '' : PAYMENT_IFRAME_URL)
+  const [linkError, setLinkError] = useState('')
+  useEffect(() => {
+    if (!FEATURES.payments || !usingNewCard || !order) return
+    let active = true
+    setLinkError('')
+    createPaymentLink(id, saveNewCard).then((res) => {
+      if (!active) return
+      if (res?.ok && res.url) { setFrameUrl(res.url); setLinkError('') }
+      else {
+        setFrameUrl('')
+        const reason = res?.detail || (typeof res?.error === 'string' ? res.error : res?.error?.message) || 'link_failed'
+        setLinkError(String(reason))
+      }
+    })
+    return () => { active = false }
+  }, [id, order, usingNewCard, saveNewCard])
+
+  // The hosted page redirects to /checkout/return on completion, which postMessages
+  // the result here. Re-verify server-side (never trust the client), then advance.
+  useEffect(() => {
+    if (!FEATURES.payments) return
+    function onMessage(e) {
+      if (e.origin !== window.location.origin) return
+      const d = e.data
+      if (!d || d.type !== 'yaad-payment-result' || !d.params) return
+      setPaying(true)
+      verifyPayment(id, d.params).then((res) => {
+        if (res.ok) {
+          showToast(t('consumer.checkout.success'), 'success')
+          navigate(`/order/${id}`, { replace: true })
+        } else {
+          setPaying(false)
+          showToast(t('consumer.checkout.error'), 'error')
+        }
+      })
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [id, navigate, showToast, t])
+
+  // Primary confirmation (web + native): the payment-callback Edge Function sets
+  // orders.paid_at server-side after Yaad verifies the charge. Watch this order's
+  // paid_at via realtime (+ a poll backstop) and advance to tracking the moment it
+  // flips — this is what makes the APK work, where the hosted page can't post back.
+  useEffect(() => {
+    if (!FEATURES.payments || !id) return
+    let done = false
+    const advance = () => {
+      if (done) return
+      done = true
+      showToast(t('consumer.checkout.success'), 'success')
+      navigate(`/order/${id}`, { replace: true })
+    }
+    const channel = supabase
+      .channel(`checkout-paid-${id}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
+        (payload) => { if (payload.new?.paid_at) advance() })
+      .subscribe()
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from('orders').select('paid_at').eq('id', id).maybeSingle()
+      if (data?.paid_at) advance()
+    }, 4000)
+    return () => { supabase.removeChannel(channel); clearInterval(poll) }
+  }, [id, navigate, showToast, t])
 
   async function handlePay() {
     if (!accepted || paying) return
@@ -240,6 +320,26 @@ export default function Checkout() {
               </GlassCard>
             )}
 
+            {/* ── Terms approval — gates the payment form / Pay button ── */}
+            <label className="flex items-start gap-2.5 px-1 pt-1 pb-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(e) => setAccepted(e.target.checked)}
+                aria-label={t('consumer.checkout.terms.aria')}
+                className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border-neutral-300 cursor-pointer accent-primary-600"
+              />
+              <span className="text-[12.5px] leading-snug text-ink-muted">
+                <Trans
+                  i18nKey="consumer.checkout.terms.label"
+                  components={{
+                    terms:   <Link to="/legal/terms" className="text-primary-600 font-medium underline" />,
+                    privacy: <Link to="/legal/privacy" className="text-primary-600 font-medium underline" />,
+                  }}
+                />
+              </span>
+            </label>
+
             {/* ── Secure payment (new card → hosted iframe) ── */}
             {usingNewCard && (
               <GlassCard className="p-4">
@@ -252,7 +352,11 @@ export default function Checkout() {
                   <span>{t('consumer.checkout.secureBody')}</span>
                 </p>
 
-                {PAYMENT_IFRAME_URL ? (
+                {payViaIframe && !accepted ? (
+                  <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-8 text-center">
+                    <p className="text-[13px] font-semibold text-ink">אשרו את תנאי השימוש למעלה כדי להמשיך לתשלום</p>
+                  </div>
+                ) : frameUrl ? (
                   // Scale-to-fit wrapper (see FORM_LOGICAL_* above). dir=ltr so the
                   // 390px iframe box anchors at the physical top-left and the scale
                   // transform aligns it flush in the column (the form's own RTL is
@@ -266,7 +370,7 @@ export default function Checkout() {
                     style={{ height: Math.round(FORM_LOGICAL_H * frameScale) }}
                   >
                     <iframe
-                      src={PAYMENT_IFRAME_URL}
+                      src={frameUrl}
                       title={t('consumer.checkout.secureTitle')}
                       allow="payment *"
                       style={{
@@ -279,6 +383,17 @@ export default function Checkout() {
                       }}
                     />
                   </div>
+                ) : FEATURES.payments ? (
+                  linkError ? (
+                    <div className="mt-3 rounded-2xl border border-dashed border-red-300 bg-red-50/60 px-4 py-6 text-center">
+                      <p className="text-[13px] font-semibold text-ink">לא הצלחנו לטעון את עמוד הסליקה</p>
+                      <p className="text-[11px] text-ink-muted mt-1 break-all" dir="ltr">{linkError}</p>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-2xl border border-glass-border bg-white px-4 py-10 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                    </div>
+                  )
                 ) : (
                   <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-6 text-center">
                     <p className="text-[13px] font-semibold text-ink">{t('consumer.checkout.terminalPending')}</p>
@@ -304,48 +419,32 @@ export default function Checkout() {
               </GlassCard>
             )}
 
-            {/* ── Terms approval (required before the transaction) ── */}
-            <label className="flex items-start gap-2.5 px-1 pt-1 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={accepted}
-                onChange={(e) => setAccepted(e.target.checked)}
-                aria-label={t('consumer.checkout.terms.aria')}
-                className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border-neutral-300 cursor-pointer accent-primary-600"
-              />
-              <span className="text-[12.5px] leading-snug text-ink-muted">
-                <Trans
-                  i18nKey="consumer.checkout.terms.label"
-                  components={{
-                    terms:   <Link to="/legal/terms" className="text-primary-600 font-medium underline" />,
-                    privacy: <Link to="/legal/privacy" className="text-primary-600 font-medium underline" />,
-                  }}
-                />
-              </span>
-            </label>
-
-            {/* ── Pay CTA ── */}
-            <MotionButton
-              onClick={handlePay}
-              disabled={!accepted || paying}
-              className="mt-1 h-[54px] w-full rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)]"
-            >
-              {paying ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {t('consumer.checkout.paying')}
-                </>
-              ) : (
-                <>
-                  <Lock className="h-[18px] w-[18px]" strokeWidth={2.4} />
-                  {t('consumer.checkout.payNow', { amount: total })}
-                </>
-              )}
-            </MotionButton>
-            {FEATURES.payments ? null : (
-              <p className="text-[10.5px] text-ink-muted/70 text-center px-2">
-                {t('consumer.checkout.scaffoldNote')}
-              </p>
+            {/* ── Pay CTA — hidden for the new-card iframe path (Hyp's own button pays) ── */}
+            {!payViaIframe && (
+              <>
+                <MotionButton
+                  onClick={handlePay}
+                  disabled={!accepted || paying}
+                  className="mt-1 h-[54px] w-full rounded-2xl border-none bg-gradient-to-b from-primary-500 to-primary-600 text-white font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(38,181,95,0.4)]"
+                >
+                  {paying ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      {t('consumer.checkout.paying')}
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-[18px] w-[18px]" strokeWidth={2.4} />
+                      {t('consumer.checkout.payNow', { amount: total })}
+                    </>
+                  )}
+                </MotionButton>
+                {FEATURES.payments ? null : (
+                  <p className="text-[10.5px] text-ink-muted/70 text-center px-2">
+                    {t('consumer.checkout.scaffoldNote')}
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}

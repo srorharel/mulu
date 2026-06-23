@@ -166,8 +166,19 @@ async function cmdSend(to, code = '123456') {
   report(ok, status, json, `Sent OTP template "${cfg.templateName}" (code ${code}) to ${toDigits(to)}.`)
 }
 
+// Read the WhatsApp Business Account's status — tells us whether template
+// creation is gated on business verification / account review.
+async function cmdInfo() {
+  need('token', 'wabaId')
+  const fields =
+    'id,name,account_review_status,business_verification_status,country,ownership_type,timezone_id,message_template_namespace'
+  const { ok, status, json } = await api(`${cfg.wabaId}?fields=${fields}`)
+  report(ok, status, json)
+}
+
 function usage() {
   console.error('Commands:')
+  console.error('  node scripts/whatsapp-setup.mjs info')
   console.error('  node scripts/whatsapp-setup.mjs test <to>')
   console.error('  node scripts/whatsapp-setup.mjs create-template')
   console.error('  node scripts/whatsapp-setup.mjs list-templates')
@@ -177,6 +188,7 @@ function usage() {
 
 const [cmd, ...rest] = process.argv.slice(2)
 const commands = {
+  info: cmdInfo,
   test: () => cmdTest(rest[0]),
   'create-template': cmdCreateTemplate,
   'list-templates': cmdListTemplates,
