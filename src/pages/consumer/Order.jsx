@@ -83,9 +83,10 @@ function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
 
 const EMPTY_LICENSE = { make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false }
 
-// Non-terminal order statuses. A consumer may not open a second order on the same
-// plate while one of these is in flight — mirrors the partial unique index
-// uniq_active_order_per_vehicle (migration 0131). Terminal = completed/cancelled.
+// Non-terminal order statuses. A real active wash is one of these AND paid
+// (paid_at set) — the same definition useConsumerActiveOrders / nearby_jobs use.
+// Mirrors the partial unique index uniq_active_order_per_vehicle (migration 0132).
+// Terminal = completed/cancelled.
 const LIVE_ORDER_STATUSES = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval']
 
 export default function ConsumerOrder() {
@@ -285,10 +286,12 @@ export default function ConsumerOrder() {
     submittingRef.current = true
     setSubmitting(true)
 
-    // One active wash per vehicle: refuse a second live order on the same plate
-    // until the current one finishes. Enforced atomically server-side by the
-    // partial unique index uniq_active_order_per_vehicle (0131); this pre-check
-    // just surfaces a clear message instead of a raw DB error.
+    // One active wash per vehicle: refuse a second wash on the same plate while a
+    // PAID one is still in flight. The `paid_at` filter is essential — the order row
+    // is created before payment, so an unpaid 'pending' draft (e.g. the customer
+    // backed out of checkout) is invisible to them and must NOT block re-booking.
+    // Matches uniq_active_order_per_vehicle (0132); the pre-check just surfaces a
+    // clear message instead of a raw DB error.
     if (licenseData.plate) {
       const { data: liveDup } = await supabase
         .from('orders')
@@ -296,6 +299,7 @@ export default function ConsumerOrder() {
         .eq('consumer_id', user.id)
         .eq('car_plate', licenseData.plate)
         .in('status', LIVE_ORDER_STATUSES)
+        .not('paid_at', 'is', null)
         .limit(1)
       if (liveDup && liveDup.length > 0) {
         submittingRef.current = false

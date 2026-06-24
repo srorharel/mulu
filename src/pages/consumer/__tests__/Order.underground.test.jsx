@@ -5,7 +5,7 @@ import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import en from '../../../i18n/locales/en.json'
 
-const { insertSpy, dupState } = vi.hoisted(() => ({ insertSpy: vi.fn(), dupState: { rows: [] } }))
+const { insertSpy, dupState } = vi.hoisted(() => ({ insertSpy: vi.fn(), dupState: { rows: [], notArgs: null } }))
 
 vi.mock('../../../lib/supabase.js', () => {
   const vehicles = { data: [], error: null }
@@ -15,12 +15,14 @@ vi.mock('../../../lib/supabase.js', () => {
     order:  () => vehiclesBuilder,
     then:   (cb) => Promise.resolve(vehicles).then(cb),
   }
-  // Duplicate-plate pre-check: orders.select().eq().eq().in().limit() resolves to
-  // the configurable dupState.rows (empty = no live order on this plate).
+  // Duplicate-plate pre-check: orders.select().eq().eq().in().not().limit() resolves
+  // to the configurable dupState.rows (empty = no PAID active wash on this plate).
+  // `.not()` records its args so a test can assert the paid_at filter is applied.
   const dupBuilder = {
     select: () => dupBuilder,
     eq:     () => dupBuilder,
     in:     () => dupBuilder,
+    not:    (...args) => { dupState.notArgs = args; return dupBuilder },
     limit:  () => Promise.resolve({ data: dupState.rows, error: null }),
   }
   return {
@@ -114,7 +116,7 @@ async function readyForm() {
   fireEvent.click(screen.getByText('stub-set-location'))
 }
 
-beforeEach(() => { insertSpy.mockClear(); dupState.rows = [] })
+beforeEach(() => { insertSpy.mockClear(); dupState.rows = []; dupState.notArgs = null })
 
 describe('ConsumerOrder — address / house number requirement', () => {
   it('blocks booking until the location is confirmed with a house number', async () => {
@@ -177,23 +179,35 @@ describe('ConsumerOrder — underground parking booking', () => {
 })
 
 describe('ConsumerOrder — one active order per vehicle', () => {
-  it('blocks a second booking on the same plate while one is live, and shows the message', async () => {
-    dupState.rows = [{ id: 'existing-live-order' }] // a live order already exists for this plate
+  it('blocks a second booking on the same plate while a PAID wash is live, and shows the message', async () => {
+    dupState.rows = [{ id: 'existing-paid-order' }] // a paid active wash already exists for this plate
     renderOrder()
     await readyForm()
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
-    // Pre-check finds a live order → no insert, the customer sees a clear message.
+    // Pre-check finds a paid live order → no insert, the customer sees a clear message.
     await waitFor(() =>
       expect(screen.getByText(/already have an active wash for this vehicle/i)).toBeInTheDocument(),
     )
     expect(insertSpy).not.toHaveBeenCalled()
   })
 
-  it('books normally when the vehicle has no live order', async () => {
-    dupState.rows = [] // no live order for this plate
+  it('books normally when the vehicle has no live wash', async () => {
+    dupState.rows = [] // no paid live order for this plate
     renderOrder()
     await readyForm()
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
     await waitFor(() => expect(insertSpy).toHaveBeenCalled())
+  })
+
+  it('only counts PAID orders — applies the paid_at filter so an unpaid draft does not block (reported bug)', async () => {
+    // An unpaid 'pending' draft is invisible to the customer; the pre-check must
+    // exclude it (paid_at IS NOT NULL), so re-booking the same plate still works.
+    dupState.rows = [] // the paid-only query finds nothing
+    renderOrder()
+    await readyForm()
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    await waitFor(() => expect(insertSpy).toHaveBeenCalled())
+    // The duplicate query filtered to paid orders only.
+    expect(dupState.notArgs).toEqual(['paid_at', 'is', null])
   })
 })
