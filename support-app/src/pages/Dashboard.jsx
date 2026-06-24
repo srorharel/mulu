@@ -369,7 +369,7 @@ export default function Dashboard() {
 
   const { conversationId: urlConvId } = useParams()
 
-  const { conversations, unassigned, mine, others, all, loading, fetchError, reload } = useAgentQueue(profile?.id)
+  const { conversations, unassigned, mine, others, all, closed, loading, fetchError, reload } = useAgentQueue(profile?.id)
   const [selectedConv, setSelectedConv] = useState(null)
   const [showMobileInfo, setShowMobileInfo] = useState(false)
 
@@ -449,14 +449,16 @@ export default function Dashboard() {
 
   // Auto-select conversation from URL on page load / refresh.
   useEffect(() => {
-    if (!urlConvId || loading || selectedConv?.id === urlConvId || !conversations.length) return
-    const conv = conversations.find(c => c.id === urlConvId)
+    if (!urlConvId || loading || selectedConv?.id === urlConvId) return
+    // Look in the active queue first, then the agent's closed history (deep links
+    // to a finished chat should still open it).
+    const conv = conversations.find(c => c.id === urlConvId) || closed.find(c => c.id === urlConvId)
     if (!conv) return
     if (!conv.assigned_agent_id) {
       claimConversation(conv.id).then(() => reload())
     }
     setSelectedConv({ ...conv, assigned_agent_id: conv.assigned_agent_id || profile?.id })
-  }, [urlConvId, loading, conversations]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [urlConvId, loading, conversations, closed]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSelect(conv) {
     if (!conv.assigned_agent_id) {
@@ -566,6 +568,7 @@ export default function Dashboard() {
               <QueueList
                 mine={mine}
                 others={others}
+                closed={closed}
                 agentId={profile?.id}
                 selectedId={latestConv?.id}
                 onSelect={handleSelect}

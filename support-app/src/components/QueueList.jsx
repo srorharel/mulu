@@ -51,6 +51,33 @@ function AssignedHeader({ count, collapsed, onToggle }) {
   )
 }
 
+// Group header for the agent's finished (resolved/closed) conversations — the
+// chats they handled, read-back history. Mirrors AssignedHeader.
+function ClosedHeader({ count, collapsed, onToggle }) {
+  const { t, i18n } = useTranslation()
+  return (
+    <button
+      data-testid="group-header-closed"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between px-[18px] py-2 mt-2 hover:bg-surface-elevated-2/40 transition-colors"
+      aria-expanded={!collapsed}
+      aria-label={t('queue.closed')}
+    >
+      <div className="flex items-center gap-2">
+        <ChevronDown
+          size={11}
+          className="text-ink-subtle transition-transform"
+          style={{ transform: collapsed ? 'rotate(-90deg)' : 'none' }}
+        />
+        <span className={`text-[11px] font-bold text-ink-muted ${i18n.language === 'en' ? 'uppercase tracking-[0.06em]' : 'font-semibold'}`}>
+          {t('queue.closed')}
+        </span>
+      </div>
+      <span className="text-[11px] font-bold text-ink-subtle">{count}</span>
+    </button>
+  )
+}
+
 // Sub-group header inside Assigned (Mine / Others — lower contrast)
 function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId }) {
   const { i18n } = useTranslation()
@@ -79,18 +106,20 @@ function SubGroupHeader({ label, count, countColor, collapsed, onToggle, testId 
   )
 }
 
-export default function QueueList({ mine, others, agentId, selectedId, onSelect, loading, fetchError, onRetry }) {
+export default function QueueList({ mine, others, closed = [], agentId, selectedId, onSelect, loading, fetchError, onRetry }) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState({
     assigned: false,
     mine:     false,
     others:   true,
+    closed:   true,
   })
 
   const q = search.trim().toLowerCase()
   const fMine   = filterConvs(mine, q)
   const fOthers = filterConvs(others, q)
+  const fClosed = filterConvs(closed, q)
 
   function toggle(key) {
     setCollapsed(s => ({ ...s, [key]: !s[key] }))
@@ -149,7 +178,7 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
               </button>
             )}
           </div>
-        ) : mine.length === 0 && others.length === 0 ? (
+        ) : mine.length === 0 && others.length === 0 && closed.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 h-48 px-6 text-center" data-testid="queue-empty">
             <MessageSquareOff className="h-8 w-8 text-ink-subtle/50" />
             <p className="text-sm font-semibold text-ink">{t('queue.empty')}</p>
@@ -158,53 +187,74 @@ export default function QueueList({ mine, others, agentId, selectedId, onSelect,
         ) : (
           <>
             {/* Assigned — wraps Mine + Others ────────────────────────── */}
-            <div>
-              <AssignedHeader
-                count={fMine.length + fOthers.length}
-                collapsed={collapsed.assigned}
-                onToggle={() => toggle('assigned')}
-              />
+            {(mine.length > 0 || others.length > 0) && (
+              <div>
+                <AssignedHeader
+                  count={fMine.length + fOthers.length}
+                  collapsed={collapsed.assigned}
+                  onToggle={() => toggle('assigned')}
+                />
 
-              {!collapsed.assigned && (
-                <>
-                  {/* Mine sub-group */}
-                  <SubGroupHeader
-                    testId="group-header-mine"
-                    label={t('queue.mine')}
-                    count={fMine.length}
-                    countColor="var(--color-agent)"
-                    collapsed={collapsed.mine}
-                    onToggle={() => toggle('mine')}
-                  />
-                  {!collapsed.mine && (
-                    <ItemList
-                      items={fMine}
-                      selectedId={selectedId}
-                      agentId={agentId}
-                      onSelect={onSelect}
+                {!collapsed.assigned && (
+                  <>
+                    {/* Mine sub-group */}
+                    <SubGroupHeader
+                      testId="group-header-mine"
+                      label={t('queue.mine')}
+                      count={fMine.length}
+                      countColor="var(--color-agent)"
+                      collapsed={collapsed.mine}
+                      onToggle={() => toggle('mine')}
                     />
-                  )}
+                    {!collapsed.mine && (
+                      <ItemList
+                        items={fMine}
+                        selectedId={selectedId}
+                        agentId={agentId}
+                        onSelect={onSelect}
+                      />
+                    )}
 
-                  {/* Others sub-group */}
-                  <SubGroupHeader
-                    testId="group-header-others"
-                    label={t('queue.others')}
-                    count={fOthers.length}
-                    countColor="var(--color-ink-subtle)"
-                    collapsed={collapsed.others}
-                    onToggle={() => toggle('others')}
-                  />
-                  {!collapsed.others && (
-                    <ItemList
-                      items={fOthers}
-                      selectedId={selectedId}
-                      agentId={agentId}
-                      onSelect={onSelect}
+                    {/* Others sub-group */}
+                    <SubGroupHeader
+                      testId="group-header-others"
+                      label={t('queue.others')}
+                      count={fOthers.length}
+                      countColor="var(--color-ink-subtle)"
+                      collapsed={collapsed.others}
+                      onToggle={() => toggle('others')}
                     />
-                  )}
-                </>
-              )}
-            </div>
+                    {!collapsed.others && (
+                      <ItemList
+                        items={fOthers}
+                        selectedId={selectedId}
+                        agentId={agentId}
+                        onSelect={onSelect}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Closed — the agent's resolved/closed history (collapsed by default) ── */}
+            {closed.length > 0 && (
+              <div>
+                <ClosedHeader
+                  count={fClosed.length}
+                  collapsed={collapsed.closed}
+                  onToggle={() => toggle('closed')}
+                />
+                {!collapsed.closed && (
+                  <ItemList
+                    items={fClosed}
+                    selectedId={selectedId}
+                    agentId={agentId}
+                    onSelect={onSelect}
+                  />
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

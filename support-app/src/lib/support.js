@@ -43,19 +43,39 @@ export async function markAgentRead(convId) {
   return supabase.rpc('mark_conversation_read', { p_conv_id: convId })
 }
 
+// Shared column projection for the agent queue + closed-history lists. Three FKs
+// to profiles (opener / counterparty / assigned_agent) must each be disambiguated
+// with the `!column` hint.
+const CONVERSATION_SELECT = `
+  id, status, subject, order_id, opener_role, last_message_at, last_message_body, created_at, updated_at,
+  opener_id, counterparty_id, assigned_agent_id,
+  opener_last_read_at, counterparty_last_read_at, agent_last_read_at,
+  opener:profiles!opener_id(id, full_name, role, phone),
+  counterparty:profiles!counterparty_id(id, full_name, role, phone),
+  agent:profiles!assigned_agent_id(id, full_name, agent_display_name)
+`
+
+// Active queue: conversations still needing / getting agent attention.
 export async function fetchConversations() {
   return supabase
     .from('support_conversations')
-    .select(`
-      id, status, subject, order_id, opener_role, last_message_at, last_message_body, created_at, updated_at,
-      opener_id, counterparty_id, assigned_agent_id,
-      opener_last_read_at, counterparty_last_read_at, agent_last_read_at,
-      opener:profiles!opener_id(id, full_name, role, phone),
-      counterparty:profiles!counterparty_id(id, full_name, role, phone),
-      agent:profiles!assigned_agent_id(id, full_name, agent_display_name)
-    `)
+    .select(CONVERSATION_SELECT)
     .in('status', ['pending_agent', 'assigned'])
     .order('last_message_at', { ascending: false, nullsFirst: false })
+}
+
+// An agent's finished conversations — the chats THEY handled and resolved/closed
+// (assigned_agent_id = them), so they can read back what was said. RLS already
+// lets any agent read these; the composer for a `closed` thread is gated in
+// ChatPane. Most-recently-finished first, capped so the history stays bounded.
+export async function fetchClosedConversations(agentId) {
+  return supabase
+    .from('support_conversations')
+    .select(CONVERSATION_SELECT)
+    .eq('assigned_agent_id', agentId)
+    .in('status', ['resolved', 'closed'])
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(100)
 }
 
 export async function fetchMessages(convId) {

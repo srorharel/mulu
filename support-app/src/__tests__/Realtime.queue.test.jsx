@@ -32,9 +32,11 @@ vi.mock('../lib/supabase.js', () => ({
 
 // fetchConversations returns different data on each call so we can observe changes
 const fetchConversationsMock = vi.fn()
+const fetchClosedConversationsMock = vi.fn()
 
 vi.mock('../lib/support.js', () => ({
   fetchConversations: (...args) => fetchConversationsMock(...args),
+  fetchClosedConversations: (...args) => fetchClosedConversationsMock(...args),
 }))
 
 function makeConv(id, assigned = null) {
@@ -54,7 +56,7 @@ function makeConv(id, assigned = null) {
 // ── Helper wrapper ───────────────────────────────────────────────────────────
 
 function QueueWrapper({ agentId }) {
-  const { unassigned, mine } = useAgentQueue(agentId)
+  const { unassigned, mine, closed } = useAgentQueue(agentId)
   return (
     <div>
       <ul data-testid="unassigned-list">
@@ -62,6 +64,9 @@ function QueueWrapper({ agentId }) {
       </ul>
       <ul data-testid="mine-list">
         {mine.map(c => <li key={c.id} data-testid={`mine-${c.id}`}>{c.id}</li>)}
+      </ul>
+      <ul data-testid="closed-list">
+        {closed.map(c => <li key={c.id} data-testid={`closed-${c.id}`}>{c.id}</li>)}
       </ul>
     </div>
   )
@@ -80,6 +85,7 @@ describe('useAgentQueue — realtime', () => {
     })
     mockChannel.subscribe.mockClear().mockReturnValue(mockChannel)
     fetchConversationsMock.mockClear()
+    fetchClosedConversationsMock.mockClear().mockResolvedValue({ data: [], error: null })
   })
 
   it('new unassigned conversation appears after realtime event triggers reload', async () => {
@@ -118,6 +124,21 @@ describe('useAgentQueue — realtime', () => {
     // Now in mine, not unassigned
     await waitFor(() => expect(screen.getByTestId('mine-conv-1')).toBeInTheDocument())
     expect(screen.queryByTestId('unassigned-conv-1')).not.toBeInTheDocument()
+  })
+
+  it('exposes the agent\'s resolved/closed conversations as `closed`', async () => {
+    fetchConversationsMock.mockResolvedValue({ data: [], error: null })
+    fetchClosedConversationsMock.mockResolvedValue({
+      data: [{ ...makeConv('conv-done', 'agent-1'), status: 'closed' }],
+      error: null,
+    })
+
+    render(<QueueWrapper agentId="agent-1" />)
+
+    // The agent's finished chat shows up in the closed-history list.
+    await waitFor(() => expect(screen.getByTestId('closed-conv-done')).toBeInTheDocument())
+    // And it is scoped to THIS agent (fetchClosedConversations called with the id).
+    expect(fetchClosedConversationsMock).toHaveBeenCalledWith('agent-1')
   })
 
   it('channel is subscribed to support_conversations on any event', async () => {

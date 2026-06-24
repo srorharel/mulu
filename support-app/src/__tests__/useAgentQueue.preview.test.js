@@ -15,6 +15,7 @@ vi.mock('../lib/supabase.js', () => ({
 
 vi.mock('../lib/support.js', () => ({
   fetchConversations: vi.fn(),
+  fetchClosedConversations: vi.fn(() => Promise.resolve({ data: [], error: null })),
 }))
 
 import { fetchConversations } from '../lib/support.js'
