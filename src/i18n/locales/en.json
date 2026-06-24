@@ -797,7 +797,8 @@
         "title": "Vehicle",
         "notProvided": "Vehicle info not provided",
         "plate": "Plate",
-        "color": "Color"
+        "color": "Color",
+        "viewPhotos": "View car photos"
       },
       "geofence": {
         "tooFar": "You need to be within 100m to arrive",

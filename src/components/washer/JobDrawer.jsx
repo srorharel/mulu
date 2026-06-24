@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } from 'framer-motion'
 import {
   MoonStar, Sparkles, ChevronRight, Loader2, Clock,
-  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera,
+  Car, MapPin, DollarSign, Key, XCircle, CheckCircle, MessageSquare, Camera, Images,
   Phone, ArrowLeft, Check, ParkingSquare, CloudOff, RotateCcw, Droplets, Flag,
 } from 'lucide-react'
 import IsraeliPlate from '../ui/IsraeliPlate.jsx'
@@ -387,6 +387,20 @@ function VehicleSection({ order }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Explicit "view car photos" action — opens the full-screen gallery of
+              the photos the customer took at booking. The vehicle card renders in
+              every wash stage, so this stays available throughout the whole job. */}
+          {lightboxUrls.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setLightboxIndex(0); setLightboxOpen(true) }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent-muted text-accent text-[13px] font-semibold border border-accent/20"
+            >
+              <Images className="h-4 w-4" />
+              {t('washer.drawer.vehicle.viewPhotos')}
+            </button>
           )}
         </>
       )}
