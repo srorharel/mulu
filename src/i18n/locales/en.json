@@ -284,6 +284,7 @@
       "outOfServiceArea": "Sorry, for now we only operate in Holon. We'll reach you soon.",
       "bookingSuccess": "Your wash is booked! Looking for a washer…",
       "bookingError": "Couldn't place your order. Check your connection and try again. If it keeps happening, contact support.",
+      "duplicateActiveOrder": "You already have an active wash for this vehicle. You can book a new one as soon as it's done.",
       "locationPrompt": {
         "title": "Enable location",
         "body": "Allow location access to auto-detect your address.",

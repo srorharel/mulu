@@ -83,6 +83,11 @@ function ConfirmedVehicleDisplay({ licenseData, onChangeVehicle, t }) {
 
 const EMPTY_LICENSE = { make: null, model: null, year: null, plate: null, color: null, category: null, isValid: false }
 
+// Non-terminal order statuses. A consumer may not open a second order on the same
+// plate while one of these is in flight — mirrors the partial unique index
+// uniq_active_order_per_vehicle (migration 0131). Terminal = completed/cancelled.
+const LIVE_ORDER_STATUSES = ['pending', 'accepted', 'en_route', 'arrived', 'in_progress', 'pending_approval']
+
 export default function ConsumerOrder() {
   const navigate        = useNavigate()
   const { user, profile } = useAuth()
@@ -280,6 +285,26 @@ export default function ConsumerOrder() {
     submittingRef.current = true
     setSubmitting(true)
 
+    // One active wash per vehicle: refuse a second live order on the same plate
+    // until the current one finishes. Enforced atomically server-side by the
+    // partial unique index uniq_active_order_per_vehicle (0131); this pre-check
+    // just surfaces a clear message instead of a raw DB error.
+    if (licenseData.plate) {
+      const { data: liveDup } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('consumer_id', user.id)
+        .eq('car_plate', licenseData.plate)
+        .in('status', LIVE_ORDER_STATUSES)
+        .limit(1)
+      if (liveDup && liveDup.length > 0) {
+        submittingRef.current = false
+        setSubmitting(false)
+        setError(t('consumer.home.duplicateActiveOrder'))
+        return
+      }
+    }
+
     const address_label = pin?.address_label
       ?? pinAddress
       ?? `${effectivePin.lat.toFixed(4)}, ${effectivePin.lng.toFixed(4)}`
@@ -323,7 +348,15 @@ export default function ConsumerOrder() {
 
     submittingRef.current = false
     setSubmitting(false)
-    if (dbError) { console.error('[MULU] booking failed:', dbError); setError(t('consumer.home.bookingError')); return }
+    if (dbError) {
+      console.error('[MULU] booking failed:', dbError)
+      // 23505 = the unique index caught a race: a live order for this plate was
+      // created between the pre-check and this insert. Show the specific message.
+      setError(dbError.code === '23505'
+        ? t('consumer.home.duplicateActiveOrder')
+        : t('consumer.home.bookingError'))
+      return
+    }
 
     // Order row created (status='pending'); the customer now reviews + pays on
     // the secure checkout page. No "booked" toast here — confirmation happens

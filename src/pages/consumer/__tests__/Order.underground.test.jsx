@@ -5,7 +5,7 @@ import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import en from '../../../i18n/locales/en.json'
 
-const { insertSpy } = vi.hoisted(() => ({ insertSpy: vi.fn() }))
+const { insertSpy, dupState } = vi.hoisted(() => ({ insertSpy: vi.fn(), dupState: { rows: [] } }))
 
 vi.mock('../../../lib/supabase.js', () => {
   const vehicles = { data: [], error: null }
@@ -15,11 +15,20 @@ vi.mock('../../../lib/supabase.js', () => {
     order:  () => vehiclesBuilder,
     then:   (cb) => Promise.resolve(vehicles).then(cb),
   }
+  // Duplicate-plate pre-check: orders.select().eq().eq().in().limit() resolves to
+  // the configurable dupState.rows (empty = no live order on this plate).
+  const dupBuilder = {
+    select: () => dupBuilder,
+    eq:     () => dupBuilder,
+    in:     () => dupBuilder,
+    limit:  () => Promise.resolve({ data: dupState.rows, error: null }),
+  }
   return {
     supabase: {
       from: (table) => {
         if (table === 'orders') {
           return {
+            ...dupBuilder,
             insert: (payload) => {
               insertSpy(payload)
               return { select: () => ({ single: () => Promise.resolve(order) }) }
@@ -105,7 +114,7 @@ async function readyForm() {
   fireEvent.click(screen.getByText('stub-set-location'))
 }
 
-beforeEach(() => { insertSpy.mockClear() })
+beforeEach(() => { insertSpy.mockClear(); dupState.rows = [] })
 
 describe('ConsumerOrder — address / house number requirement', () => {
   it('blocks booking until the location is confirmed with a house number', async () => {
@@ -164,5 +173,27 @@ describe('ConsumerOrder — underground parking booking', () => {
     const payload = insertSpy.mock.calls[0][0]
     expect(payload.is_underground_parking).toBe(true)
     expect(payload.access_notes).toBe('Garage level -2, spot 47')
+  })
+})
+
+describe('ConsumerOrder — one active order per vehicle', () => {
+  it('blocks a second booking on the same plate while one is live, and shows the message', async () => {
+    dupState.rows = [{ id: 'existing-live-order' }] // a live order already exists for this plate
+    renderOrder()
+    await readyForm()
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    // Pre-check finds a live order → no insert, the customer sees a clear message.
+    await waitFor(() =>
+      expect(screen.getByText(/already have an active wash for this vehicle/i)).toBeInTheDocument(),
+    )
+    expect(insertSpy).not.toHaveBeenCalled()
+  })
+
+  it('books normally when the vehicle has no live order', async () => {
+    dupState.rows = [] // no live order for this plate
+    renderOrder()
+    await readyForm()
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    await waitFor(() => expect(insertSpy).toHaveBeenCalled())
   })
 })
