@@ -44,11 +44,32 @@ Deno.serve(async (req) => {
   // so we must too, or send-notification 401s and the call push is silently dropped.
   const triggerSecret = Deno.env.get('TRIGGER_SECRET') ?? serviceKey
 
-  // Verify the caller is authenticated (we don't restrict who they call — that's
-  // already constrained by the app surfacing the button only on an active order).
+  // Verify the caller is authenticated.
   const admin = createClient(url, serviceKey)
   const { data: userData, error: userErr } = await admin.auth.getUser(jwt)
   if (userErr || !userData?.user) return jsonResponse({ ok: false, error: 'unauthorized' })
+  const fromId = userData.user.id
+
+  // Authorization: the caller and callee MUST be the two parties on the given
+  // order. Without this, any logged-in user could POST an arbitrary to_user_id +
+  // spoofed from_name and spam a victim with a fake "incoming call" banner. The
+  // app only ever calls between the consumer and washer of an active order, so
+  // requiring that relationship costs nothing legitimate.
+  if (!body.order_id) return jsonResponse({ ok: false, error: 'missing_order_id' })
+  const { data: order } = await admin
+    .from('orders')
+    .select('consumer_id, washer_id')
+    .eq('id', body.order_id)
+    .maybeSingle()
+  const parties = order ? [order.consumer_id, order.washer_id] : []
+  if (
+    !order ||
+    fromId === body.to_user_id ||
+    !parties.includes(fromId) ||
+    !parties.includes(body.to_user_id)
+  ) {
+    return jsonResponse({ ok: false, error: 'not_a_party' })
+  }
 
   // Fan out via send-notification (TRIGGER_SECRET bearer — see note above).
   const res = await fetch(`${url}/functions/v1/send-notification`, {
@@ -59,7 +80,7 @@ Deno.serve(async (req) => {
       event_type: 'incoming_call',
       data: {
         call_id: body.call_id ?? '',
-        from_id: userData.user.id,
+        from_id: fromId,
         from_name: body.from_name ?? '',
         order_id: body.order_id ?? '',
         sound: 'bell',

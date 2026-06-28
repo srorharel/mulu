@@ -39,6 +39,12 @@ export function toIsraeliE164(raw: string): string {
   return `+${digits}`
 }
 
+// Mask a phone number for logging: keep only the last 2 digits.
+function maskPhone(raw: string): string {
+  const s = raw || ''
+  return s.length <= 2 ? '**' : '*'.repeat(s.length - 2) + s.slice(-2)
+}
+
 // `code` is the raw 6-digit code. SMS providers send the full `body` text;
 // the WhatsApp provider ignores `body` and injects `code` into its approved
 // Authentication template (WhatsApp forbids free text for these messages).
@@ -62,7 +68,10 @@ export async function sendSms(
         return await sendGeneric(to, body, sender)
       case 'log':
       default:
-        console.log(`[sms:log] to=${to} sender=${sender} body=${body}`)
+        // Never log the OTP body or the full phone number — function logs are
+        // retained and the body contains the 6-digit code. Mask all but the last
+        // 2 digits and suppress the code entirely.
+        console.log(`[sms:log] to=${maskPhone(to)} sender=${sender} (code suppressed)`)
         return { ok: true, detail: 'logged (no provider configured)' }
     }
   } catch (e) {

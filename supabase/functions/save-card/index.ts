@@ -27,6 +27,18 @@ const admin = () => createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 )
 
+// Constant-time secret comparison. We compare SHA-256 digests so the loop runs
+// over fixed-length, unpredictable bytes — the comparison leaks no timing info
+// about the secret even though it isn't length-hidden at the string level.
+async function safeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder()
+  const ha = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(a)))
+  const hb = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(b)))
+  let diff = 0
+  for (let i = 0; i < ha.length; i++) diff |= ha[i] ^ hb[i]
+  return diff === 0
+}
+
 async function insertCard(card: {
   userId: string; provider: string; token: string
   brand?: string; last4?: string; expMonth?: number; expYear?: number
@@ -65,7 +77,8 @@ Deno.serve(async (req) => {
   // ── Mode 2: processor webhook (no user JWT, shared-secret authenticated) ──
   if (!jwt) {
     const secret = Deno.env.get('CLEARING_WEBHOOK_SECRET') ?? ''
-    if (!secret || req.headers.get('x-clearing-secret') !== secret) {
+    const presented = req.headers.get('x-clearing-secret') ?? ''
+    if (!secret || !(await safeEqual(presented, secret))) {
       return jsonResponse({ ok: false, error: 'unauthorized' })
     }
     const parsed = await parseTokenWebhook(req)

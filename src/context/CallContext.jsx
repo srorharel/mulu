@@ -171,7 +171,12 @@ export function CallProvider({ children }) {
   // Start an outgoing call to a peer (used by the call buttons).
   const startCall = useCallback(async ({ peerId, peerName, orderId }) => {
     if (!enabled || callRef.current || !peerId) return
-    const callId = `${orderId || 'x'}-${user.id.slice(0, 8)}-${Math.floor(Math.random() * 1e9)}`
+    // Unguessable per-call id (names the `call:<id>` Realtime channel). Use a
+    // CSPRNG, not Math.random, so a third party can't guess the channel name and
+    // attempt to observe/inject SDP/ICE. (Channel membership should also be
+    // authorized server-side via Realtime RLS — verify that in the dashboard.)
+    const rand = crypto.getRandomValues(new Uint32Array(2))
+    const callId = `${orderId || 'x'}-${user.id.slice(0, 8)}-${rand[0].toString(36)}${rand[1].toString(36)}`
     setCall({ callId, peerId, peerName, orderId, role: 'caller' })
     setCallState('ringing')
 
