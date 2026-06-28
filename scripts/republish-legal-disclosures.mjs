@@ -66,8 +66,18 @@ const mirrorPath = (f) => resolve(repoRoot, 'mulu-site-src', 'src', 'content', f
 const relPath    = (f) => `mulu-site-src/src/content/${f}`
 const norm       = (s) => s.replace(/\r\n/g, '\n').trim()
 
-function gitHead(relativePath) {
-  // Committed version of the file (old phone, no disclosures).
+function preDisclosureContent(relativePath, marker) {
+  // The disclosure may be committed (it was, in the audit commit) or still in the
+  // working tree. Either way, reconstruct the pre-disclosure file from the commit
+  // that INTRODUCED the marker, by reading that commit's PARENT version — which has
+  // the old phone and no disclosure. Found dynamically so no hash is hard-coded.
+  const commit = execFileSync('git', ['log', '-1', '--format=%H', `-S${marker}`, '--', relativePath],
+    { cwd: repoRoot, encoding: 'utf8' }).trim()
+  if (commit) {
+    return execFileSync('git', ['show', `${commit}^:${relativePath}`], { cwd: repoRoot, encoding: 'utf8' })
+  }
+  // Fallback: marker not found in history → it's an uncommitted working-tree edit,
+  // so HEAD is still the pre-disclosure version.
   return execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: repoRoot, encoding: 'utf8' })
 }
 
@@ -97,11 +107,11 @@ try {
     if (newContent.includes(OLD_PHONE)) { console.error(`  ✗  ${file}: mirror still contains ${OLD_PHONE} — aborting`); process.exit(1) }
 
     // Reconstruct the expected live-DB content WITHOUT transcribing the edits:
-    // committed mirror (old phone, no disclosures) with the phone swapped to NEW.
-    // That equals exactly what repoint-legal-phone.mjs published as v4.
-    const head = gitHead(relPath(file))
-    if (head.includes(marker)) { console.error(`  ✗  ${file}: HEAD already has the disclosure — this script assumes an un-committed addition; aborting`); process.exit(1) }
-    const expectedLive = head.split(OLD_PHONE).join(NEW_PHONE)
+    // the pre-disclosure file (old phone, no disclosures) with the phone swapped to
+    // NEW. That equals exactly what repoint-legal-phone.mjs published as v4.
+    const pre = preDisclosureContent(relPath(file), marker)
+    if (pre.includes(marker)) { console.error(`  ✗  ${file}: could not isolate a pre-disclosure version — aborting`); process.exit(1) }
+    const expectedLive = pre.split(OLD_PHONE).join(NEW_PHONE)
 
     const { rows } = await client.query(
       `select version, title, content from public.legal_documents
