@@ -4,7 +4,7 @@
 #  Apple / iOS:
 #   1. Teams > Integrations > App Store Connect: add an API key (Issuer ID, Key ID, .p8).
 #      Name it exactly "MULU ASC API Key" (referenced under integrations: below).
-#   2. App Store Connect: create the app with bundle id  com.sparklego.app
+#   2. App Store Connect: create the app with bundle id  com.muluwash.app
 #      and enable the *Push Notifications* capability on that App ID, plus an APNs key.
 #  Android / Play:
 #   3. Code signing identities > Android keystores: upload your upload keystore
@@ -29,7 +29,7 @@ workflows:
       node: 22
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.sparklego.app
+        bundle_identifier: com.muluwash.app
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"

@@ -4,7 +4,7 @@ App-store compliance reference for **MULU** (two-sided on-demand car-wash market
 Covers permission strings, Google Play Data Safety / Apple Privacy Label answers, account
 deletion, UGC moderation, and payments. Grounded in the current implementation.
 
-- **Android package:** `com.sparklego.app` (consumer + washer). Support app: `com.sparklego.support` (agents; not consumer-facing, internal distribution).
+- **Android package:** `com.muluwash.app` (consumer + washer). Support app: `com.muluwash.support` (agents; not consumer-facing, internal distribution).
 - **iOS:** `ios/` Capacitor target now exists (Capacitor 8, Swift Package Manager — no CocoaPods). The §3 usage strings are already in `ios/App/App/Info.plist`. Built via Codemagic CI (`codemagic.yaml`) since there's no Mac locally — see **IOS_SETUP.md**. ⚠️ iOS push still needs FCM↔APNs bridging (IOS_SETUP.md).
 - **Backend:** Supabase (Postgres + Storage + Auth + Realtime). Push via Firebase Cloud Messaging (FCM).
 - **Service model:** real-world physical car wash → **NOT** digital goods. Payments use an **external card processor**, not Apple/Google in-app purchase (see §7).

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.sparklego.support"
+    namespace = "com.muluwash.support"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.sparklego.support"
+        applicationId "com.muluwash.support"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

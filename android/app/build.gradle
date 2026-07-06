@@ -10,10 +10,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.sparklego.app"
+    namespace = "com.muluwash.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.sparklego.app"
+        applicationId "com.muluwash.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Overridable from CI so every Play upload gets a unique, increasing code:

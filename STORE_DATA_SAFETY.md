@@ -1,7 +1,7 @@
 # STORE_DATA_SAFETY.md — console fill-in guide
 
 Click-by-click answers for the **Google Play Data safety** form and **Apple App Privacy**
-("nutrition label") form for the MULU main app (`com.sparklego.app`). Derived from
+("nutrition label") form for the MULU main app (`com.muluwash.app`). Derived from
 `STORE_COMPLIANCE.md` §4/§5 and grounded in the current implementation.
 
 > ⚠️ **One row is still BLOCKED:** *Payment info*. It depends on the external card

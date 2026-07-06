@@ -1,4 +1,4 @@
-package com.sparklego.support;
+package com.muluwash.app;
 
 import com.getcapacitor.BridgeActivity;
 

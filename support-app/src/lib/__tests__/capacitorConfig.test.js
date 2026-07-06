@@ -9,11 +9,11 @@ const config = JSON.parse(readFileSync(configPath, 'utf-8'))
 
 describe('capacitor.config.json', () => {
   it('has the correct appId for support app', () => {
-    expect(config.appId).toBe('com.sparklego.support')
+    expect(config.appId).toBe('com.muluwash.support')
   })
 
   it('does not duplicate the main app appId', () => {
-    expect(config.appId).not.toBe('com.sparklego.app')
+    expect(config.appId).not.toBe('com.muluwash.app')
   })
 
   it('points webDir to dist', () => {

@@ -1,6 +1,6 @@
 # LAUNCH_CHECKLIST.md — MULU main app → Google Play + App Store
 
-Single ordered runbook for shipping the **consumer/washer app** (`com.sparklego.app`).
+Single ordered runbook for shipping the **consumer/washer app** (`com.muluwash.app`).
 Support + admin apps stay on Vercel and are out of scope. Ordered by dependency — do the
 sections top to bottom. `[x]` = done in the repo; `[ ]` = your action.
 
@@ -34,7 +34,8 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 ## 2. Build the upload artifacts
 
 - [x] **Android signed AAB:** rebuilt 2026-07-06 → `Mulu-release.aab` (7.9 MB,
-      versionCode 1321203, versionName 1.0.0, includes all security-audit commits).
+      versionCode 1321424, versionName 1.0.0) — under the NEW package id `com.muluwash.app`
+      (renamed from com.sparklego.app pre-first-upload; Firebase apps re-registered).
       Rebuild any time with `./release-android.ps1` (versionCode auto-increments).
 - [ ] **iOS build:** trigger Codemagic `ios-release` (needs §4 Apple setup first) → TestFlight.
 
@@ -62,7 +63,7 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 - [~] Apple Developer Program enrollment — paid, approval pending (2026-07-06). Codemagic app
       `sparklego` is connected (GitHub) with `codemagic.yaml` detected; only the ASC API key +
       ASC app creation remain once Apple approves.
-- [ ] Create app in ASC with bundle id `com.sparklego.app`.
+- [ ] Create app in ASC with bundle id `com.muluwash.app`.
 - [ ] Codemagic → add App Store Connect API key integration named exactly **`MULU ASC API Key`**.
 - [ ] (For push later) Enable Push Notifications capability + APNs key on the App ID.
 - [ ] **App Privacy** form — use `STORE_DATA_SAFETY.md §B`.

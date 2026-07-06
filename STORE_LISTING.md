@@ -3,7 +3,7 @@
 Ready-to-paste store-listing copy and form answers for **MULU**. Companion to `STORE_COMPLIANCE.md` (which has the policy reasoning). Hebrew-first (primary market: Israel); English provided for the en locale / US storefront.
 
 - **App name:** MULU
-- **Bundle id / package:** `com.sparklego.app`
+- **Bundle id / package:** `com.muluwash.app`
 - **Category:** Google Play → *Auto & Vehicles*; Apple → *Lifestyle*
 - **Privacy Policy URL:** `https://muluwash.com/legal/privacy`
 - **Support URL / email:** `https://muluwash.com` · `support@muluwash.com`

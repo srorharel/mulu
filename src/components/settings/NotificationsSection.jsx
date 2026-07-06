@@ -71,7 +71,7 @@ export default function NotificationsSection() {
 
   async function handleOpenSettings() {
     const url = Capacitor.getPlatform() === 'android'
-      ? 'package:com.sparklego.app'
+      ? 'package:com.muluwash.app'
       : 'app-settings:'
     await App.openUrl({ url })
   }

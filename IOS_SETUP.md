@@ -2,7 +2,7 @@
 
 How to build, sign, and ship the **MULU** iOS app **without owning a Mac** (builds run on Codemagic's cloud Macs). Companion to `STORE_COMPLIANCE.md`.
 
-- **Bundle id:** `com.sparklego.app` (same as Android; must match the App Store Connect app)
+- **Bundle id:** `com.muluwash.app` (same as Android; must match the App Store Connect app)
 - **Capacitor:** 8.x, **Swift Package Manager** (no CocoaPods / `pod install`)
 - **Project:** `ios/App/App.xcodeproj`, scheme `App`
 - **CI:** `codemagic.yaml` → workflow `ios-release`
@@ -18,7 +18,7 @@ The `ios/` target is already scaffolded and committed. Web assets (`ios/App/App/
 
 ## 2. Apple-side setup (you, once)
 1. **Enroll** in the Apple Developer Program — as an **organization** (needs a D‑U‑N‑S number), to match the business listing. ($99/yr.)
-2. In **App Store Connect**, create the app with bundle id `com.sparklego.app`.
+2. In **App Store Connect**, create the app with bundle id `com.muluwash.app`.
 3. On the **App ID** (Certificates, Identifiers & Profiles), enable the **Push Notifications** capability.
 4. Create an **APNs Auth Key** (`.p8`) — needed for push (and later for FCM, see §5).
 5. Fill the **App Privacy** form using `STORE_COMPLIANCE.md §5` (no tracking; all data "linked to you", used for app functionality/support).
@@ -26,7 +26,7 @@ The `ios/` target is already scaffolded and committed. Web assets (`ios/App/App/
 
 ## 3. Codemagic setup (you, once — in the Codemagic UI)
 1. **Teams → Integrations → App Store Connect:** add an API key (Issuer ID, Key ID, `.p8`). Name it **`MULU ASC API Key`** (referenced in `codemagic.yaml`).
-2. Connect the repo, pick the `ios-release` workflow, and run it. With the App Store Connect integration + `ios_signing: { distribution_type: app_store, bundle_identifier: com.sparklego.app }`, Codemagic fetches/creates the signing cert + provisioning profile automatically.
+2. Connect the repo, pick the `ios-release` workflow, and run it. With the App Store Connect integration + `ios_signing: { distribution_type: app_store, bundle_identifier: com.muluwash.app }`, Codemagic fetches/creates the signing cert + provisioning profile automatically.
 3. Successful builds upload to **TestFlight** (`submit_to_testflight: true`). Install via the TestFlight app to test on a real iPhone (your no-Mac test path).
 
 For Android in the same file (`android-release`): upload your upload keystore under **Code signing identities → Android keystores** with reference name **`mulu_keystore`**.
@@ -46,7 +46,7 @@ raw **APNs** token, but FCM needs an **FCM registration** token. Fix = obtain th
 token on iOS and store *that* in `device_tokens` (platform `'ios'`).
 
 Exact steps:
-1. In the **Firebase console**, add an **iOS app** (bundle id `com.sparklego.app`),
+1. In the **Firebase console**, add an **iOS app** (bundle id `com.muluwash.app`),
    upload your **APNs Auth Key** (`.p8`) under Cloud Messaging, and download
    `GoogleService-Info.plist`. Add it to the iOS app — it's gitignored, so provide it
    to Codemagic as a secure environment file (or keep it in a private store).
@@ -75,7 +75,7 @@ Then commit `ios/` changes and let Codemagic build.
 
 ## 7. Remaining iOS checklist
 - [ ] Apple Developer org enrollment + D‑U‑N‑S
-- [ ] App Store Connect app (`com.sparklego.app`) + Push Notifications capability + APNs key
+- [ ] App Store Connect app (`com.muluwash.app`) + Push Notifications capability + APNs key
 - [ ] Codemagic App Store Connect API key integration (`MULU ASC API Key`)
 - [ ] First `ios-release` build → TestFlight, install + smoke-test on iPhone
 - [ ] FCM↔APNs bridging (§5) so iOS push delivers

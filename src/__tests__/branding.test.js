@@ -1,6 +1,6 @@
 // Branding guard — the consumer/washer app must display as "MULU".
 // Regression intent: the *display name* is MULU everywhere, while the bundle id
-// (com.sparklego.app) must NEVER change — renaming it breaks installs and the
+// (com.muluwash.app) must NEVER change — renaming it breaks installs and the
 // Play Store listing. i18n KEYS (newToWash, etc.) are code identifiers and stay;
 // only their human-facing VALUES are rebranded. We deliberately do NOT assert a
 // global absence of "Wash" — washer/washing/"a wash" are domain vocabulary.
@@ -25,7 +25,7 @@ describe('branding — main app display name is MULU', () => {
     const cfg = json(root('capacitor.config.json'))
     expect(cfg.appName).toBe('MULU')
     // Bundle id must NOT change — guards against an accidental rename.
-    expect(cfg.appId).toBe('com.sparklego.app')
+    expect(cfg.appId).toBe('com.muluwash.app')
   })
 
   it('PWA manifest name + short_name are MULU', () => {

@@ -42,8 +42,8 @@ Three separate Vite apps, auth-isolated by Supabase `storageKey`:
 
 | App | Path | Port | Users | storageKey | Native |
 |-----|------|------|-------|-----------|--------|
-| Main | `src/` | 3000 | consumer + washer | SDK default | Capacitor 8 `com.sparklego.app` (Android + iOS) |
-| Support | `support-app/src/` | 3001 | agent | `wash-support-auth` | Capacitor 8 `com.sparklego.support` (Android, internal) |
+| Main | `src/` | 3000 | consumer + washer | SDK default | Capacitor 8 `com.muluwash.app` (Android + iOS) |
+| Support | `support-app/src/` | 3001 | agent | `wash-support-auth` | Capacitor 8 `com.muluwash.support` (Android, internal) |
 | Admin | `admin-app/src/` | 3002 | super_admin | `wash-admin-auth` | web-only (Vercel) |
 
 Roles (`profiles.role`): `consumer`, `washer`, `agent`, `super_admin`.

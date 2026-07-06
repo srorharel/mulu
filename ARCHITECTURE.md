@@ -197,7 +197,7 @@ Supabase Realtime channels drive live UX:
 
 ## Mobile (Capacitor)
 
-`capacitor.config.json` wraps the `dist/` web build as `com.sparklego.app`. `src/hooks/useGeolocation.js` falls back to Capacitor's native geolocation API when the browser API is unavailable. Build APK via `update.ps1` or Android Studio; output is `wash-latest.apk` in the project root. The APK (and the support APK) both carry the `content_overrides` + `design_overrides` loaders, so admin edits propagate to native users on next app open without requiring a Play Store push.
+`capacitor.config.json` wraps the `dist/` web build as `com.muluwash.app`. `src/hooks/useGeolocation.js` falls back to Capacitor's native geolocation API when the browser API is unavailable. Build APK via `update.ps1` or Android Studio; output is `wash-latest.apk` in the project root. The APK (and the support APK) both carry the `content_overrides` + `design_overrides` loaders, so admin edits propagate to native users on next app open without requiring a Play Store push.
 
 ## Support App Deployment
 
@@ -212,7 +212,7 @@ The support-app deploys **two ways**: Vercel (web) and Capacitor (Android APK). 
 - See `support-app/README.md` for one-time Vercel dashboard setup steps. The admin app follows the same pattern with Root Directory `admin-app` and `storageKey: 'wash-admin-auth'`; admin has no Android/Capacitor pipeline.
 
 **Capacitor (Android):**
-- **appId:** `com.sparklego.support` (main app is `com.sparklego.app`)
+- **appId:** `com.muluwash.support` (main app is `com.muluwash.app`)
 - All artifacts live in `support-app/`: config at `support-app/capacitor.config.json`, Android project at `support-app/android/`
 - **Build:** `cd support-app && npm run android:sync` then `cd android && gradlew assembleDebug`
 - **Output:** `support-app/android/app/build/outputs/apk/debug/app-debug.apk`

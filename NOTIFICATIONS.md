@@ -8,7 +8,7 @@
 
 **v1: Capacitor native only.**
 
-Push notifications are delivered exclusively through the Capacitor native build (`com.sparklego.app`). PWA users (browser-only) receive no push notifications in v1.
+Push notifications are delivered exclusively through the Capacitor native build (`com.muluwash.app`). PWA users (browser-only) receive no push notifications in v1.
 
 Rationale: Web Push on iOS PWA requires iOS 16.4+ and a `start_url` scope match, is unreliable in practice, and adds significant complexity. Not worth the complexity for v1 with an existing native build path.
 
@@ -249,7 +249,7 @@ Deferred. `notification_log` data exists but no UI to surface it.
 ### iOS Native Build
 
 Deferred until `ios/` folder is initialized via `npx cap add ios`. When that happens:
-1. Create Firebase project app for iOS bundle ID `com.sparklego.app`.
+1. Create Firebase project app for iOS bundle ID `com.muluwash.app`.
 2. Download `GoogleService-Info.plist` → place in `ios/App/App/`.
 3. Enable Push Notifications capability in Xcode (Signing & Capabilities tab).
 4. Configure APNs key in Firebase Console (Apple Developer account required).
@@ -275,7 +275,7 @@ Deferred. Badge count (the number shown on the app icon) requires tracking unrea
 
 1. Go to [console.firebase.google.com](https://console.firebase.google.com) and create a new project (or reuse an existing one).
 2. Inside the project, click **Add app → Android**.
-3. Register the package name exactly as: **`com.sparklego.app`**
+3. Register the package name exactly as: **`com.muluwash.app`**
    — This matches `appId` in `capacitor.config.json`. The display name is now `MULU` (SparkleGo → Wash → MULU); the package ID was deliberately left unchanged for install-update continuity on existing devices.
 4. Download `google-services.json` and place it at:
    ```

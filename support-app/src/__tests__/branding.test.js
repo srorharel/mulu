@@ -1,6 +1,6 @@
 // Branding guard — the agent support app must display as "MULU Support".
 // Regression intent: display name is "MULU Support" while the bundle id
-// (com.sparklego.support) must NEVER change. The auth storageKey
+// (com.muluwash.support) must NEVER change. The auth storageKey
 // (wash-support-auth) is intentionally NOT touched — renaming it logs every
 // agent out — so this guard only covers user-visible display strings.
 import { describe, it, expect } from 'vitest'
@@ -24,7 +24,7 @@ describe('branding — support app display name is MULU Support', () => {
     const cfg = json(root('capacitor.config.json'))
     expect(cfg.appName).toBe('MULU Support')
     // Bundle id must NOT change — guards against an accidental rename.
-    expect(cfg.appId).toBe('com.sparklego.support')
+    expect(cfg.appId).toBe('com.muluwash.support')
   })
 
   it('footer copyright is rebranded to MULU (he + en)', () => {
