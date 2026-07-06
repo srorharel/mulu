@@ -27,7 +27,7 @@ import { VAT_RATE } from '../../lib/pricing.js'
 import { useOrderUnreadCount } from '../../hooks/useOrderUnreadCount.js'
 import { resizeToBlob, MAX_BYTES } from '../../lib/imageResize.js'
 import { useOfflineSync } from '../../hooks/useOfflineSync.js'
-import { putDraftAngle, commitCapture, getCapturesByOrder } from '../../lib/offlineSync/engine.js'
+import { putDraftAngle, commitCapture, getCapturesByOrder, deleteCapturesByOrder } from '../../lib/offlineSync/engine.js'
 
 const SPRING        = { type: 'spring', stiffness: 300, damping: 32 }
 const TOGGLE_SPRING = { type: 'spring', stiffness: 500, damping: 40 }
@@ -1022,6 +1022,10 @@ export default function JobDrawer({ jobs, loading, selectedJobId, online, onTogg
     cancellingRef.current = false
     setCancelling(false)
     if (error) { showToast(error.message, 'error'); return }
+    // Release cleared the arrival photos server-side — purge any queued offline
+    // captures too, or their customer-photo blobs would sit in IndexedDB forever
+    // (the replay engine could only retry them, never apply them).
+    deleteCapturesByOrder(activeJob.id).catch(() => {})
     onJobDone()
   }
 

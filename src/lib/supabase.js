@@ -35,7 +35,11 @@ const stubClient = {
   },
   from: () => { throw new Error(CONFIG_MSG) },
   rpc: () => Promise.reject(new Error(CONFIG_MSG)),
-  channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
+  // Chainable so multi-listener channels (.on().on().subscribe()) don't throw.
+  channel: () => {
+    const chan = { on: () => chan, subscribe: () => chan, send: () => Promise.resolve() }
+    return chan
+  },
   removeChannel: () => {},
 }
 

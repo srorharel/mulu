@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
   // Active challenge = newest non-expired row.
   const { data: rows } = await admin
     .from('phone_verifications')
-    .select('id, code_hash, attempts, expires_at')
+    .select('id, phone, code_hash, attempts, expires_at')
     .eq('user_id', userId)
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
@@ -68,11 +68,31 @@ Deno.serve(async (req) => {
   if (!challenge) return jsonResponse({ verified: false, error: 'expired' })
   if (challenge.attempts >= MAX_ATTEMPTS) return jsonResponse({ verified: false, error: 'locked' })
 
+  // The code was SENT to challenge.phone — it only proves ownership of THAT
+  // number. If the profile phone changed since (editable in Profile), stamping
+  // would "verify" a number the user never received a code on.
+  const { data: prof } = await admin
+    .from('profiles')
+    .select('phone')
+    .eq('id', userId)
+    .single()
+  if (!prof?.phone || prof.phone !== challenge.phone) {
+    return jsonResponse({ verified: false, error: 'phone_changed' })
+  }
+
+  // Claim an attempt slot ATOMICALLY before comparing — N parallel requests
+  // otherwise all read the same counter, each learns a compare result, and
+  // together they exceed MAX_ATTEMPTS. The .eq('attempts', …) is a CAS: only
+  // one concurrent request wins the slot; losers are told to retry.
+  const { data: claimed } = await admin.from('phone_verifications')
+    .update({ attempts: challenge.attempts + 1 })
+    .eq('id', challenge.id)
+    .eq('attempts', challenge.attempts)
+    .select('id')
+  if (!claimed?.length) return jsonResponse({ verified: false, error: 'retry' })
+
   const candidate = await sha256hex(`${code}:${userId}:${salt}`)
   if (candidate !== challenge.code_hash) {
-    await admin.from('phone_verifications')
-      .update({ attempts: challenge.attempts + 1 })
-      .eq('id', challenge.id)
     return jsonResponse({
       verified: false,
       error: 'wrong_code',

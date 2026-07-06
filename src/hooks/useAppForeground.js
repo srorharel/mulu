@@ -19,13 +19,18 @@ export function useAppForeground(onForeground) {
     const onVisible = () => { if (document.visibilityState === 'visible') onForeground() }
     document.addEventListener('visibilitychange', onVisible)
 
+    // addListener resolves async — if the effect cleans up before it resolves,
+    // the handle lands after cleanup and would leak (firing a stale callback on
+    // every foregrounding). Same race useGeolocation guards against.
     let appListener
+    let cleanedUp = false
     if (Capacitor.isNativePlatform()) {
       App.addListener('appStateChange', ({ isActive }) => { if (isActive) onForeground() })
-        .then(l => { appListener = l })
+        .then(l => { if (cleanedUp) l.remove(); else appListener = l })
     }
 
     return () => {
+      cleanedUp = true
       document.removeEventListener('visibilitychange', onVisible)
       appListener?.remove()
     }

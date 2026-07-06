@@ -33,19 +33,29 @@ export function CallProvider({ children }) {
   const [speakerOn, setSpeakerOn]  = useState(true)
   const [durationSec, setDuration] = useState(0)
 
-  const pcRef          = useRef(null)
-  const localStreamRef = useRef(null)
-  const callChanRef    = useRef(null)
-  const remoteAudioRef = useRef(null)
-  const pendingIceRef  = useRef([])
-  const callRef        = useRef(null)
-  const durationTimer  = useRef(null)
+  const pcRef           = useRef(null)
+  const localStreamRef  = useRef(null)
+  const callChanRef     = useRef(null)
+  const remoteAudioRef  = useRef(null)
+  const pendingIceRef   = useRef([])
+  const callRef         = useRef(null)
+  const callStateRef    = useRef('idle')
+  const durationTimer   = useRef(null)
+  const disconnectTimer = useRef(null)
 
-  callRef.current = call
+  callRef.current      = call
+  callStateRef.current = callState
+
+  // `call` intentionally stays set during the 1.5s ended/failed flash, so
+  // "is a call live" must also consult the state — otherwise the flash window
+  // silently blocks new outgoing calls and drops incoming rings.
+  const isLiveCall = () =>
+    !!callRef.current && !['idle', 'ended', 'failed'].includes(callStateRef.current)
 
   // ── Teardown ────────────────────────────────────────────────────────────────
   const cleanup = useCallback((finalState = 'idle') => {
-    if (durationTimer.current) { clearInterval(durationTimer.current); durationTimer.current = null }
+    if (durationTimer.current)   { clearInterval(durationTimer.current);  durationTimer.current = null }
+    if (disconnectTimer.current) { clearTimeout(disconnectTimer.current); disconnectTimer.current = null }
     try { pcRef.current?.close() } catch { /* noop */ }
     pcRef.current = null
     localStreamRef.current?.getTracks().forEach((t) => t.stop())
@@ -61,10 +71,12 @@ export function CallProvider({ children }) {
       setCall(null)
     } else {
       // Brief "ended/failed" flash, then reset — but only if a new call hasn't
-      // started in the meantime.
+      // started in the meantime. Compare against the call that just ended (a
+      // ref comparison would match the NEW call too and wrongly clear it).
+      const endedCall = callRef.current
       setTimeout(() => {
         setCallState((s) => (s === finalState ? 'idle' : s))
-        setCall((c) => (callRef.current === c ? null : c))
+        setCall((c) => (c === endedCall ? null : c))
       }, 1500)
     }
   }, [])
@@ -105,14 +117,26 @@ export function CallProvider({ children }) {
     pc.onconnectionstatechange = () => {
       const s = pc.connectionState
       if (s === 'connected') {
+        // A recovered blip cancels the pending disconnect teardown.
+        if (disconnectTimer.current) { clearTimeout(disconnectTimer.current); disconnectTimer.current = null }
         setCallState('connected')
         if (!durationTimer.current) {
           durationTimer.current = setInterval(() => setDuration((d) => d + 1), 1000)
         }
       } else if (s === 'failed') {
         cleanup('failed')
-      } else if (s === 'disconnected' || s === 'closed') {
+      } else if (s === 'closed') {
         cleanup('ended')
+      } else if (s === 'disconnected') {
+        // Per spec 'disconnected' is recoverable (Wi-Fi → cellular handoff,
+        // ICE consent blip) — give it a grace window instead of killing the
+        // call instantly; 'failed' means it's truly gone.
+        if (!disconnectTimer.current) {
+          disconnectTimer.current = setTimeout(() => {
+            disconnectTimer.current = null
+            if (pcRef.current === pc && pc.connectionState === 'disconnected') cleanup('ended')
+          }, 7000)
+        }
       }
     }
     return pc
@@ -170,7 +194,7 @@ export function CallProvider({ children }) {
 
   // Start an outgoing call to a peer (used by the call buttons).
   const startCall = useCallback(async ({ peerId, peerName, orderId }) => {
-    if (!enabled || callRef.current || !peerId) return
+    if (!enabled || isLiveCall() || !peerId) return
     // Unguessable per-call id (names the `call:<id>` Realtime channel). Use a
     // CSPRNG, not Math.random, so a third party can't guess the channel name and
     // attempt to observe/inject SDP/ICE. (Channel membership should also be
@@ -191,6 +215,12 @@ export function CallProvider({ children }) {
     // Ring the callee on their personal inbox channel.
     const inbox = supabase.channel(`user-calls:${peerId}`)
     inbox.subscribe((status) => {
+      // A failed subscribe must still release the channel — supabase-js keeps
+      // it registered and retrying otherwise, leaking one per failed attempt.
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        supabase.removeChannel(inbox)
+        return
+      }
       if (status !== 'SUBSCRIBED') return
       inbox.send({
         type: 'broadcast',
@@ -270,7 +300,7 @@ export function CallProvider({ children }) {
     if (!enabled) return undefined
     const inbox = supabase.channel(`user-calls:${user.id}`)
     inbox.on('broadcast', { event: 'ring' }, ({ payload }) => {
-      if (callRef.current) return // already on a call — ignore
+      if (isLiveCall()) return // already on a call — ignore
       setCall({
         callId: payload.callId,
         peerId: payload.fromId,
@@ -306,6 +336,21 @@ export function CallProvider({ children }) {
     return () => stopRing()
   }, [callState])
 
+  // Safety timeouts. Without these: an outgoing ring the callee never answers
+  // rings forever; an incoming ring whose caller app died (no hangup broadcast
+  // ever arrives — e.g. a stale notification tap) rings/vibrates forever; a
+  // connect against a long-gone peer spins forever.
+  useEffect(() => {
+    if (!['ringing', 'incoming', 'connecting'].includes(callState)) return undefined
+    const ms = callState === 'connecting' ? 30000 : 45000
+    const timer = setTimeout(() => {
+      const c = callRef.current
+      if (c && callState === 'ringing') sendSignal(c.callId, 'hangup', {})
+      cleanup(callState === 'connecting' ? 'failed' : 'ended')
+    }, ms)
+    return () => clearTimeout(timer)
+  }, [callState, cleanup, sendSignal])
+
   // Tapping a backgrounded/closed incoming-call notification reconstructs the
   // call here — the original Realtime `ring` broadcast was missed while the app
   // was down. notifications.js dispatches 'mulu:incoming-call' on that tap.
@@ -313,7 +358,7 @@ export function CallProvider({ children }) {
     if (!enabled) return undefined
     const onIncoming = (e) => {
       const { callId, from, fromId } = e.detail || {}
-      if (!callId || callRef.current) return
+      if (!callId || isLiveCall()) return
       setCall({ callId, peerId: fromId || null, peerName: from || '', orderId: null, role: 'callee' })
       setCallState('incoming')
       joinCallChannel(callId, 'callee')

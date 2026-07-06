@@ -152,7 +152,9 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
             {openerRole && (
               <span
                 className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
-                style={{ color: roleColor, background: `${roleColor}1f`, letterSpacing: '0.04em' }}
+                // color-mix works for var() colors too — appending a hex alpha
+                // ("var(--color-accent)1f") is invalid CSS and drops the tint.
+                style={{ color: roleColor, background: `color-mix(in srgb, ${roleColor} 12%, transparent)`, letterSpacing: '0.04em' }}
               >
                 {openerRole === 'consumer' ? t('role.consumer') : openerRole === 'washer' ? t('role.washer') : openerRole}
               </span>
@@ -230,11 +232,14 @@ export default function ChatPane({ conversation, onConvUpdate, onOrderChipClick,
               message={item.msg}
               isOwn={item.msg.sender_id === profile?.id}
               showSeen={item.msg.sender_id === profile?.id && messages[messages.length - 1]?.id === item.msg.id}
-              seenAt={
-                item.msg.sender_role === 'agent'
+              seenAt={(() => {
+                const seen = item.msg.sender_role === 'agent'
                   ? conversation.opener_last_read_at
                   : conversation.agent_last_read_at
-              }
+                // A read receipt OLDER than the message means the reader has
+                // not seen THIS message — showing it would fake a "Seen".
+                return seen && new Date(seen) >= new Date(item.msg.created_at) ? seen : null
+              })()}
             />
           )
         )}

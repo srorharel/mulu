@@ -266,7 +266,7 @@ export const resources = {
         tickets: {
           title: 'פניות תמיכה',
           empty: 'אין פניות פתוחות',
-          reason: { low_rating: 'דירוג נמוך (1★)' },
+          reason: { low_rating: 'דירוג נמוך (1★)', manual: 'הסלמה ידנית' },
           status: { open: 'פתוחה', in_progress: 'בטיפול', resolved: 'טופלה' },
         },
       },
@@ -639,7 +639,7 @@ export const resources = {
         tickets: {
           title: 'Support tickets',
           empty: 'No open tickets',
-          reason: { low_rating: 'Low rating (1★)' },
+          reason: { low_rating: 'Low rating (1★)', manual: 'Manual escalation' },
           status: { open: 'Open', in_progress: 'In progress', resolved: 'Resolved' },
         },
       },

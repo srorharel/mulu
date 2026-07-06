@@ -40,7 +40,7 @@ export default function Checkout() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const showToast = useToast()
-  const { cards } = useSavedCards()
+  const { cards, loading: cardsLoading } = useSavedCards()
 
   const [order, setOrder]     = useState(null)
   const [loading, setLoading] = useState(true)
@@ -75,25 +75,31 @@ export default function Checkout() {
     setLoading(true)
     supabase
       .from('orders')
-      .select('id, status, service_type, car_type, car_make, car_model, car_year, car_color, car_plate, address_label, address_city, total_price')
+      .select('id, status, paid_at, service_type, car_type, car_make, car_model, car_year, car_color, car_plate, address_label, address_city, total_price')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
         if (!active) return
         if (error || !data) { setNotFound(true); setLoading(false); return }
-        if (data.status !== 'pending') { navigate(`/order/${id}`, { replace: true }); return }
+        // A paid order stays 'pending' until a washer accepts — re-entering
+        // checkout for it (browser back, History link) must not re-show the
+        // payment form for an already-charged order.
+        if (data.status !== 'pending' || data.paid_at) { navigate(`/order/${id}`, { replace: true }); return }
         setOrder(data)
         setLoading(false)
       })
     return () => { active = false }
   }, [id, navigate])
 
-  // Pick the initial payment method once saved cards have loaded.
+  // Pick the initial payment method once saved cards have loaded. Must wait for
+  // the async load — on mount cards is [] while loading, and deciding then would
+  // lock in 'new' and never preselect the user's default card.
   useEffect(() => {
     if (method !== null) return
+    if (FEATURES.payments && cardsLoading) return
     if (hasSavedCards) setMethod((cards.find((c) => c.is_default) ?? cards[0]).id)
     else setMethod('new')
-  }, [cards, hasSavedCards, method])
+  }, [cards, cardsLoading, hasSavedCards, method])
 
   const usingNewCard = method === 'new' || !hasSavedCards
   // New card + payments on → the customer pays INSIDE Hyp's iframe (its own button).
@@ -354,7 +360,7 @@ export default function Checkout() {
 
                 {payViaIframe && !accepted ? (
                   <div className="mt-3 rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-8 text-center">
-                    <p className="text-[13px] font-semibold text-ink">אשרו את תנאי השימוש למעלה כדי להמשיך לתשלום</p>
+                    <p className="text-[13px] font-semibold text-ink">{t('consumer.checkout.termsGate')}</p>
                   </div>
                 ) : frameUrl ? (
                   // Scale-to-fit wrapper (see FORM_LOGICAL_* above). dir=ltr so the
@@ -386,7 +392,7 @@ export default function Checkout() {
                 ) : FEATURES.payments ? (
                   linkError ? (
                     <div className="mt-3 rounded-2xl border border-dashed border-red-300 bg-red-50/60 px-4 py-6 text-center">
-                      <p className="text-[13px] font-semibold text-ink">לא הצלחנו לטעון את עמוד הסליקה</p>
+                      <p className="text-[13px] font-semibold text-ink">{t('consumer.checkout.linkError')}</p>
                       <p className="text-[11px] text-ink-muted mt-1 break-all" dir="ltr">{linkError}</p>
                     </div>
                   ) : (

@@ -29,7 +29,7 @@ export default function ConsumerSupport() {
   async function load() {
     setLoading(true)
     const { data, error } = await listMyConversations()
-    if (error) showToast(t('error'), 'error')
+    if (error) showToast(t('common.error'), 'error')
     setConversations(data ?? [])
     setLoading(false)
   }

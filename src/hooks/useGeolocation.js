@@ -81,17 +81,24 @@ export function useGeolocation({ watch = false } = {}) {
       }
     }
 
-    function applyError(msg) {
+    // Only a real permission denial may flip permissionState to 'denied' —
+    // consumers render a blocking "location denied" panel on that state, and a
+    // transient GPS failure (timeout, tunnel, covered parking) must not cover
+    // the dashboard mid-job. Transient errors keep the last permission state.
+    function applyError(msg, isDenial = false) {
       if (cancelled) return
       setError(msg)
       setLoading(false)
-      setPermissionState('denied')
+      if (isDenial) setPermissionState('denied')
     }
+
+    // Capacitor errors carry no standard code — detect denial from the message.
+    const isPermissionError = (e) => /denied|permission/i.test(e?.message ?? '')
 
     function startNativeOneShot() {
       Geolocation.getCurrentPosition(options)
         .then(p => applyPosition(p.coords.latitude, p.coords.longitude))
-        .catch(e => applyError(e?.message ?? 'Location unavailable'))
+        .catch(e => applyError(e?.message ?? 'Location unavailable', isPermissionError(e)))
     }
 
     // ── Native (Capacitor) ──────────────────────────────────────────────────────
@@ -120,17 +127,17 @@ export function useGeolocation({ watch = false } = {}) {
           }
           if (cancelled) return
           const granted = status.location === 'granted' || status.coarseLocation === 'granted'
-          if (!granted) { applyError('Location permission denied'); return }
+          if (!granted) { applyError('Location permission denied', true); return }
           if (!watch) { startNativeOneShot(); return }
           const id = await Geolocation.watchPosition(options, (pos, err) => {
             if (cancelled) return
-            if (err)  { applyError(err.message ?? 'Location unavailable'); return }
+            if (err)  { applyError(err.message ?? 'Location unavailable', isPermissionError(err)); return }
             if (pos)  applyPosition(pos.coords.latitude, pos.coords.longitude)
           })
           if (cleanedUp) Geolocation.clearWatch({ id })   // unmount raced the resolve
           else watchId = id
         } catch (e) {
-          applyError(e?.message ?? 'Location unavailable')
+          applyError(e?.message ?? 'Location unavailable', isPermissionError(e))
         }
       })()
 
@@ -142,12 +149,12 @@ export function useGeolocation({ watch = false } = {}) {
     }
 
     // ── Web (browser geolocation) ────────────────────────────────────────────────
-    if (!navigator.geolocation) { applyError('Geolocation not supported'); return }
+    if (!navigator.geolocation) { applyError('Geolocation not supported', true); return }
 
     if (!watch) {
       navigator.geolocation.getCurrentPosition(
         p => applyPosition(p.coords.latitude, p.coords.longitude),
-        e => applyError(e.message),
+        e => applyError(e.message, e.code === 1), // 1 = PERMISSION_DENIED
         options
       )
       return () => { cancelled = true }
@@ -155,7 +162,7 @@ export function useGeolocation({ watch = false } = {}) {
 
     const webWatchId = navigator.geolocation.watchPosition(
       p => applyPosition(p.coords.latitude, p.coords.longitude),
-      e => applyError(`web: ${e.message} (code ${e.code})`),
+      e => applyError(`web: ${e.message} (code ${e.code})`, e.code === 1),
       options
     )
     return () => {

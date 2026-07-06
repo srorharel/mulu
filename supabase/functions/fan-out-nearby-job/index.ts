@@ -108,8 +108,19 @@ Deno.serve(async (req) => {
     )
   )
 
-  const sent   = results.filter(r => r.status === 'fulfilled').length
+  // A fulfilled fetch is NOT a delivered push — an HTTP-level failure from
+  // send-notification (the documented TRIGGER_SECRET-mismatch 401 class, 5xx)
+  // resolves the promise. Counting those as "sent" reports sent=N failed=0
+  // while zero washers get the push. Check response.ok like the other fan-outs.
+  const sent   = results.filter(r => r.status === 'fulfilled' && r.value.ok).length
   const failed = results.length - sent
+
+  if (failed > 0) {
+    const statuses = results
+      .map(r => r.status === 'fulfilled' ? String(r.value.status) : `rejected:${String((r as PromiseRejectedResult).reason)}`)
+      .filter(s => s !== '200')
+    console.error(`fan-out-nearby-job: ${failed} send(s) failed for order=${order_id}: ${statuses.slice(0, 5).join(', ')}`)
+  }
 
   console.log(
     `fan-out-nearby-job: order=${order_id} radius=${radiusMeters}m ` +

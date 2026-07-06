@@ -56,11 +56,23 @@ export async function getCapturesByOrder(orderId) {
   return all.filter(r => r.orderId === orderId)
 }
 
+// Purge every capture (and its photo blobs) for an order. Called when the
+// washer releases the job — the server clears arrival photos on release, so a
+// queued capture is obsolete, and the customer's car/plate blobs must not
+// linger on the device (same legal constraint that mandates InAppCamera).
+export async function deleteCapturesByOrder(orderId) {
+  const recs = await getCapturesByOrder(orderId)
+  await Promise.all(recs.map(r => deleteCapture(r.id)))
+}
+
 // ── Replay (called by the sync engine on reconnect / app init) ──────────────
 
+// maybeSingle: an order hidden by RLS (another washer accepted it after a
+// release) yields data:null WITHOUT an error — .single() would throw here and
+// wedge the capture in 'error' state forever.
 async function fetchOrderStatus(supabase, orderId) {
   const { data, error } = await supabase
-    .from('orders').select('status').eq('id', orderId).single()
+    .from('orders').select('status').eq('id', orderId).maybeSingle()
   if (error) throw new Error(error.message)
   return data ? data.status : null
 }
@@ -92,14 +104,20 @@ async function transitionTo(supabase, orderId, newStatus) {
 export async function replayCapture(supabase, record) {
   const { orderId, type, angles } = record
   const status = await fetchOrderStatus(supabase, orderId)
-  if (status === null) return 'skip'
+  // null = the order is no longer visible to this washer (deleted, or released
+  // and re-accepted by someone else — RLS hides it). The capture can never
+  // apply; keeping it would retain customer photo blobs on the device forever.
+  if (status === null) return 'done'
   // Order already resolved elsewhere (agent/consumer/admin) → drop the queue.
   if (status === 'cancelled' || status === 'completed') return 'done'
+  // Released back to the pool: the server cleared arrival photos on release,
+  // so this washer's queued captures are obsolete → drop them.
+  if (status === 'pending') return 'done'
 
   if (type === 'arrival') {
     // Already at/past arrived → the arrival transition was applied; clear blobs.
     if (status === 'arrived' || status === 'in_progress' || status === 'pending_approval') return 'done'
-    if (status !== 'en_route') return 'skip' // not ready (still pending/accepted)
+    if (status !== 'en_route') return 'skip' // not ready (still accepted)
     await uploadAngles(supabase, orderId, 'arrival', angles)
     await transitionTo(supabase, orderId, 'arrived')
     return 'done'

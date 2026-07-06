@@ -64,16 +64,42 @@ Deno.serve(async (req) => {
     .single()
   if (!pm || pm.user_id !== userId) return jsonResponse({ ok: false, error: 'card_not_found' })
 
+  // CLAIM the order atomically BEFORE charging. Two concurrent requests
+  // (double-tap, two tabs) both pass the paid_at read above and would both
+  // charge; the .is('paid_at', null) guard lets exactly one through. This also
+  // surfaces update failures (e.g. 0132's partial unique index) BEFORE any
+  // money moves, instead of after.
+  const claimStamp = new Date().toISOString()
+  const { data: claim, error: claimErr } = await admin.from('orders')
+    .update({ paid_at: claimStamp, payment_method_id: pm.id })
+    .eq('id', order.id)
+    .is('paid_at', null)
+    .select('id')
+  if (claimErr) {
+    console.error(`charge-saved-card: claim failed for order ${order.id} (no charge made):`, claimErr)
+    return jsonResponse({ ok: false, error: 'order_not_payable', detail: claimErr.message })
+  }
+  if (!claim?.length) return jsonResponse({ ok: true, already_paid: true })
+
   const charge = await chargeByToken({
     token: pm.provider_token,
     amount: Number(order.total_price) || 0,
     orderId: order.id,
   })
-  if (!charge.ok) return jsonResponse({ ok: false, error: 'charge_declined', detail: charge.detail })
+  if (!charge.ok) {
+    // Release the claim so the user can retry with another card.
+    const { error: revertErr } = await admin.from('orders')
+      .update({ paid_at: null, payment_method_id: null })
+      .eq('id', order.id)
+      .eq('paid_at', claimStamp)
+    if (revertErr) console.error(`charge-saved-card: DECLINED but claim revert failed — order ${order.id} looks paid without a charge:`, revertErr)
+    return jsonResponse({ ok: false, error: 'charge_declined', detail: charge.detail })
+  }
 
-  await admin.from('orders')
-    .update({ paid_at: new Date().toISOString(), payment_ref: charge.transactionId ?? null, payment_method_id: pm.id })
+  const { error: refErr } = await admin.from('orders')
+    .update({ payment_ref: charge.transactionId ?? null })
     .eq('id', order.id)
+  if (refErr) console.error(`charge-saved-card: paid but payment_ref not recorded for order ${order.id}:`, refErr)
 
   return jsonResponse({ ok: true })
 })

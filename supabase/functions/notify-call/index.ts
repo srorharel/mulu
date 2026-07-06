@@ -72,22 +72,29 @@ Deno.serve(async (req) => {
   }
 
   // Fan out via send-notification (TRIGGER_SECRET bearer — see note above).
-  const res = await fetch(`${url}/functions/v1/send-notification`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${triggerSecret}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user_id: body.to_user_id,
-      event_type: 'incoming_call',
-      data: {
-        call_id: body.call_id ?? '',
-        from_id: fromId,
-        from_name: body.from_name ?? '',
-        order_id: body.order_id ?? '',
-        sound: 'bell',
-        route: '/home',
-      },
-    }),
-  })
-
-  return jsonResponse({ ok: res.ok })
+  // try/catch: a network throw here would 500 without CORS headers, which the
+  // browser surfaces as an opaque error — return a JSON failure instead (the
+  // in-app Realtime ring is the primary path anyway; this push is best-effort).
+  try {
+    const res = await fetch(`${url}/functions/v1/send-notification`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${triggerSecret}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: body.to_user_id,
+        event_type: 'incoming_call',
+        data: {
+          call_id: body.call_id ?? '',
+          from_id: fromId,
+          from_name: body.from_name ?? '',
+          order_id: body.order_id ?? '',
+          sound: 'bell',
+          route: '/home',
+        },
+      }),
+    })
+    return jsonResponse({ ok: res.ok })
+  } catch (e) {
+    console.error('notify-call: send-notification fetch failed:', String(e))
+    return jsonResponse({ ok: false, error: 'send_failed' })
+  }
 })

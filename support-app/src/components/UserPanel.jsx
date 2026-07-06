@@ -67,15 +67,16 @@ export default function UserPanel({ openerId }) {
     setLoading(true)
     setProfile(null)
     setWasherLoc(null)
-    Promise.all([
-      fetchUserProfile(openerId),
-      supabase
+    fetchUserProfile(openerId).then(async ({ data: prof }) => {
+      // A washer's job history lives under washer_id — querying consumer_id
+      // for a washer-opened conversation returns nothing (or self-bookings).
+      const ordersCol = prof?.role === 'washer' ? 'washer_id' : 'consumer_id'
+      const { data: orders } = await supabase
         .from('orders')
         .select('id, status, car_type, service_type, total_price, created_at')
-        .eq('consumer_id', openerId)
+        .eq(ordersCol, openerId)
         .order('created_at', { ascending: false })
-        .limit(5),
-    ]).then(([{ data: prof }, { data: orders }]) => {
+        .limit(5)
       setProfile(prof)
       setRecentOrders(orders ?? [])
       setLoading(false)

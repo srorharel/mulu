@@ -3,9 +3,10 @@ import { supabase } from '../lib/supabase.js'
 
 // First-wash discount eligibility (ADR-040): a consumer with no prior
 // non-cancelled order gets 30% off. Display-only mirror of the server-side
-// check in validate_order_prices (migration 0111) — the trigger decides the
+// check in validate_order_prices (migration 0134) — the trigger decides the
 // real price at insert time, so a stale/false positive here only mislabels
-// the preview, never the charge.
+// the preview, never the charge. Abandoned unpaid checkout drafts (ADR-042
+// order-before-payment) don't burn the discount — mirrors 0134's predicate.
 export function useFirstWashDiscount(userId) {
   const [eligible, setEligible] = useState(false)
   const [loading, setLoading]   = useState(true)
@@ -18,6 +19,7 @@ export function useFirstWashDiscount(userId) {
       .select('id', { count: 'exact', head: true })
       .eq('consumer_id', userId)
       .neq('status', 'cancelled')
+      .or('status.neq.pending,paid_at.not.is.null') // exclude unpaid pending drafts
       .then(({ count, error }) => {
         if (!active) return
         setEligible(!error && count === 0)

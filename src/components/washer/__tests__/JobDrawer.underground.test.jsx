@@ -42,6 +42,7 @@ vi.mock('../../../lib/offlineSync/engine.js', () => ({
   putDraftAngle: vi.fn(),
   commitCapture: vi.fn(),
   getCapturesByOrder: vi.fn().mockResolvedValue([]),
+  deleteCapturesByOrder: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../../lib/geocode.js', () => ({

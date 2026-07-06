@@ -3,7 +3,7 @@ import { X, AlertCircle, AlertTriangle, CheckCircle2, UserCog, Wallet, Camera, B
 import {
   fetchJobDetail, fetchProfileBrief, fetchOrderEvents, fetchOrderMessages,
   fetchAvailableWashers, signedUrlFor, uploadReplacement, logPhotoReplacement,
-  adminTransitionStatus, adminReassignWasher, adminOverridePrice, forceOrderStage,
+  adminReassignWasher, adminOverridePrice, forceOrderStage,
   statusColor, PHOTO_FIELDS, bucketForField,
   FORCE_STAGES, forceStageWarnings, isBackwardForce,
 } from '../../lib/adminJobs.js'
@@ -57,10 +57,13 @@ export default function JobDetail({ orderId, onClose, onChanged }) {
     return () => { supabase.removeChannel(ch) }
   }, [orderId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function doTransition(status) {
+  async function doTransition(status, reason) {
     setBusy(true); setError(null)
     try {
-      await adminTransitionStatus({ orderId, newStatus: status })
+      // Route through admin_force_order_stage so the typed reason actually
+      // lands in the audit row — a bare transition_order_status call writes
+      // reason = NULL and silently discards what the admin typed.
+      await forceOrderStage(orderId, status, reason)
       await load()
       onChanged?.()
       setSection(null)
@@ -132,17 +135,17 @@ export default function JobDetail({ orderId, onClose, onChanged }) {
                 confirmLabel="Cancel order"
                 busy={busy}
                 destructive
-                onConfirm={async () => { await doTransition('cancelled') }}
+                onConfirm={async (reason) => { await doTransition('cancelled', reason) }}
                 onCancel={() => setSection(null)}
               />
             )}
             {section === 'complete' && (
               <ConfirmReason
                 title="Force complete (admin override)"
-                hint="Skips photo/GPS validation and marks the order complete. Reason recommended."
+                hint="Skips photo/GPS validation and marks the order complete. Reason required (audit log)."
                 confirmLabel="Force complete"
                 busy={busy}
-                onConfirm={async () => { await doTransition('completed') }}
+                onConfirm={async (reason) => { await doTransition('completed', reason) }}
                 onCancel={() => setSection(null)}
               />
             )}
@@ -393,7 +396,7 @@ function ConfirmReason({ title, hint, confirmLabel, busy, destructive, onConfirm
             ? 'btn border border-danger/50 text-danger hover:bg-danger/10'
             : 'btn-primary'}
           onClick={() => setOpen(true)}
-          disabled={busy}
+          disabled={busy || !reason.trim()}
         >
           {confirmLabel}
         </button>
@@ -401,7 +404,7 @@ function ConfirmReason({ title, hint, confirmLabel, busy, destructive, onConfirm
       <ConfirmDialog
         open={open}
         title={title}
-        message={`Reason: ${reason || '(none provided)'}`}
+        message={`Reason: ${reason}`}
         confirmLabel={confirmLabel}
         destructive={destructive}
         busy={busy}
@@ -541,13 +544,16 @@ function PhotoCell({ field, path, orderId, onChanged }) {
   const [url, setUrl]     = useState(null)
   const [busy, setBusy]   = useState(false)
   const [error, setError] = useState(null)
+  // Replacements upsert to the SAME storage path, so `path` doesn't change —
+  // bump this to force a fresh signed URL (new token → browser refetches).
+  const [ver, setVer]     = useState(0)
   const bucket = bucketForField(field)
   const angle = field.replace(/^.*_(front|back|driver|passenger)$/, '$1')
 
   useEffect(() => {
     if (!path) { setUrl(null); return }
     signedUrlFor(bucket, path).then(setUrl)
-  }, [bucket, path])
+  }, [bucket, path, ver])
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
@@ -557,6 +563,7 @@ function PhotoCell({ field, path, orderId, onChanged }) {
       const newPath = path ?? `${orderId}/${field}.jpg`
       await uploadReplacement({ bucket, path: newPath, file })
       await logPhotoReplacement({ orderId, field, newPath, reason: 'admin photo replacement' })
+      setVer(v => v + 1)
       onChanged?.()
     } catch (err) { setError(err.message) }
     finally       { setBusy(false) }

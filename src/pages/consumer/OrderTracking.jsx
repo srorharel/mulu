@@ -188,6 +188,7 @@ export default function OrderTracking() {
   const [orderChatOpen, setOrderChatOpen]   = useState(false)
   const [washerProfile, setWasherProfile]   = useState(null)
   const [prevStatus, setPrevStatus]         = useState(null)
+  const [myStars, setMyStars]               = useState(null)
 
   const chatDisabled = order && ['pending_approval', 'completed', 'cancelled'].includes(order.status)
   const unreadCount  = useOrderUnreadCount(order?.id)
@@ -209,6 +210,20 @@ export default function OrderTracking() {
       .single()
       .then(({ data }) => setWasherProfile(data ?? null))
   }, [order?.washer_id])
+
+  // The submitted score for the read-only rating badge (consumers may read
+  // their own washer_ratings rows — policy from 0032 exists for this UI).
+  useEffect(() => {
+    if (!order?.rated_at) { setMyStars(null); return }
+    let active = true
+    supabase
+      .from('washer_ratings')
+      .select('stars')
+      .eq('order_id', order.id)
+      .maybeSingle()
+      .then(({ data }) => { if (active) setMyStars(data?.stars ?? null) })
+    return () => { active = false }
+  }, [order?.id, order?.rated_at])
 
   // When the order transitions to completed while the consumer is watching,
   // clear session-dismiss so ConsumerLayout fires the rating modal.
@@ -282,7 +297,7 @@ export default function OrderTracking() {
   const washerFirstName = washerProfile?.full_name?.split(' ')[0] || t('consumer.tracking.washer.unknown')
   const heading  = t(`consumer.tracking.heading.${order.status}`,  { defaultValue: order.status })
   const subtitle = t(`consumer.tracking.subtitle.${order.status}`, { name: washerFirstName, defaultValue: '' })
-  const categoryLabel   = order.category ? t(`carLabels.${order.category}`) : null
+  const categoryLabel   = order.car_type ? t(`carLabels.${order.car_type}`) : null
 
   return (
     <div className="h-full flex flex-col bg-surface">
@@ -445,18 +460,19 @@ export default function OrderTracking() {
             <TipCard order={order} />
           )}
 
-          {/* Read-only rating badge — shown after consumer has rated */}
-          {order.rated_at && (
+          {/* Read-only rating badge — shown after consumer has rated, with the
+              ACTUAL submitted score (not a hardcoded five-star row). */}
+          {order.rated_at && myStars != null && (
             <div className="flex items-center justify-center gap-1.5 py-2">
               {[1,2,3,4,5].map(n => (
                 <Star
                   key={n}
-                  className="h-4 w-4 text-warning-500"
-                  fill="currentColor"
+                  className={`h-4 w-4 ${n <= myStars ? 'text-warning-500' : 'text-ink-muted/30'}`}
+                  fill={n <= myStars ? 'currentColor' : 'none'}
                 />
-              )).slice(0, 5)}
+              ))}
               <span className="text-[12px] text-ink-muted ms-1">
-                {t('rating.already.submitted', { stars: '…' })}
+                {t('rating.already.submitted', { stars: myStars })}
               </span>
             </div>
           )}

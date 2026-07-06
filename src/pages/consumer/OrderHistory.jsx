@@ -107,8 +107,12 @@ export default function OrderHistory() {
       .eq('consumer_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        if (error) showToast(t('error'), 'error')
-        setOrders(data ?? [])
+        if (error) showToast(t('common.error'), 'error')
+        // Abandoned unpaid checkout drafts (ADR-042: the row is inserted
+        // before payment) are invisible everywhere else (Home, washer pool,
+        // discount check) — showing them here as a live "pending" wash would
+        // display a phantom order that no washer can ever pick up.
+        setOrders((data ?? []).filter(o => !(o.status === 'pending' && !o.paid_at)))
         setLoading(false)
       })
   }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -68,7 +68,10 @@ export default function Settings() {
     <div className="flex flex-col md:flex-row h-screen bg-surface overflow-hidden">
       <LeftRail
         activeTab="settings"
-        onTabChange={(tab) => navigate(tab === 'conv' ? '/' : `/${tab}`)}
+        // Only '/' and '/unassigned' are real routes — every other tab lives
+        // in Dashboard state, so pass it via location.state (navigating to
+        // /approvals etc. hits the wildcard redirect and lands on 'conv').
+        onTabChange={(tab) => navigate(tab === 'unassigned' ? '/unassigned' : '/', { state: { tab } })}
         profile={profile}
         onSettings={() => {}}
         onSignOut={signOut}

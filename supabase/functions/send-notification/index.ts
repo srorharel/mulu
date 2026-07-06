@@ -429,7 +429,13 @@ async function getFcmAccessToken(serviceAccountJson: string): Promise<string> {
       assertion:  jwt,
     }),
   })
-  const { access_token } = await res.json()
+  const tokenBody = await res.json().catch(() => null)
+  const access_token = tokenBody?.access_token
+  // Never cache a failed OAuth exchange — caching `undefined` for 50 minutes
+  // would silently drop EVERY push from this isolate ("Bearer undefined").
+  if (!res.ok || !access_token) {
+    throw new Error(`fcm_oauth_failed: ${res.status} ${JSON.stringify(tokenBody)?.slice(0, 200)}`)
+  }
 
   // Cache for 50 minutes (tokens last 60 min; leave 10 min safety margin).
   fcmTokenCache = { token: access_token, expiresAt: now + 50 * 60 * 1000 }
@@ -481,10 +487,19 @@ async function sendFcmMessage(opts: {
   // ring never showed. A normal notification is the robust path.)
   const isCall = event_type === 'incoming_call'
 
+  // FCM HTTP v1 requires data to be map<string,string>. Trigger payloads come
+  // from JSONB and may carry numbers/booleans (0052's tier_changed sends
+  // old_tier/new_tier/payout_amount as JSON numbers) — a single non-string
+  // value fails the whole send with INVALID_ARGUMENT. Stringify everything.
+  const strData: Record<string, string> = {}
+  for (const [k, v] of Object.entries({ route, event_type, ...data })) {
+    if (v !== null && v !== undefined) strData[k] = String(v)
+  }
+
   const message: Record<string, unknown> = {
     token,
     notification: { title, body },
-    data: { route, event_type, ...data },
+    data: strData,
   }
 
   if (platform === 'android') {
@@ -526,10 +541,13 @@ async function sendFcmMessage(opts: {
     ((fcmError.details as Array<Record<string, string>>)?.[0]?.errorCode) ?? ''
   )
 
-  // UNREGISTERED: token was valid but the app was uninstalled or FCM rotated it.
-  // INVALID_ARGUMENT: token is malformed — never valid.
-  // Both are safe to delete immediately.
-  const deadToken = errorCode === 'UNREGISTERED' || fcmStatus === 'INVALID_ARGUMENT'
+  // UNREGISTERED: token was valid but the app was uninstalled or FCM rotated
+  // it — safe to delete. INVALID_ARGUMENT is NOT a token verdict: FCM returns
+  // it for ANY malformed message field (e.g. a non-string data value), so
+  // deleting on it wipes every healthy token the user has the moment one
+  // trigger sends a bad payload (this happened with tier_changed's numeric
+  // fields). Only UNREGISTERED may delete.
+  const deadToken = errorCode === 'UNREGISTERED' || fcmStatus === 'UNREGISTERED'
 
   return {
     token,

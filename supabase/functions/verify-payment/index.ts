@@ -113,19 +113,23 @@ Deno.serve(async (req) => {
   const token = String(params.Token ?? '')
   if (token) {
     const { month, year } = expFromTokef(String(params.Tokef ?? ''))
+    // YaadPay needs BOTH the Token and its Tokef (expiry) to re-charge later, so
+    // rows are stored as "<Token>|<Tokef>" (chargeYaadToken splits on '|').
+    // The dedupe lookup MUST use the same composed value — matching on the bare
+    // token never hits and every repeat save duplicated the card (and the
+    // payment-callback path stores the composed value too).
+    const tokef = String(params.Tokef ?? '')
+    const storedToken = tokef ? `${token}|${tokef}` : token
     const { data: existing } = await admin
       .from('payment_methods')
-      .select('id').eq('user_id', userId).eq('provider_token', token).maybeSingle()
+      .select('id').eq('user_id', userId).eq('provider_token', storedToken).maybeSingle()
     if (existing) {
       savedCardId = existing.id
     } else {
-      // YaadPay needs BOTH the Token and its Tokef (expiry) to re-charge later, so
-      // store them together as "<Token>|<Tokef>" (chargeYaadToken splits on '|').
-      const tokef = String(params.Tokef ?? '')
       const { data: ins } = await admin.from('payment_methods').insert({
         user_id: userId,
         provider: 'yaad',
-        provider_token: tokef ? `${token}|${tokef}` : token,
+        provider_token: storedToken,
         brand: params.Brand ? String(params.Brand) : null,
         last4: params.L4digit ? String(params.L4digit) : null,
         exp_month: month,
@@ -135,7 +139,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  await admin.from('orders')
+  const { error: updErr } = await admin.from('orders')
     .update({
       paid_at: new Date().toISOString(),
       payment_ref: String(params.Id ?? '') || null,
@@ -143,6 +147,14 @@ Deno.serve(async (req) => {
     })
     .eq('id', order.id)
     .is('paid_at', null)   // idempotency guard against a double finalize
+
+  // The card WAS charged (YaadPay re-confirmed) — a failed update here means
+  // money moved but the order is still unpaid/invisible to washers. Surface it
+  // loudly instead of reporting success.
+  if (updErr) {
+    console.error(`verify-payment: CHARGE TAKEN BUT paid_at NOT SET — reconcile order ${order.id}:`, updErr)
+    return jsonResponse({ ok: false, error: 'finalize_failed' })
+  }
 
   return jsonResponse({ ok: true })
 })

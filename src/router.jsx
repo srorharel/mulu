@@ -61,11 +61,15 @@ function NotificationsInit() {
   const { user } = useAuth()
   const navigate  = useNavigate()
   const showToast = useToast()
-  const inited    = useRef(false)
+  // Latch per USER, not per app run: signOut deletes the device_tokens row, so
+  // the next login (same or different account) must re-run initNotifications
+  // to re-register the token — otherwise that account gets zero pushes until
+  // the app is fully restarted. Listener dedup lives in notifications.js.
+  const initedFor = useRef(null)
 
   useEffect(() => {
-    if (!user || inited.current) return
-    inited.current = true
+    if (!user || initedFor.current === user.id) return
+    initedFor.current = user.id
     initNotifications({ navigate, showToast })
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 

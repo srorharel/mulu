@@ -74,9 +74,14 @@ Deno.serve(async (req) => {
   if (!profile?.phone) return jsonResponse({ ok: false, error: 'no_phone_on_file' })
   if (profile.phone_verified_at) return jsonResponse({ ok: true, sent: false, already_verified: true })
 
-  // Housekeeping: drop this user's expired challenges before counting.
+  // Housekeeping: drop challenges older than the rate-limit window. NOT rows
+  // that merely expired (10-min TTL) — deleting those before counting reduced
+  // the "5/hour" cap to 5 per 10 minutes (send 5, wait for expiry, repeat →
+  // ~30 SMS/hour). Rows must survive a full hour to be countable; expiry is
+  // enforced at verify time.
   await admin.from('phone_verifications').delete()
-    .eq('user_id', userId).lt('expires_at', new Date().toISOString())
+    .eq('user_id', userId)
+    .lt('created_at', new Date(Date.now() - 3600_000).toISOString())
 
   // Throttle: cooldown + hourly cap, computed from the rows in the last hour.
   const hourAgo = new Date(Date.now() - 3600_000).toISOString()

@@ -107,10 +107,19 @@ function TierBanner({ profile, t }) {
     const dismissKey = `tier_banner_dismissed_${changedAt}`
     if (localStorage.getItem(dismissKey)) return
 
-    // Compare to previous tier stored on last dashboard load
-    const prevTierRaw = localStorage.getItem('washer_previous_tier')
-    const prevTier    = prevTierRaw != null ? Number(prevTierRaw) : null
-    setWentUp(prevTier == null || tier >= prevTier)
+    // Direction is computed ONCE per tier change and pinned in localStorage —
+    // the effect below overwrites washer_previous_tier on every load, so a
+    // remount within the 24h window would otherwise recompute a downgrade as
+    // tier >= prevTier and flip the banner to the "tier up" copy.
+    const dirKey = `tier_banner_dir_${changedAt}`
+    let dir = localStorage.getItem(dirKey)
+    if (dir == null) {
+      const prevTierRaw = localStorage.getItem('washer_previous_tier')
+      const prevTier    = prevTierRaw != null ? Number(prevTierRaw) : null
+      dir = (prevTier == null || tier >= prevTier) ? 'up' : 'down'
+      localStorage.setItem(dirKey, dir)
+    }
+    setWentUp(dir === 'up')
     setVisible(true)
   }, [changedAt, tier])
 

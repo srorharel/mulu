@@ -4,6 +4,7 @@ import i18n, { LOCALE_STORAGE_KEY } from '../i18n/index.js'
 import { unregisterToken } from '../lib/notifications.js'
 import { redeemImpersonationFromUrl, getImpersonationBanner } from '../lib/impersonate.js'
 import { cacheProfile, readCachedProfile, clearOfflineCache } from '../lib/offlineCache.js'
+import { clearNearbyJobsCache } from '../hooks/useNearbyJobs.js'
 
 const AuthContext = createContext(null)
 
@@ -106,8 +107,15 @@ export function AuthProvider({ children }) {
     // Race against a 12s timeout so a silently dropped network request
     // never leaves the app stuck on the loading spinner.
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
+    // Tracks whether initial hydration actually happened. If the 12s timeout
+    // wins the race (slow token refresh on a dead network), the late
+    // INITIAL_SESSION event is the only carrier of the session — dropping it
+    // unconditionally would strand a logged-in user on /login.
+    let initialHydrated = false
     Promise.race([supabase.auth.getSession(), timeout])
       .then(({ data: { session } }) => {
+        if (initialHydrated) { setLoading(false); return } // INITIAL_SESSION beat us to it
+        initialHydrated = true
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) {
@@ -119,8 +127,12 @@ export function AuthProvider({ children }) {
       .catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // INITIAL_SESSION is already handled by getSession above
-      if (event === 'INITIAL_SESSION') return
+      // Normally handled by getSession above — but process it if the race
+      // timed out and hydration never happened.
+      if (event === 'INITIAL_SESSION') {
+        if (initialHydrated) return
+        initialHydrated = true
+      }
 
       setSession(session)
       setUser(session?.user ?? null)
@@ -199,6 +211,7 @@ export function AuthProvider({ children }) {
   async function signOut() {
     await unregisterToken()   // must run before signOut clears the session
     clearOfflineCache(user?.id)  // drop cached profile/active-job for this user
+    clearNearbyJobsCache()       // module-level list survives unmounts otherwise
     await supabase.auth.signOut()
   }
 

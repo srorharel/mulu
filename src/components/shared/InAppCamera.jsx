@@ -55,6 +55,11 @@ export default function InAppCamera({ onCapture, onClose, facingMode = 'environm
 
   const [state,      setState]      = useState(STATES.INIT)
   const [previewUrl, setPreviewUrl] = useState(null)
+  // Mirror for the unmount cleanup: the mount effect ([] deps) closes over the
+  // FIRST render's previewUrl (null), so revoking via state there is a no-op
+  // and the captured customer-photo blob would stay reachable until teardown.
+  const previewUrlRef = useRef(null)
+  previewUrlRef.current = previewUrl
 
   // Android hardware back closes the camera instead of navigating away.
   useEffect(() => {
@@ -149,7 +154,7 @@ export default function InAppCamera({ onCapture, onClose, facingMode = 'environm
     // getUserMedia). Everywhere else: open the camera immediately.
     if (iosWebGesture) setState(STATES.IDLE)
     else start()
-    return () => { stopCamera(); if (blobRef.current) URL.revokeObjectURL(previewUrl) }
+    return () => { stopCamera(); if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showVideo = state === STATES.INIT || state === STATES.READY

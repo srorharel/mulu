@@ -99,7 +99,7 @@ export async function fetchOrderDetails(orderId) {
       car_photo_front, car_photo_back, car_photo_driver, car_photo_passenger,
       car_photo_1_path, car_photo_2_path,
       consumer:profiles!consumer_id(id, full_name, phone),
-      washer:profiles!washer_id(id, full_name, phone, last_lat, last_lng, last_location_at)
+      washer:profiles!washer_id(id, full_name, phone, is_online, last_lat, last_lng, last_location_at)
     `)
     .eq('id', orderId)
     .single()

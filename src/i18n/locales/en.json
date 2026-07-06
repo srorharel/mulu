@@ -389,6 +389,8 @@
       "secureTitle": "Secure payment",
       "secureBody": "Payment runs on a PCI-secured page over an encrypted connection. Card details go straight to the clearing company. We never see or store your card number.",
       "terminalPending": "The secure payment page will load here",
+      "termsGate": "Accept the terms above to continue to payment",
+      "linkError": "We couldn't load the payment page",
       "terminalPendingNote": "Clearing runs through a licensed, secured payment company",
       "acceptedCards": "We accept Visa · Mastercard · Isracard · American Express",
       "terms": {

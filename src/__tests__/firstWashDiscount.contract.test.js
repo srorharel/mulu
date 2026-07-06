@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { latestMigrationDefining, normalize } from './helpers/migrations.js'
+import { latestMigrationDefining, normalize, readMigration } from './helpers/migrations.js'
 import { applyFirstWashDiscount, FIRST_WASH_DISCOUNT_PERCENT, PRICING } from '../lib/pricing.js'
 
 // CRITICAL guard — the first-wash discount (ADR-040, migration 0111).
@@ -10,9 +10,8 @@ import { applyFirstWashDiscount, FIRST_WASH_DISCOUNT_PERCENT, PRICING } from '..
 // the 30% amount, and the platform-absorbs invariant (washer base untouched)
 // must not regress unnoticed.
 
-const { file, sql: fullSql, body } = latestMigrationDefining('validate_order_prices')
+const { file, body } = latestMigrationDefining('validate_order_prices')
 const sql = normalize(body)
-const migration = normalize(fullSql)
 
 const REQUIRED_RULES = [
   ['discount rate is 30%',
@@ -43,8 +42,11 @@ describe(`first-wash discount contract (latest def: ${file})`, () => {
   }
 
   it('discount columns exist with safe defaults (0111)', () => {
-    expect(migration).toContain('add column if not exists discount_percent')
-    expect(migration).toContain('add column if not exists discount_amount')
+    // The columns were added by 0111 — later redefinitions of the function
+    // (0134+) legitimately don't repeat the ALTER TABLE, so pin 0111 itself.
+    const m0111 = normalize(readMigration('0111_first_wash_discount.sql'))
+    expect(m0111).toContain('add column if not exists discount_percent')
+    expect(m0111).toContain('add column if not exists discount_amount')
   })
 
   it('keeps the dual-path pricing (config + hardcoded fallback) intact', () => {

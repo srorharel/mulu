@@ -73,8 +73,15 @@ async function createChannels() {
   }
 }
 
+// Plugin listeners are attached once per app run; initNotifications itself is
+// called once per LOGIN (keyed by user id in router.jsx). signOut deletes the
+// device_tokens row, so each login must re-run register() to re-upsert it —
+// a run-once latch here would leave the next account with zero pushes until
+// the app is killed and restarted.
+let listenersAttached = false
+
 /**
- * Called once when a logged-in user is confirmed (App mount effect).
+ * Called when a logged-in user is confirmed — once per login.
  * No-ops on web / PWA — native only.
  */
 export async function initNotifications({ navigate, showToast }) {
@@ -95,6 +102,16 @@ export async function initNotifications({ navigate, showToast }) {
     console.debug('Notifications: permission not granted:', receive)
     return
   }
+
+  if (!listenersAttached) attachListeners({ navigate, showToast })
+
+  await createChannels()
+  dlog('[MULU-NOTIF] Calling PushNotifications.register()')
+  await PushNotifications.register()
+}
+
+function attachListeners({ navigate, showToast }) {
+  listenersAttached = true
 
   // ── Listeners must be registered BEFORE calling register() ───────────────
   // FCM may return a cached token synchronously; if register() fires the event
@@ -132,10 +149,6 @@ export async function initNotifications({ navigate, showToast }) {
     console.error('[MULU-NOTIF] Registration error: ' + JSON.stringify(err))
     // Do not throw — app must keep functioning if FCM is unavailable.
   })
-
-  await createChannels()
-  dlog('[MULU-NOTIF] Calling PushNotifications.register()')
-  await PushNotifications.register()
 
   // ── Foreground delivery (app is open) ────────────────────────────────────
   PushNotifications.addListener('pushNotificationReceived', (notification) => {

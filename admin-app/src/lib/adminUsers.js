@@ -110,13 +110,15 @@ export async function fetchWasherSummary(userId) {
 
 export async function fetchAgentSummary(userId) {
   const [convRes, cannedRes] = await Promise.all([
+    // Column is assigned_agent_id (0012) — there is no agent_id on conversations.
     supabase.from('support_conversations')
       .select('id, status, opener_id, created_at, last_message_body')
-      .eq('agent_id', userId)
+      .eq('assigned_agent_id', userId)
       .order('created_at', { ascending: false })
       .limit(30),
+    // Canned responses use shortcut/body_he/body_en (0014), not label/body.
     supabase.from('support_canned_responses')
-      .select('id, label, body')
+      .select('id, shortcut, body_he, body_en')
       .eq('agent_id', userId)
       .limit(50),
   ])

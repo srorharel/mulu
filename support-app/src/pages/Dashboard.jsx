@@ -43,10 +43,15 @@ function ApprovalsView() {
 
   useEffect(() => {
     load()
+    // No status filter: Supabase evaluates the filter against the NEW row, so
+    // a transition LEAVING pending_approval (another agent approving/declining)
+    // emits nothing on a filtered channel — the row would linger in this list
+    // until a manual reload. The unfiltered badge subscription below already
+    // set this precedent; agent volume makes the extra refetches negligible.
     const ch = supabase
       .channel('approvals-view')
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: 'status=eq.pending_approval' },
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
         load
       )
       .subscribe()
@@ -373,9 +378,13 @@ export default function Dashboard() {
   const [selectedConv, setSelectedConv] = useState(null)
   const [showMobileInfo, setShowMobileInfo] = useState(false)
 
-  // Derive active tab from URL path so /unassigned URL stays in sync
+  // Derive active tab from URL path so /unassigned URL stays in sync.
+  // location.state.tab lets Settings' rail land on a non-route tab
+  // (approvals/tickets/…) — those tabs have no URL of their own.
   const isUnassignedPath = location.pathname === '/unassigned'
-  const [nonRouteTab, setNonRouteTab] = useState(isUnassignedPath ? 'unassigned' : 'conv')
+  const [nonRouteTab, setNonRouteTab] = useState(
+    isUnassignedPath ? 'unassigned' : (location.state?.tab || 'conv')
+  )
   const tab = isUnassignedPath ? 'unassigned' : nonRouteTab
 
   const [pendingCount,       setPendingCount]       = useState(0)

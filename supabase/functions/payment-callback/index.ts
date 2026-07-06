@@ -98,9 +98,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  await admin.from('orders')
+  const { error: updErr } = await admin.from('orders')
     .update({ paid_at: new Date().toISOString(), payment_ref: String(params.Id ?? '') || null, payment_method_id: savedCardId })
     .eq('id', order.id).is('paid_at', null)
+
+  // The charge already happened (YaadPay re-confirmed) — if recording it
+  // failed, do NOT render success; the order would stay invisible to washers.
+  if (updErr) {
+    console.error(`payment-callback: CHARGE TAKEN BUT paid_at NOT SET — reconcile order ${order.id}:`, updErr)
+    return page('התשלום התקבל אך משהו השתבש', 'פנו לתמיכה בתוך האפליקציה ונטפל בזה מיד.')
+  }
 
   return page('התשלום התקבל!', 'מצאנו לכם שוטף — אפשר לחזור לאפליקציה.')
 })

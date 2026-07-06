@@ -101,7 +101,7 @@ const baseOrder = {
   car_model: 'I20',
   car_year: 2010,
   car_color: 'תכלת',
-  category: 'private',
+  car_type: 'private', // real orders column (there is no `category` on orders)
   rated_at: null,
   cancellation_reason: null,
 }

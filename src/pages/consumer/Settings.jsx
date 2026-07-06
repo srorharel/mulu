@@ -7,7 +7,6 @@ import { FEATURES } from '../../lib/featureFlags.js'
 import PageShell from '../../components/ui/PageShell.jsx'
 import GlassCard from '../../components/ui/GlassCard.jsx'
 import NotificationsSection from '../../components/settings/NotificationsSection.jsx'
-import AppearanceSection from '../../components/settings/AppearanceSection.jsx'
 import PillRow from '../../components/settings/PillRow.jsx'
 import { useLocale } from '../../hooks/useLocale.js'
 import { useToast } from '../../components/ui/Toast.jsx'
@@ -147,7 +146,8 @@ export default function ConsumerSettings() {
 
             <NotificationsSection />
 
-            <AppearanceSection />
+            {/* No AppearanceSection here: consumer routes are always light
+                (ADR-044) — dark mode is a washer-only opt-in. */}
 
             <Editable id="consumer.settings.section">
               <section className="bg-glass border border-glass-border backdrop-blur-xl rounded-glass p-5 flex flex-col gap-3">

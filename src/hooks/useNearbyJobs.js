@@ -55,6 +55,11 @@ function rowLatLng(row) {
 const CACHE_ENABLED = !import.meta.env.VITEST
 let cachedJobs = []
 
+// Sign-out hook: the module cache survives React unmounts by design, so a
+// different washer logging in on the same device (no page reload) would be
+// seeded with the previous account's list + distances until the refetch lands.
+export function clearNearbyJobsCache() { cachedJobs = [] }
+
 export function useNearbyJobs(position, enabled = true) {
   // Stale-while-revalidate cache: the washer dashboard fully unmounts when the
   // washer opens a job's details (/washer/job/:id lives under a different layout)

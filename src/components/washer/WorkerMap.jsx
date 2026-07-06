@@ -151,17 +151,25 @@ function WasherMarkerLayer({ position }) {
 // ── Auto-fit camera when activeJob changes (not on every GPS tick) ─────────────
 function AutoFitLayer({ washerPosition, activeJob }) {
   const map = useMap()
+  // Fit once per job — but the first GPS fix may land AFTER the job coords
+  // (cold start with an active job), so the effect also watches the position
+  // and the ref guards against refitting on every subsequent GPS tick.
+  const fittedKeyRef = useRef(null)
 
   useEffect(() => {
-    if (!washerPosition || !activeJob) return
+    if (!activeJob) { fittedKeyRef.current = null; return }
+    if (!washerPosition) return
     if (!validCoord(washerPosition.lat, washerPosition.lng)) return
     if (!validCoord(activeJob.lat, activeJob.lng)) return
+    const key = `${activeJob.lat},${activeJob.lng}`
+    if (fittedKeyRef.current === key) return
+    fittedKeyRef.current = key
     const bounds = L.latLngBounds(
       [washerPosition.lat, washerPosition.lng],
       [activeJob.lat,      activeJob.lng],
     )
     map.fitBounds(bounds, { padding: [80, 80], animate: true, duration: 0.8 })
-  }, [activeJob?.lat, activeJob?.lng]) // eslint-disable-line
+  }, [activeJob?.lat, activeJob?.lng, washerPosition?.lat, washerPosition?.lng]) // eslint-disable-line
 
   return null
 }

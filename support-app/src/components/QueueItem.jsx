@@ -118,7 +118,9 @@ export default function QueueItem({ conversation, agentId, isSelected, onClick }
               className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded"
               style={{
                 color: roleColor,
-                background: `${roleColor}1f`,
+                // color-mix works for var() colors too — a hex-alpha suffix on
+                // "var(--color-accent)" is invalid CSS and drops the tint.
+                background: `color-mix(in srgb, ${roleColor} 12%, transparent)`,
                 letterSpacing: '0.04em',
               }}
             >

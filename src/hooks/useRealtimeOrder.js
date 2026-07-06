@@ -42,7 +42,12 @@ export function useRealtimeOrder(orderId, { cache = false } = {}) {
   }, [orderId, cache])
 
   useEffect(() => {
-    if (!orderId) return
+    // Reset on id change/clear — otherwise the previous order's row (wrong
+    // status, wrong customer) keeps rendering until the new fetch resolves.
+    setOrder(null)
+    setError(null)
+    if (!orderId) { setLoading(false); return }
+    setLoading(true)
 
     refetch()
 
@@ -63,7 +68,10 @@ export function useRealtimeOrder(orderId, { cache = false } = {}) {
   // so a finished job can't be re-hydrated. No-op unless `cache` is enabled.
   useEffect(() => {
     if (!cache || !order?.id) return
-    if (TERMINAL.has(order.status)) removeCachedOrder(order.id)
+    // 'pending' means the washer released the job — it is no longer theirs, so
+    // it must leave the cache too (a late realtime UPDATE arriving in the gap
+    // before unsubscribe would otherwise re-write the entry Dashboard purged).
+    if (TERMINAL.has(order.status) || order.status === 'pending') removeCachedOrder(order.id)
     else cacheOrder(order)
   }, [cache, order])
 

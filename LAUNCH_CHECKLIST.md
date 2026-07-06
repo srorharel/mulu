@@ -26,20 +26,23 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 
 - [ ] Copy `android/app/mulu-upload.jks` + the password from `android/key.properties` to a
       password manager / offline backup. **Losing either = you can never update the app.**
-- [ ] (Codemagic) Upload the same `.jks` as Android signing identity `mulu_keystore`.
+- [x] (Codemagic) Upload the same `.jks` as Android signing identity `mulu_keystore` — done 2026-07-06
+      (uploaded twice by accident; delete one duplicate in Settings → Code signing identities → Android keystores).
 
 ---
 
 ## 2. Build the upload artifacts
 
-- [x] **Android signed AAB:** built + signature-verified → `wash-release.aab` (7.4 MB,
-      `jarsigner -verify` = "jar verified", signed CN=MULU). Rebuild with
-      `./release-android.ps1 -VersionCode N` (bump N every upload).
+- [x] **Android signed AAB:** rebuilt 2026-07-06 → `Mulu-release.aab` (7.9 MB,
+      versionCode 1321203, versionName 1.0.0, includes all security-audit commits).
+      Rebuild any time with `./release-android.ps1` (versionCode auto-increments).
 - [ ] **iOS build:** trigger Codemagic `ios-release` (needs §4 Apple setup first) → TestFlight.
 
 ---
 
 ## 3. Google Play Console
+
+> Status 2026-07-06: developer account created, identity verification pending.
 
 - [ ] Create the app (Auto & Vehicles category), default language Hebrew.
 - [ ] **App signing:** enroll in Play App Signing on first AAB upload.
@@ -56,7 +59,9 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 
 ## 4. Apple — App Store Connect (hard blockers, account-side)
 
-- [ ] Apple Developer Program enrollment (D-U-N-S, $99/yr).
+- [~] Apple Developer Program enrollment — paid, approval pending (2026-07-06). Codemagic app
+      `sparklego` is connected (GitHub) with `codemagic.yaml` detected; only the ASC API key +
+      ASC app creation remain once Apple approves.
 - [ ] Create app in ASC with bundle id `com.sparklego.app`.
 - [ ] Codemagic → add App Store Connect API key integration named exactly **`MULU ASC API Key`**.
 - [ ] (For push later) Enable Push Notifications capability + APNs key on the App ID.
@@ -67,10 +72,12 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 
 ---
 
-## 5. Store graphics (none exist yet — produce these)
+## 5. Store graphics (DONE — in `store-assets/`, dimensions verified 2026-07-06)
 
-- [ ] Play: 512×512 app icon, 1024×500 feature graphic, ≥2 phone screenshots.
-- [ ] Apple: 1024×1024 marketing icon, iPhone 6.7" + 6.5" screenshots.
+- [x] Play: `play-icon-512.png` (512×512), `play-feature-1024x500.png` (1024×500),
+      5 phone screenshots `01-home` … `05-complete` (1290×2796).
+- [x] Apple: `icon-1024.png` (1024×1024 marketing icon); the same 1290×2796 screenshots
+      are the iPhone 6.7" size (ASC auto-scales for smaller displays — one size suffices).
 
 ---
 
@@ -83,11 +90,10 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 
 ## 7. Backend / data prep (live project `fpwshpvixtgaygkuxajy`)
 
-- [ ] **Re-seed review accounts** (deleted in the pre-launch wipe):
-      `SUPABASE_SERVICE_ROLE_KEY=<key> node scripts/seed-review-accounts.mjs`
-      → `review.consumer@muluwash.com` + pre-approved `review.washer@muluwash.com` (`MuluReview!2026`).
-- [ ] Confirm legal docs are **published** (`is_current`) in prod so in-app `/legal/*` isn't empty
-      (the marketing-site copies at muluwash.com are separate static mirrors).
+- [x] **Re-seed review accounts** — done 2026-07-06 (`scripts/seed-review-accounts.mjs`):
+      `review.consumer@muluwash.com` (+ default vehicle) + pre-approved `review.washer@muluwash.com` (`MuluReview!2026`).
+- [x] Confirm legal docs are **published** (`is_current`) in prod — verified 2026-07-06:
+      consumer_terms he v5, privacy_policy he v5, washer_terms he v2.
 - [ ] Verify push backend secrets are set (`TRIGGER_SECRET`, `FCM_SERVICE_ACCOUNT_JSON`,
       `app.settings.*`) — a `TRIGGER_SECRET` mismatch silently drops all pushes. Run `NOTIFICATIONS_TESTING.md §1`.
 - [ ] If masked calls stay ON: confirm `notify-call` + `send-notification` (with `incoming_call`) are deployed.
@@ -96,8 +102,9 @@ Companions: `STORE_COMPLIANCE.md` (policy reasoning), `STORE_LISTING.md` (copy),
 
 ## 8. Final pre-submit verification
 
-- [ ] Open and confirm real content (not 404/homepage): `muluwash.com/legal/privacy`, `/legal/terms`,
-      `/account/delete`, `/accessibility`.
+- [x] Open and confirm real content (not 404/homepage): `muluwash.com/legal/privacy`, `/legal/terms`,
+      `/account/delete`, `/accessibility` — all 200 (2026-07-06); page content backed by the
+      published legal docs verified in §7.
 - [ ] Device-test runtime permission prompts (location/camera/notifications) on Android 13+ and 15 (edge-to-edge).
 - [ ] Smoke-test the demo accounts end-to-end (book → accept → complete) on a real device.
 - [ ] Confirm shipped binary permissions match the Data-safety/App-Privacy declarations.

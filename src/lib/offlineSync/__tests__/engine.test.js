@@ -25,10 +25,12 @@ const blob  = () => new Blob(['x'], { type: 'image/jpeg' })
 // A stateful fake Supabase server: status advances as transitions are applied,
 // so replay's "re-read live status" sees the truth (powering idempotency tests).
 function makeServer(initialStatus) {
+  // status === null models an order hidden by RLS (another washer owns it) —
+  // maybeSingle returns data:null with no error in that case.
   const state = { status: initialStatus, cols: {}, uploads: [], transitions: [] }
   const supabase = {
     from: () => ({
-      select: () => ({ eq: () => ({ single: async () => ({ data: { status: state.status }, error: null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: state.status === null ? null : { status: state.status }, error: null }) }) }),
       update: (patch) => ({ eq: async () => { Object.assign(state.cols, patch); return { error: null } } }),
     }),
     storage: {
@@ -133,5 +135,42 @@ describe('offline replay — idempotent + resumable', () => {
     const outcome = await replayCapture(supabase, { orderId: ORDER, type: 'completion', angles: {} })
     expect(outcome).toBe('skip')
     expect(state.transitions).toEqual([]) // didn't force anything
+  })
+
+  it('drops the capture when the job was RELEASED back to pending (no upload, blobs cleared)', async () => {
+    // Washer captured arrival photos underground, then released the job above
+    // ground — the server cleared its photos; the queued capture is obsolete
+    // and its customer-photo blobs must not stay on the device.
+    const { supabase, state } = makeServer('pending')
+    await captureSet('arrival')
+
+    await replayAll(supabase)
+
+    expect(state.uploads).toEqual([])
+    expect(state.transitions).toEqual([])
+    expect(await getCapturesByOrder(ORDER)).toHaveLength(0)
+  })
+
+  it('drops the capture when the order is no longer visible (released → re-accepted elsewhere, RLS hides it)', async () => {
+    const { supabase, state } = makeServer(null) // maybeSingle → data: null
+    await captureSet('arrival')
+
+    await replayAll(supabase)
+
+    expect(state.uploads).toEqual([])
+    expect(state.transitions).toEqual([])
+    expect(await getCapturesByOrder(ORDER)).toHaveLength(0)
+  })
+
+  it('deleteCapturesByOrder purges every queued capture for the order', async () => {
+    const { supabase } = makeServer('en_route')
+    await captureSet('arrival')
+    await captureSet('completion')
+
+    const { deleteCapturesByOrder } = await import('../engine.js')
+    await deleteCapturesByOrder(ORDER)
+
+    expect(await getCapturesByOrder(ORDER)).toHaveLength(0)
+    void supabase
   })
 })

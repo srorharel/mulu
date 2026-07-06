@@ -57,23 +57,36 @@ async function authenticateUser(req: Request): Promise<{ userId: string } | Resp
 }
 
 // Recursively delete every object under a storage prefix. Supabase storage
-// returns folders with id === null; files have a non-null id.
+// returns folders with id === null; files have a non-null id. Paginates the
+// listing — a single 1000-entry page would silently leave a heavy user's
+// remaining photos behind after account deletion.
 async function removePrefix(bucket: string, prefix: string): Promise<number> {
-  const { data: entries, error } = await svc.storage.from(bucket).list(prefix, { limit: 1000 })
-  if (error || !entries) return 0
-  const files: string[] = []
+  const PAGE = 1000
   let removed = 0
-  for (const e of entries) {
-    const path = prefix ? `${prefix}/${e.name}` : e.name
-    if ((e as { id: string | null }).id === null) {
-      removed += await removePrefix(bucket, path) // recurse into sub-folder
-    } else {
-      files.push(path)
+  // Everything a round processes disappears from the listing (files are
+  // removed; folders are virtual and vanish once emptied by the recursion),
+  // so re-list from the top until the prefix is empty or a round makes no
+  // progress (defensive against a stuck entry looping forever).
+  for (;;) {
+    const { data: entries, error } = await svc.storage.from(bucket).list(prefix, { limit: PAGE })
+    if (error || !entries?.length) break
+    const files: string[] = []
+    let roundRemoved = 0
+    for (const e of entries) {
+      const path = prefix ? `${prefix}/${e.name}` : e.name
+      if ((e as { id: string | null }).id === null) {
+        roundRemoved += await removePrefix(bucket, path) // recurse into sub-folder
+      } else {
+        files.push(path)
+      }
     }
-  }
-  if (files.length) {
-    await svc.storage.from(bucket).remove(files)
-    removed += files.length
+    if (files.length) {
+      await svc.storage.from(bucket).remove(files)
+      roundRemoved += files.length
+    }
+    removed += roundRemoved
+    if (entries.length < PAGE) break // that was the final page and it's processed
+    if (roundRemoved === 0) break    // no progress — bail rather than spin
   }
   return removed
 }

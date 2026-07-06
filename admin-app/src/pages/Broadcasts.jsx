@@ -120,7 +120,11 @@ export default function Broadcasts() {
         deep_link_route: draft.deep_link_route || null,
         segment_type: draft.segment_type,
         segment_payload: draft.segment_payload,
-        scheduled_at: draft.scheduled_at || null,
+        // datetime-local gives a zone-less string ("2026-07-06T14:30");
+        // inserting it raw makes Postgres read it as UTC — an Israel admin's
+        // 14:30 would store as 16:30/17:30 local. Convert via Date (parses in
+        // the admin's local zone) to a real instant.
+        scheduled_at: draft.scheduled_at ? new Date(draft.scheduled_at).toISOString() : null,
         created_by: profile?.id,
       })
       .select('id')
